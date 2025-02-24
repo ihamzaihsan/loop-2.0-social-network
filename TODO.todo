@@ -98,3 +98,39 @@ A user should receive a notification when:
 - `bcrypt`  
 - `gofrs/uuid` or `google/uuid`
 
+-----------------------------------------------------------------------------------
+/social-network
+│── /backend            # Go backend
+│   ├── /pkg
+│   │   ├── /db
+│   │   │   ├── /migrations/sqlite
+│   │   │   │   ├── 000001_create_users_table.up.sql
+│   │   │   │   ├── 000001_create_users_table.down.sql
+│   │   │   │   ├── 000002_create_posts_table.up.sql
+│   │   │   │   ├── 000002_create_posts_table.down.sql
+│   │   │   ├── sqlite.go
+│   │   ├── /models      # Database models (User, Post, etc.)
+│   │   ├── /services    # Business logic (auth, posts, chat, etc.)
+│   │   ├── /routes      # API routes (RESTful handlers)
+│   │   ├── /middlewares # JWT, session handling, CORS, etc.
+│   │   ├── /websocket   # Websocket handlers (chat, notifications)
+│   ├── server.go
+│   ├── Dockerfile
+│   ├── go.mod
+│   ├── go.sum
+│
+│── /frontend (Next.js)
+│   ├── /components     # Reusable UI components
+│   ├── /pages          # Next.js pages (profile, feed, chat, etc.)
+│   ├── /styles         # Global styles
+│   ├── /utils          # Helper functions (fetch API, formatting)
+│   ├── /context        # React Context API (auth, notifications)
+│   ├── /services       # API calls to backend
+│   ├── .env.local      # Frontend environment variables
+│   ├── Dockerfile
+│   ├── next.config.js
+│   ├── package.json
+│
+│── /config             # Environment variables, config files
+│── /docker-compose.yml # Docker Compose for backend & frontend
+│── /README.md
