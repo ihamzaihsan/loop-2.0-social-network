@@ -1,0 +1,100 @@
+# Social Network
+
+## Technologies
+- **Frontend:** Next.js  
+- **Backend:** Go  
+
+## Database
+- We will use **SQLite** with migrations.  
+- `sqlite.go` will handle database connections.  
+
+## Docker
+- Two Docker images:  
+  1. One for the backend  
+  2. One for the frontend  
+
+## Authentication
+> **Note:** Users must register or log in to use the Social Network.  
+
+### 1. Register
+Users need to provide:  
+- **Required:**  
+  - Email  
+  - Password  
+  - First Name  
+  - Last Name  
+  - Date of Birth  
+- **Optional:**  
+  - Avatar/Image  
+  - Nickname  
+  - About Me  
+
+### 2. Login
+Users can log in using:  
+- Email   
+- Password  
+
+### 3. Session Management
+- Do **not** destroy the session or cookie until the user logs out.  
+
+## Followers
+1. Users can **follow** and **unfollow** other users.  
+2. **Private accounts:** Follow requests must be **accepted** or **declined** by the user.  
+3. **Public accounts:** No approval needed to follow.  
+
+## Profile
+1. Every profile should display:  
+   - **User information**  
+   - **User activity:** List all posts made by the user.  
+   - **Followers & Following**  
+2. Users can switch their account between **private** and **public** at any time.  
+
+## Posts
+### 1. Post Types
+- **Public:** Visible to all users.  
+- **Almost Private:** Visible only to followers.  
+- **Private:** Visible only to selected followers chosen by the creator.  
+
+### 2. Content
+- Users can attach images or GIFs in posts and comments.  
+
+## Groups
+1. Users can **create** a group.  
+2. Groups must have a **title** and **description** (set by the creator).  
+3. Users can **invite** others to a group.  
+4. Invitations must be **accepted** before joining.  
+5. Users can **request** to join a group (only the creator can approve).  
+6. Members can create **posts** and **comments**.  
+7. **Events** can be created inside groups with:  
+   - Title  
+   - Description  
+   - Date/Time  
+   - Two or more RSVP options (e.g., "Going" / "Not Going").  
+
+## Chat
+1. Users can chat **if at least one follows the other**.  
+2. Messages can be sent if:  
+   - The sender follows the recipient  
+   - The recipient's account is public  
+3. Users can send **emojis**.  
+4. Group members can send and receive messages.  
+
+## Notifications
+> Notifications must be shown on every page.  
+
+A user should receive a notification when:  
+1. They have a **private profile** and receive a follow request.  
+2. They receive a **group invitation** (can accept or decline).  
+3. They are a **group creator** and someone requests to join.  
+4. They are a **group member** and a new event is created.  
+
+## Allowed Packages
+- **Standard Go packages**  
+- `gorilla/websocket`  
+- `golang-migrate`  
+- `sql-migration`  
+- `migration`  
+- `sqlite3`  
+- `bcrypt`  
+- `gofrs/uuid` or `google/uuid`
+
