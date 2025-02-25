@@ -1,0 +1,3 @@
+DROP TABLE IF EXISTS group_chat_messages;
+DROP TABLE IF EXISTS messages;
+DROP TABLE IF EXISTS chats;

@@ -1,4 +1,4 @@
-module social-network
+module socialNetwork
 
 go 1.23.5
 
