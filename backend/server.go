@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	auth "socialNetwork/pkg/auth"
 	db "socialNetwork/pkg/db"
+	routes "socialNetwork/pkg/routes"
 )
 
 func main() {
@@ -21,6 +23,12 @@ func main() {
 			log.Printf("Error closing database: %v", err)
 		}
 	}()
+
+	//routes
+	http.HandleFunc("/", routes.ServeMain)
+	http.HandleFunc("/register", auth.Register)
+	http.HandleFunc("/login", auth.Login)
+	http.HandleFunc("/logout", auth.Logout)
 
 	// Start the server
 	fmt.Println("Server is running on http://localhost:8080")

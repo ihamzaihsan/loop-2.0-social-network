@@ -110,7 +110,7 @@ A user should receive a notification when:
 │   │   │   │   ├── 000002_create_posts_table.down.sql
 │   │   │   ├── sqlite.go
 │   │   ├── /models      # Database models (User, Post, etc.)
-│   │   ├── /services    # Business logic (auth, posts, chat, etc.)
+│   │   ├── /services    # Business logic (posts, chat, etc.)
 │   │   ├── /routes      # API routes (RESTful handlers)
 │   │   ├── /middlewares # JWT, session handling, CORS, etc.
 │   │   ├── /websocket   # Websocket handlers (chat, notifications)

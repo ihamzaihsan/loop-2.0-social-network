@@ -1,7 +1,35 @@
+'use client'
 import Link from 'next/link'
 import './login.css'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 export default function Login() {
+  const router = useRouter()
+  const [formData, setFormData] = useState({
+    email: '',
+    password: ''
+  })
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    const response = await fetch('http://localhost:8080/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(formData),
+      credentials: 'include'
+    })
+
+    if (response.ok) {
+      router.push('/home')
+    }else{
+      console.log('Error logging in')
+    }
+  }
+
   return (
     <div className="login-container">
       <div className="login-form-wrapper">
@@ -13,7 +41,7 @@ export default function Login() {
 
         <h2 className="form-title">Login</h2>
         
-        <form>
+        <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label className="form-label">Email</label>
             <input 
@@ -21,6 +49,8 @@ export default function Login() {
               required 
               className="form-input" 
               placeholder="Enter your email"
+              value={formData.email}
+              onChange={(e) => setFormData({...formData, email: e.target.value})}
             />
           </div>
 
@@ -31,6 +61,8 @@ export default function Login() {
               required 
               className="form-input" 
               placeholder="Enter your password"
+              value={formData.password}
+              onChange={(e) => setFormData({...formData, password: e.target.value})}
             />
           </div>
 
