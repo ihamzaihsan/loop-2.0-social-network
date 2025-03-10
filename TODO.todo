@@ -1,22 +1,22 @@
 # Social Network
 
-## Technologies
+## Technologies(done) frontend and backend
 - **Frontend:** Next.js  
 - **Backend:** Go  
 
-## Database
+## Database(done) backend
 - We will use **SQLite** with migrations.  
 - `sqlite.go` will handle database connections.  
 
-## Docker
+## Docker frontend and backend
 - Two Docker images:  
   1. One for the backend  
   2. One for the frontend  
 
-## Authentication
+## Authentication(done)check also (frontend and backend)
 > **Note:** Users must register or log in to use the Social Network.  
 
-### 1. Register
+### 1. Register (done) (frontend and backend)
 Users need to provide:  
 - **Required:**  
   - Email  
@@ -29,27 +29,27 @@ Users need to provide:
   - Nickname  
   - About Me  
 
-### 2. Login
+### 2. Login (done) (frontend and backend)
 Users can log in using:  
 - Email   
 - Password  
 
-### 3. Session Management
+### 3. Session Management (done) check also (backend)
 - Do **not** destroy the session or cookie until the user logs out.  
 
-## Followers
+## Followers frontend and backend
 1. Users can **follow** and **unfollow** other users.  
 2. **Private accounts:** Follow requests must be **accepted** or **declined** by the user.  
 3. **Public accounts:** No approval needed to follow.  
 
-## Profile
+## Profile frontend and backend
 1. Every profile should display:  
    - **User information**  
    - **User activity:** List all posts made by the user.  
    - **Followers & Following**  
 2. Users can switch their account between **private** and **public** at any time.  
 
-## Posts
+## Posts frontend and backend
 ### 1. Post Types
 - **Public:** Visible to all users.  
 - **Almost Private:** Visible only to followers.  
@@ -58,7 +58,7 @@ Users can log in using:
 ### 2. Content
 - Users can attach images or GIFs in posts and comments.  
 
-## Groups
+## Groups frontend and backend
 1. Users can **create** a group.  
 2. Groups must have a **title** and **description** (set by the creator).  
 3. Users can **invite** others to a group.  
@@ -71,7 +71,7 @@ Users can log in using:
    - Date/Time  
    - Two or more RSVP options (e.g., "Going" / "Not Going").  
 
-## Chat
+## Chat frontend and backend
 1. Users can chat **if at least one follows the other**.  
 2. Messages can be sent if:  
    - The sender follows the recipient  
@@ -79,7 +79,7 @@ Users can log in using:
 3. Users can send **emojis**.  
 4. Group members can send and receive messages.  
 
-## Notifications
+## Notifications frontend and backend
 > Notifications must be shown on every page.  
 
 A user should receive a notification when:  
