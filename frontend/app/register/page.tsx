@@ -33,7 +33,7 @@ export default function Register() {
     e.preventDefault()
     
     try {
-        const response = await fetch('http://localhost:8080/register', {
+        const response = await fetch('http://localhost:3000/register', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -107,7 +107,7 @@ export default function Register() {
           </div>
 
           <button type="submit" className="submit-button">
-            Create Account
+            Create An Account
           </button>
 
           <div className="login-link">
