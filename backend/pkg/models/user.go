@@ -12,6 +12,6 @@ type User struct {
 	Avatar    *string   `json:"avatar"`
 	Nickname  *string   `json:"nickname"`
 	AboutMe   *string   `json:"aboutMe"`
-	Is_Public bool      `json:"isPublic"`
+	IsPublic bool      `json:"isPublic"`
 	CreatedAt time.Time `json:"createdAt"`
 }

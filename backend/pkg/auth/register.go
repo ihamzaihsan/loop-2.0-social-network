@@ -50,7 +50,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-    dob, err := time.Parse("2006-01-02", requestData.DOB)
+	dob, err := time.Parse("2006-01-02", requestData.DOB)
 	if err != nil {
 		http.Error(w, "Invalid date format", http.StatusBadRequest)
 		return
@@ -64,7 +64,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		Avatar:    requestData.Avatar,
 		Nickname:  requestData.Nickname,
 		AboutMe:   requestData.AboutMe,
-		Is_Public: requestData.IsPublic,
+		IsPublic:  requestData.IsPublic,
 	}
 
 	var exists bool
@@ -87,7 +87,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	result, err := db.DBInstance.DB.Exec(`
         INSERT INTO users (email, password, first_name, last_name, dob, avatar, nickname, about_me, is_public)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		user.Email, hashedPassword, user.FirstName, user.LastName, user.DOB, user.Avatar, user.Nickname, user.AboutMe, user.Is_Public)
+		user.Email, hashedPassword, user.FirstName, user.LastName, user.DOB, user.Avatar, user.Nickname, user.AboutMe, user.IsPublic)
 	if err != nil {
 		http.Error(w, "Error creating user", http.StatusInternalServerError)
 		return

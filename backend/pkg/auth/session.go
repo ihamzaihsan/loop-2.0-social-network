@@ -46,3 +46,11 @@ func GetSessionFromCookie(r *http.Request) (*models.Session, error) {
 
 	return nil, nil
 }
+
+func GetUserID(r *http.Request) (int, error) {
+	session, err := GetSessionFromCookie(r)
+	if err != nil {
+		return 0, err
+	}
+	return session.UserID, nil
+}

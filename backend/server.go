@@ -29,6 +29,7 @@ func main() {
 	http.HandleFunc("/register", auth.Register)
 	http.HandleFunc("/login", auth.Login)
 	http.HandleFunc("/logout", auth.Logout)
+	http.HandleFunc("/profile", auth.AuthMiddleware(routes.Profile))
 
 	// Start the server
 	fmt.Println("Server is running on http://localhost:8080")
