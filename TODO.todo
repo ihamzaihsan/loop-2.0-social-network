@@ -42,7 +42,7 @@ Users can log in using:
 2. **Private accounts:** Follow requests must be **accepted** or **declined** by the user.  
 3. **Public accounts:** No approval needed to follow.  
 
-## Profile frontend and backend
+## Profile frontend and backend (backend done)
 1. Every profile should display:  
    - **User information**  
    - **User activity:** List all posts made by the user.  
