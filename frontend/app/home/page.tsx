@@ -4,26 +4,59 @@ import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import './home.css'
 
+interface User {
+  id: number
+  firstName: string
+  lastName: string
+  email: string
+  nickname?: string
+}
+
 export default function Home() {
   const router = useRouter()
-  const [username, setUsername] = useState('User')
+  const [username, setUsername] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-   
     const fetchUserData = async () => {
       try {
-     
-      } catch (error) {
+        // Fetch user data from the backend
+        const response = await fetch('http://localhost:8080/profile', {
+          method: 'GET',
+          credentials: 'include'
+        })
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            // Unauthorized, redirect to login
+            router.push('/')
+            return
+          }
+          throw new Error('Failed to fetch user data')
+        }
+
+        const data = await response.json()
+        
+        // Set the username based on the user's first name or nickname
+        if (data.user) {
+          // Use nickname if available, otherwise use firstName
+          setUsername(data.user.nickname || data.user.firstName)
+        }
+      } catch (error: any) {
         console.error('Error fetching user data:', error)
+        setError(error.message)
+      } finally {
+        setLoading(false)
       }
     }
 
     fetchUserData()
-  }, [])
+  }, [router])
 
   const handleLogout = async () => {
     try {
-      const response = await fetch('http://localhost:3000/logout', {
+      const response = await fetch('http://localhost:8080/logout', {
         method: 'POST',
         credentials: 'include'
       })
@@ -37,6 +70,13 @@ export default function Home() {
       console.error('Logout failed:', error)
     }
   }
+
+  const navigateToProfile = () => {
+    router.push('/profile')
+  }
+
+  if (loading) return <div className="home-page">Loading...</div>
+  if (error) return <div className="home-page">Error: {error}</div>
 
   return (
     <div className="home-page">
@@ -59,22 +99,21 @@ export default function Home() {
             <p className="empty-feed">No posts yet. Start connecting with friends!</p>
           </div>
           
-          <div className="card profile-card">
-            <h2 className="card-title">Your Profile</h2>
-            <div className="profile-info">
-              <div className="avatar"></div>
-              <h3>{username}</h3>
-              <p>Member since: {new Date().toLocaleDateString()}</p>
-            </div>
-            <button className="primary-button edit-profile-btn">Edit Profile</button>
-          </div>
-          
           <div className="card friends-card">
             <h2 className="card-title">Friends</h2>
             <p className="empty-friends">Connect with new friends to see them here.</p>
             <button className="secondary-button find-friends-btn">Find Friends</button>
           </div>
         </div>
+        
+        {/* Circular profile button */}
+        <button 
+          className="profile-circle-button" 
+          onClick={navigateToProfile}
+          aria-label="Go to profile"
+        >
+          {username ? username.charAt(0).toUpperCase() : ''}
+        </button>
       </main>
     </div>
   )

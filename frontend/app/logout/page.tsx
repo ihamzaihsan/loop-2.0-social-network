@@ -6,7 +6,7 @@ export default function useLogout() {
   const router = useRouter()
 
   const logout = async () => {
-    const response = await fetch('http://localhost:3000/logout', {
+    const response = await fetch('http://localhost:8080/logout', {
       method: 'POST',
       credentials: 'include'
     })

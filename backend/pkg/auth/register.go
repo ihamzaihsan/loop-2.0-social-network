@@ -2,6 +2,7 @@ package auth
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"socialNetwork/pkg/db"
 	"socialNetwork/pkg/models"
@@ -40,6 +41,12 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		IsPublic  bool    `json:"isPublic"`
 	}
 
+	if db.DBInstance.DB == nil {
+		log.Println("Database connection is nil")
+		http.Error(w, "Database connection error", http.StatusInternalServerError)
+		return
+	}
+	
 	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
@@ -85,11 +92,12 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	result, err := db.DBInstance.DB.Exec(`
-        INSERT INTO users (email, password, first_name, last_name, dob, avatar, nickname, about_me, is_public)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    INSERT INTO users (email, password, first_name, last_name, dob, avatar, nickname, about_me, is_public)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		user.Email, hashedPassword, user.FirstName, user.LastName, user.DOB, user.Avatar, user.Nickname, user.AboutMe, user.IsPublic)
 	if err != nil {
-		http.Error(w, "Error creating user", http.StatusInternalServerError)
+		log.Printf("Database error during user creation: %v", err)
+		http.Error(w, "Error creating user: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 

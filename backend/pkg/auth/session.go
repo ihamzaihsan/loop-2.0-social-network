@@ -27,7 +27,8 @@ func SetSessionCookie(w http.ResponseWriter, Session *models.Session) {
 		Value:    Session.ID,
 		HttpOnly: true,
 		Path:     "/",
-		SameSite: http.SameSiteDefaultMode,
+		SameSite: http.SameSiteLaxMode,
+		Expires:  time.Now().Add(24 * time.Hour),
 	}
 	http.SetCookie(w, cookie)
 }

@@ -2,6 +2,7 @@ package routes
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	auth "socialNetwork/pkg/auth"
 	query "socialNetwork/pkg/db/query"
@@ -28,33 +29,56 @@ func Profile(w http.ResponseWriter, r *http.Request) {
 
 	UserID, err := auth.GetUserID(r)
 	if err != nil {
+		log.Printf("Auth error: %v", err)
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
+	log.Printf("Fetching profile for user ID: %d", UserID)
+
+
 	user, err := query.GetUserInfo(UserID)
 	if err != nil {
+		log.Printf("Error getting user info: %v", err)
 		http.Error(w, "Failed to get user information", http.StatusInternalServerError)
 		return
 	}
 
-	posts, postsCount, err := query.GetUserPosts(UserID)
-	if err != nil {
-		http.Error(w, "Failed to get user posts", http.StatusInternalServerError)
-		return
+
+	var posts []models.Post = []models.Post{}
+	var postsCount int = 0
+	var followers []models.User = []models.User{}
+	var followersCount int = 0
+	var following []models.User = []models.User{}
+	var followingCount int = 0
+
+
+	postsResult, postsCountResult, err := query.GetUserPosts(UserID)
+	if err == nil {
+		posts = postsResult
+		postsCount = postsCountResult
+	} else {
+		log.Printf("Warning: Could not get posts: %v", err)
 	}
 
-	followers, followersCount, err := query.GetFollowers(UserID)
-	if err != nil {
-		http.Error(w, "Failed to get user followers", http.StatusInternalServerError)
-		return
+
+	followersResult, followersCountResult, err := query.GetFollowers(UserID)
+	if err == nil {
+		followers = followersResult
+		followersCount = followersCountResult
+	} else {
+		log.Printf("Warning: Could not get followers: %v", err)
 	}
 
-	following, followingCount, err := query.GetFollowing(UserID)
-	if err != nil {
-		http.Error(w, "Failed to get user following", http.StatusInternalServerError)
-		return
+
+	followingResult, followingCountResult, err := query.GetFollowing(UserID)
+	if err == nil {
+		following = followingResult
+		followingCount = followingCountResult
+	} else {
+		log.Printf("Warning: Could not get following: %v", err)
 	}
+
 
 	profile := models.Profile{
 		User:           user,
@@ -67,5 +91,9 @@ func Profile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(profile)
+	if err := json.NewEncoder(w).Encode(profile); err != nil {
+		log.Printf("Error encoding profile to JSON: %v", err)
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		return
+	}
 }
