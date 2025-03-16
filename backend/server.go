@@ -29,10 +29,10 @@ func main() {
 	http.HandleFunc("/register", auth.CorsMiddleware(auth.Register))
 	http.HandleFunc("/login", auth.CorsMiddleware(auth.Login))
 	http.HandleFunc("/logout", auth.CorsMiddleware(auth.Logout))
-	
-	// Apply CORS middleware before AuthMiddleware for the profile route
-	// Only register this route once with both middlewares
-	http.HandleFunc("/profile", auth.CorsMiddleware(auth.AuthMiddleware(routes.Profile)))	// Start the server
+	http.HandleFunc("/profile", auth.CorsMiddleware(auth.AuthMiddleware(routes.Profile)))
+	http.HandleFunc("/posts", auth.CorsMiddleware(auth.AuthMiddleware(routes.HandlePosts)))
+	http.HandleFunc("/comments", auth.CorsMiddleware(auth.AuthMiddleware(routes.HandleComments)))
+
 	fmt.Println("Server is running on http://localhost:8080")
 	err = http.ListenAndServe(":8080", nil)
 	if err != nil {
