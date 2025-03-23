@@ -75,6 +75,10 @@ export default function Home() {
     router.push('/profile')
   }
 
+  const navigateToFindFriends = () => {
+    router.push('/find-friends')
+  }
+
   if (loading) return <div className="home-page">Loading...</div>
   if (error) return <div className="home-page">Error: {error}</div>
 
@@ -102,7 +106,12 @@ export default function Home() {
           <div className="card friends-card">
             <h2 className="card-title">Friends</h2>
             <p className="empty-friends">Connect with new friends to see them here.</p>
-            <button className="secondary-button find-friends-btn">Find Friends</button>
+            <button 
+              className="secondary-button find-friends-btn" 
+              onClick={navigateToFindFriends}
+            >
+              Find Friends
+            </button>
           </div>
         </div>
         

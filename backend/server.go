@@ -33,6 +33,11 @@ func main() {
 	http.HandleFunc("/posts", auth.CorsMiddleware(auth.AuthMiddleware(routes.HandlePosts)))
 	http.HandleFunc("/comments", auth.CorsMiddleware(auth.AuthMiddleware(routes.HandleComments)))
 
+	// Follow routes
+	http.HandleFunc("/follow", auth.CorsMiddleware(auth.AuthMiddleware(routes.FollowUser)))
+	http.HandleFunc("/unfollow", auth.CorsMiddleware(auth.AuthMiddleware(routes.UnfollowUser)))
+	http.HandleFunc("/users", auth.CorsMiddleware(auth.AuthMiddleware(routes.GetAllUsers)))
+
 	fmt.Println("Server is running on http://localhost:8080")
 	err = http.ListenAndServe(":8080", nil)
 	if err != nil {

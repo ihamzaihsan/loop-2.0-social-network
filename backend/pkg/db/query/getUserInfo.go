@@ -8,7 +8,7 @@ import (
 func GetUserInfo(userID int) (models.User, error) {
 	var user models.User
 	query := `
-	SELECT id,email,first_name,last_name,dob,avatar,nickname,about_me,is_public,created_at
+	SELECT id,email,first_name,last_name,dob,avatar,nickname,about_me,is_private,created_at
 	FROM users
 	WHERE id = ?
 	`
@@ -21,7 +21,7 @@ func GetUserInfo(userID int) (models.User, error) {
 		&user.Avatar,
 		&user.Nickname,
 		&user.AboutMe,
-		&user.IsPublic,
+		&user.IsPrivate,
 		&user.CreatedAt,
 	)
 	return user, err

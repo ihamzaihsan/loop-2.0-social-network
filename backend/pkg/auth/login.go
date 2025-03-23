@@ -43,7 +43,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	err := db.DBInstance.DB.QueryRow(
 		"SELECT * FROM users WHERE email = ?",
 		loginReq.Email,
-	).Scan(&user.ID, &user.Email, &user.Password, &user.FirstName, &user.LastName, &user.DOB, &user.Avatar, &user.Nickname, &user.AboutMe, &user.IsPublic, &user.CreatedAt)
+	).Scan(&user.ID, &user.Email, &user.Password, &user.FirstName, &user.LastName, &user.DOB, &user.Avatar, &user.Nickname, &user.AboutMe, &user.IsPrivate, &user.CreatedAt)
 
 	if err == sql.ErrNoRows {
 		w.WriteHeader(http.StatusUnauthorized)

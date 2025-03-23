@@ -36,7 +36,6 @@ func Profile(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Fetching profile for user ID: %d", UserID)
 
-
 	user, err := query.GetUserInfo(UserID)
 	if err != nil {
 		log.Printf("Error getting user info: %v", err)
@@ -44,14 +43,12 @@ func Profile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-
 	var posts []models.Post = []models.Post{}
 	var postsCount int = 0
 	var followers []models.User = []models.User{}
 	var followersCount int = 0
 	var following []models.User = []models.User{}
 	var followingCount int = 0
-
 
 	postsResult, postsCountResult, err := query.GetUserPosts(UserID)
 	if err == nil {
@@ -61,24 +58,49 @@ func Profile(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Warning: Could not get posts: %v", err)
 	}
 
-
-	followersResult, followersCountResult, err := query.GetFollowers(UserID)
+	followersResult, followersCountResult, err := query.GetFollowers(uint(UserID))
 	if err == nil {
-		followers = followersResult
+		for _, f := range followersResult {
+			var avatar *string
+			if f.Avatar != "" {
+				avatarStr := f.Avatar
+				avatar = &avatarStr
+			}
+
+			user := models.User{
+				ID:        int(f.FollowerID),
+				FirstName: "",
+				LastName:  "",
+				Avatar:    avatar,
+			}
+			followers = append(followers, user)
+		}
 		followersCount = followersCountResult
 	} else {
 		log.Printf("Warning: Could not get followers: %v", err)
 	}
 
-
-	followingResult, followingCountResult, err := query.GetFollowing(UserID)
+	followingResult, followingCountResult, err := query.GetFollowing(uint(UserID))
 	if err == nil {
-		following = followingResult
+		for _, f := range followingResult {
+			var avatar *string
+			if f.Avatar != "" {
+				avatarStr := f.Avatar
+				avatar = &avatarStr
+			}
+
+			user := models.User{
+				ID:        int(f.FollowedID),
+				FirstName: "",
+				LastName:  "",
+				Avatar:    avatar,
+			}
+			following = append(following, user)
+		}
 		followingCount = followingCountResult
 	} else {
 		log.Printf("Warning: Could not get following: %v", err)
 	}
-
 
 	profile := models.Profile{
 		User:           user,

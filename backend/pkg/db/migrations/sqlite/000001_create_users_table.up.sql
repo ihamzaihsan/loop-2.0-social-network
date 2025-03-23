@@ -8,6 +8,6 @@ CREATE TABLE users (
     avatar TEXT,
     nickname TEXT,
     about_me TEXT,
-    is_public BOOLEAN,
+    isprivate BOOLEAN,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );

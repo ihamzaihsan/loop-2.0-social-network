@@ -15,7 +15,7 @@ export default function Register() {
     nickname: string;
     aboutMe: string;
     avatar: File | null;
-    isPublic: boolean;
+    isPrivate: boolean;
   }>({
     email: '',
     password: '',
@@ -25,7 +25,7 @@ export default function Register() {
     nickname: '',
     aboutMe: '',
     avatar: null,
-    isPublic: false
+    isPrivate: false
   });
   
 

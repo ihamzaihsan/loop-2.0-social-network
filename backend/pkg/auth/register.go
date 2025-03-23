@@ -38,7 +38,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		Avatar    *string `json:"avatar"`
 		Nickname  *string `json:"nickname"`
 		AboutMe   *string `json:"aboutMe"`
-		IsPublic  bool    `json:"isPublic"`
+		IsPrivate bool    `json:"isprivate"`
 	}
 
 	if db.DBInstance.DB == nil {
@@ -46,7 +46,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Database connection error", http.StatusInternalServerError)
 		return
 	}
-	
+
 	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
@@ -71,7 +71,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		Avatar:    requestData.Avatar,
 		Nickname:  requestData.Nickname,
 		AboutMe:   requestData.AboutMe,
-		IsPublic:  requestData.IsPublic,
+		IsPrivate: requestData.IsPrivate,
 	}
 
 	var exists bool
@@ -92,9 +92,9 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	result, err := db.DBInstance.DB.Exec(`
-    INSERT INTO users (email, password, first_name, last_name, dob, avatar, nickname, about_me, is_public)
+    INSERT INTO users (email, password, first_name, last_name, dob, avatar, nickname, about_me, is_private)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		user.Email, hashedPassword, user.FirstName, user.LastName, user.DOB, user.Avatar, user.Nickname, user.AboutMe, user.IsPublic)
+		user.Email, hashedPassword, user.FirstName, user.LastName, user.DOB, user.Avatar, user.Nickname, user.AboutMe, user.IsPrivate)
 	if err != nil {
 		log.Printf("Database error during user creation: %v", err)
 		http.Error(w, "Error creating user: "+err.Error(), http.StatusInternalServerError)

@@ -12,7 +12,7 @@ interface User {
   aboutMe: string
   email: string
   avatar: string
-  isPublic: boolean
+  isprivate: boolean 
   createdAt: string
 }
 
@@ -100,6 +100,11 @@ export default function Profile() {
                   <h3>About Me</h3>
                   <p>{profile.user.aboutMe}</p>
                 </div>
+              )}
+              {profile.user.isprivate ? (
+                <span className="privacy-badge">Private Account</span>
+              ) : (
+              <span className="privacy-badge">Public Account</span>
               )}
               
               <div className="profile-stats">
