@@ -1,0 +1,145 @@
+package routes
+
+import (
+	"log"
+	"net/http"
+	"sync"
+	"time"
+
+	"socialNetwork/pkg/auth"
+	"socialNetwork/pkg/db/query"
+
+	"github.com/gorilla/websocket"
+)
+
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
+}
+
+type Message struct {
+	Type    string      `json:"type"`
+	Content interface{} `json:"content"`
+}
+
+type SafeConn struct {
+	conn *websocket.Conn
+	mu   sync.Mutex
+}
+
+var clients = make(map[int]*SafeConn)
+var clientsMutex sync.RWMutex
+
+func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
+	// Use the existing auth package to get the user ID from the session
+	userID, err := auth.GetUserID(r)
+	if err != nil || userID == 0 {
+		log.Printf("[ERROR] Unauthorized WebSocket connection attempt: %v", err)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Upgrade the HTTP connection to a WebSocket connection
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Printf("[ERROR] WebSocket upgrade failed: %v", err)
+		return
+	}
+
+	// Get user info for the connected user
+	user, err := query.GetUserInfo(userID)
+	if err != nil {
+		log.Printf("[ERROR] Failed to retrieve user info for ID %d: %v", userID, err)
+		conn.Close()
+		return
+	}
+
+	// Create a thread-safe connection wrapper
+	safeConn := &SafeConn{
+		conn: conn,
+	}
+
+	// Register the client
+	clientsMutex.Lock()
+	clients[userID] = safeConn
+	clientsMutex.Unlock()
+
+	// Clean up when the connection closes
+	defer func() {
+		clientsMutex.Lock()
+		delete(clients, userID)
+		clientsMutex.Unlock()
+		conn.Close()
+		log.Printf("[INFO] WebSocket connection closed for user %d (%s %s)", 
+			userID, user.FirstName, user.LastName)
+	}()
+
+	log.Printf("[INFO] New WebSocket connection established for user %d (%s %s)", 
+		userID, user.FirstName, user.LastName)
+
+	// Message handling loop
+	for {
+		var msg Message
+		if err := conn.ReadJSON(&msg); err != nil {
+			log.Printf("[INFO] WebSocket read error: %v", err)
+			break
+		}
+
+		switch msg.Type {
+		case "private_message":
+			// TODO: Implement private message handling
+		case "typing_status":
+			// TODO: Implement typing status handling
+		case "ping":
+			err = safeConn.WriteJSON(Message{
+				Type: "pong",
+				Content: map[string]interface{}{
+					"timestamp": time.Now().Format(time.RFC3339),
+				},
+			})
+			if err != nil {
+				log.Printf("[ERROR] Failed to send pong to user %d (%s %s): %v", 
+					userID, user.FirstName, user.LastName, err)
+			}
+		default:
+			log.Printf("[WARN] Unknown message type from user %d (%s %s): %s", 
+				userID, user.FirstName, user.LastName, msg.Type)
+		}
+	}
+}
+
+func (sc *SafeConn) WriteJSON(v interface{}) error {
+	sc.mu.Lock()
+	defer sc.mu.Unlock()
+	return sc.conn.WriteJSON(v)
+}
+
+// SendToUser sends a message to a specific user if they are connected
+func SendToUser(userID int, message Message) bool {
+	clientsMutex.RLock()
+	client, exists := clients[userID]
+	clientsMutex.RUnlock()
+
+	if !exists {
+		return false
+	}
+
+	if err := client.WriteJSON(message); err != nil {
+		log.Printf("[ERROR] Failed to send message to user %d: %v", userID, err)
+		return false
+	}
+	return true
+}
+
+// BroadcastMessage sends a message to all connected clients
+func BroadcastMessage(message Message) {
+	clientsMutex.RLock()
+	defer clientsMutex.RUnlock()
+
+	for userID, client := range clients {
+		if err := client.WriteJSON(message); err != nil {
+			log.Printf("[ERROR] Failed to broadcast message to user %d: %v", userID, err)
+		}
+	}
+}
