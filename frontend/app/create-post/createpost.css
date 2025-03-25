@@ -1,0 +1,153 @@
+.create-post-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+    background-color: #f5f7fb;
+  }
+  
+  .create-post-card {
+    width: 100%;
+    max-width: 600px;
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    padding: 30px;
+  }
+  
+  .create-post-title {
+    font-size: 24px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 24px;
+    text-align: center;
+  }
+  
+  .create-post-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .form-group label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #555;
+  }
+  
+  .content-textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    resize: vertical;
+    font-family: inherit;
+    font-size: 16px;
+    transition: border-color 0.2s;
+  }
+  
+  .content-textarea:focus {
+    outline: none;
+    border-color: #4a90e2;
+  }
+  
+  .file-input {
+    padding: 8px 0;
+  }
+  
+  .privacy-select {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: white;
+    font-size: 16px;
+  }
+  
+  .form-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+  }
+  
+  .cancel-button, .submit-button {
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .cancel-button {
+    background-color: #f1f1f1;
+    color: #555;
+    border: none;
+  }
+  
+  .cancel-button:hover {
+    background-color: #e5e5e5;
+  }
+  
+  .submit-button {
+    background-color: #4a90e2;
+    color: white;
+    border: none;
+  }
+  
+  .submit-button:hover {
+    background-color: #3a80d2;
+  }
+  
+  .submit-button:disabled {
+    background-color: #a0c3e8;
+    cursor: not-allowed;
+  }
+  
+  .error-message {
+    background-color: #ffebee;
+    color: #d32f2f;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+  }
+  
+  .image-preview-container {
+    position: relative;
+    margin-bottom: 10px;
+  }
+  
+  .image-preview {
+    width: 100%;
+    max-height: 300px;
+    object-fit: contain;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+  }
+  
+  .remove-image-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: rgba(0, 0, 0, 0.6);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  
+  .remove-image-btn:hover {
+    background-color: rgba(0, 0, 0, 0.8);
+  }
+  
