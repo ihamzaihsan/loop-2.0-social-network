@@ -2,7 +2,8 @@
 
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import '../home/home.css' 
+import '../home/home.css'
+import Sidebar from '../../components/Sidebar'
 
 interface User {
   id: number
@@ -77,15 +78,8 @@ export default function Profile() {
 
   return (
     <div className="profile-page">
-      <header className="header">
-        <div className="header-content">
-          <h1 className="site-title">Profile</h1>
-          <button onClick={handleBack} className="back-button">
-            Back to Home
-          </button>
-        </div>
-      </header>
-
+      <Sidebar activePage="profile" />
+      
       <main className="main-content">
         {profile && (
           <div className="profile-container">

@@ -24,6 +24,11 @@ export default function Login() {
     })
 
     if (response.ok) {
+      // Get the token from the response
+      const data = await response.json();
+      if (data.token) {
+        localStorage.setItem('sessionToken', data.token);
+      }
       router.push('/home')
     }else{
       console.log('Error logging in')

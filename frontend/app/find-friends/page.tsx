@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import './find-friends.css'
+import Sidebar from '../../components/Sidebar'
 
 interface User {
   id: number
@@ -70,7 +71,8 @@ export default function FindFriends() {
         setUsers(filteredUsers.map((user: User) => ({
           ...user,
           following: user.following || false
-        })))      } catch (err: any) {
+        })))
+      } catch (err: any) {
         console.error('Error fetching users:', err)
         setError(err.message)
       } finally {
@@ -121,25 +123,16 @@ export default function FindFriends() {
     router.push(`/profile/${userId}`)
   }
 
-  const navigateToHome = () => {
-    router.push('/home')
-  }
-
   if (loading) return <div className="find-friends-page">Loading users...</div>
   if (error) return <div className="find-friends-page">Error: {error}</div>
 
   return (
     <div className="find-friends-page">
-      <header className="header">
-        <div className="header-content">
-          <h1 className="page-title">Find Friends</h1>
-          <button onClick={navigateToHome} className="back-button">
-            Back to Home
-          </button>
-        </div>
-      </header>
-
+      <Sidebar activePage="find-friends" />
+      
       <main className="users-container">
+        <h1 className="page-title">Find Friends</h1>
+        
         {users.length === 0 ? (
           <p className="no-users-message">No other users found.</p>
         ) : (

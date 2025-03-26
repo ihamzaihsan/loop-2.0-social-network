@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import './createpost.css'
+import Sidebar from '../../components/Sidebar'
 
 export default function CreatePost() {
   const router = useRouter()
@@ -75,81 +76,85 @@ export default function CreatePost() {
   }
   
   return (
-    <div className="create-post-container">
-      <div className="create-post-card">
-        <h1 className="create-post-title">Create a New Post</h1>
-        
-        {error && <div className="error-message">{error}</div>}
-        
-        <form onSubmit={handleSubmit} className="create-post-form">
-          <div className="form-group">
-            <label htmlFor="content">What's on your mind?</label>
-            <textarea
-              id="content"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Share your thoughts..."
-              rows={5}
-              className="content-textarea"
-            />
-          </div>
+    <div className="create-post-page">
+      <Sidebar activePage="" />
+      
+      <div className="create-post-container">
+        <div className="create-post-card">
+          <h1 className="create-post-title">Create a New Post</h1>
           
-          {imagePreview && (
-            <div className="image-preview-container">
-              <img src={imagePreview} alt="Preview" className="image-preview" />
+          {error && <div className="error-message">{error}</div>}
+          
+          <form onSubmit={handleSubmit} className="create-post-form">
+            <div className="form-group">
+              <label htmlFor="content">What's on your mind?</label>
+              <textarea
+                id="content"
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="Share your thoughts..."
+                rows={5}
+                className="content-textarea"
+              />
+            </div>
+            
+            {imagePreview && (
+              <div className="image-preview-container">
+                <img src={imagePreview} alt="Preview" className="image-preview" />
+                <button 
+                  type="button" 
+                  onClick={handleRemoveImage}
+                  className="remove-image-btn"
+                >
+                  Remove Image
+                </button>
+              </div>
+            )}
+            
+            <div className="form-group">
+              <label htmlFor="image">Add an Image</label>
+              <input
+                type="file"
+                id="image"
+                ref={fileInputRef}
+                onChange={handleImageChange}
+                accept="image/*"
+                className="file-input"
+              />
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="privacy">Privacy Setting</label>
+              <select
+                id="privacy"
+                value={privacy}
+                onChange={(e) => setPrivacy(e.target.value)}
+                className="privacy-select"
+              >
+                <option value="public">Public</option>
+                <option value="almost_private">Followers Only</option>
+                <option value="private">Private</option>
+              </select>
+            </div>
+            
+            <div className="form-actions">
               <button 
                 type="button" 
-                onClick={handleRemoveImage}
-                className="remove-image-btn"
+                onClick={() => router.push('/home')}
+                className="cancel-button"
               >
-                Remove Image
+                Cancel
+              </button>
+              <button 
+                type="submit" 
+                disabled={isSubmitting}
+                className="submit-button"
+              >
+                {isSubmitting ? 'Posting...' : 'Create Post'}
               </button>
             </div>
-          )}
-          
-          <div className="form-group">
-            <label htmlFor="image">Add an Image</label>
-            <input
-              type="file"
-              id="image"
-              ref={fileInputRef}
-              onChange={handleImageChange}
-              accept="image/*"
-              className="file-input"
-            />
-          </div>
-          
-          <div className="form-group">
-            <label htmlFor="privacy">Privacy Setting</label>
-            <select
-              id="privacy"
-              value={privacy}
-              onChange={(e) => setPrivacy(e.target.value)}
-              className="privacy-select"
-            >
-              <option value="public">Public</option>
-              <option value="almost_private">Followers Only</option>
-              <option value="private">Private</option>
-            </select>
-          </div>
-          
-          <div className="form-actions">
-            <button 
-              type="button" 
-              onClick={() => router.back()}
-              className="cancel-button"
-            >
-              Cancel
-            </button>
-            <button 
-              type="submit" 
-              disabled={isSubmitting}
-              className="submit-button"
-            >
-              {isSubmitting ? 'Posting...' : 'Create Post'}
-            </button>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   )

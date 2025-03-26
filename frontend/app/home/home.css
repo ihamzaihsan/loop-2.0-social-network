@@ -1,7 +1,7 @@
-.home-page {
+.home-page, .profile-page, .find-friends-page, .create-post-page {
   min-height: 100vh;
   background-color: var(--background-light);
-  position: relative; /* For absolute positioning of the profile button */
+  padding-left: 240px; 
 }
 
 .header {
@@ -11,11 +11,11 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  border-bottom: 1px solid #dbdbdb; /* Instagram-like border */
+  border-bottom: 1px solid #dbdbdb; 
 }
 
 .header-content {
-  max-width: 975px; /* Instagram-like width */
+  max-width: 975px; 
   margin: 0 auto;
   display: flex;
   justify-content: space-between;
@@ -23,7 +23,7 @@
 }
 
 .site-title {
-  color: #262626; /* Instagram-like color */
+  color: #262626; 
   font-size: 1.5rem;
   font-weight: 700;
   margin: 0;
@@ -37,12 +37,12 @@
 
 .welcome-message {
   font-weight: 500;
-  color: #262626; /* Instagram-like color */
+  color: #262626; 
 }
 
 .logout-button {
   background-color: white;
-  color: #0095f6; /* Instagram blue */
+  color: #0095f6; 
   border: 1px solid #0095f6;
   border-radius: 4px;
   padding: 0.5rem 1rem;
@@ -57,8 +57,8 @@
 }
 
 .main-content {
-  max-width: 975px; /* Instagram-like width */
-  margin: 2rem auto;
+  max-width: 975px; 
+  margin: 4.5rem auto 2rem;
   padding: 0 1rem;
 }
 
@@ -80,24 +80,24 @@
 
 .card {
   background-color: white;
-  border-radius: 3px; /* Instagram-like rounded corners */
+  border-radius: 3px; 
   padding: 1.5rem;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); /* Instagram-like subtle shadow */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); 
   transition: transform 0.3s ease, box-shadow 0.3s ease;
-  border: 1px solid #dbdbdb; /* Instagram-like border */
+  border: 1px solid #dbdbdb; 
 }
 
 .card-title {
   font-size: 16px;
-  color: #262626; /* Instagram-like color */
+  color: #262626;
   margin-bottom: 1rem;
   padding-bottom: 0.5rem;
-  border-bottom: 1px solid #efefef; /* Instagram-like border */
+  border-bottom: 1px solid #efefef; 
   font-weight: 600;
 }
 
 .empty-feed, .empty-friends {
-  color: #8e8e8e; /* Instagram-like secondary text */
+  color: #8e8e8e;
   font-style: normal;
   text-align: center;
   padding: 2rem 0;
@@ -117,7 +117,7 @@
 }
 
 .find-friends-btn:hover {
-  background-color: #f0f8ff; /* Light blue background on hover */
+  background-color: #f0f8ff;
 }
 
 
@@ -199,7 +199,7 @@
 
 .back-button {
   background-color: white;
-  color: #0095f6; /* Instagram blue */
+  color: #0095f6; 
   border: 1px solid #0095f6;
   border-radius: 4px;
   padding: 0.5rem 1rem;
@@ -454,24 +454,24 @@
   display: block;
 }
 
-/* For larger images that need to maintain aspect ratio */
+
 .post-image.landscape {
   object-fit: cover;
   max-height: 350px;
 }
 
-/* Add a subtle border to images */
+
 .post-card .post-image-container {
   border: 1px solid #e0e0e0;
 }
 
-/* Add hover effect for images */
+
 .post-image-container:hover .post-image {
   cursor: pointer;
   opacity: 0.95;
 }
 
-/* Add a transition for smooth hover effects */
+
 .post-image {
   transition: opacity 0.2s ease;
 }

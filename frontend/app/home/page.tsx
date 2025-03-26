@@ -3,7 +3,9 @@
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import './home.css'
+import Sidebar from '../../components/Sidebar'
 import Post from '../../components/Post'
+import { WebSocketClient } from '../webscoket/websocket'
 
 interface Author {
   firstName: string
@@ -40,6 +42,37 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null)
   const [posts, setPosts] = useState<Post[]>([])
   const [postsLoading, setPostsLoading] = useState(false)
+  const [wsClient, setWsClient] = useState<WebSocketClient | null>(null)
+
+  // Initialize WebSocket connection
+  useEffect(() => {
+    // Only create a WebSocket connection if we have user data
+    if (userId) {
+        console.log('Getting WebSocket client for user', userId);
+        
+        const client = WebSocketClient.getInstance();
+        
+        // Add message handlers for notifications, new posts, etc.
+        client.addMessageHandler('private_message', (content) => {
+            // Handle incoming private messages
+            console.log('Received private message:', content);
+            // You could show a notification or update a message counter
+        });
+        
+        client.addMessageHandler('new_post', (content) => {
+            // Handle new posts from followed users
+            console.log('New post notification:', content);
+            // You could refresh the posts or add the new post to the list
+            fetchPosts();
+        });
+        
+        // Don't call connect() here - it's handled by getInstance
+        
+        setWsClient(client);
+    }
+    
+    // No cleanup needed - we want to keep the connection alive
+  }, [userId]); // Only depend on userId
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -113,8 +146,20 @@ export default function Home() {
         method: 'POST',
         credentials: 'include'
       })
-
+  
       if (response.ok) {
+        // Close WebSocket connection before logout
+        const client = WebSocketClient.getInstance();
+        if (client.socket) {
+          client.socket.close(1000, "User logged out");
+        }
+        
+        // Reset the singleton instance using the proper method
+        WebSocketClient.resetInstance();
+        
+        // Clear any stored tokens
+        localStorage.removeItem('sessionToken');
+        
         router.push('/')
       } else {
         console.error('Error logging out')
@@ -122,15 +167,7 @@ export default function Home() {
     } catch (error) {
       console.error('Logout failed:', error)
     }
-  }
-
-  const navigateToProfile = () => {
-    router.push('/profile')
-  }
-
-  const navigateToFindFriends = () => {
-    router.push('/find-friends')
-  }
+  }  
 
   const navigateToCreatePost = () => {
     router.push('/create-post')
@@ -161,18 +198,8 @@ export default function Home() {
 
   return (
     <div className="home-page">
-      <header className="header">
-        <div className="header-content">
-          <h1 className="site-title">Social Network</h1>
-          <div className="user-actions">
-            <span className="welcome-message">Welcome, {username}!</span>
-            <button onClick={handleLogout} className="logout-button">
-              Logout
-            </button>
-          </div>
-        </div>
-      </header>
-
+      <Sidebar activePage="home" />
+      
       <main className="main-content">
         <div className="dashboard">
           <div className="card feed-card">
@@ -261,20 +288,12 @@ export default function Home() {
             <p className="empty-friends">Connect with new friends to see them here.</p>
             <button 
               className="secondary-button find-friends-btn" 
-              onClick={navigateToFindFriends}
+              onClick={() => router.push('/find-friends')}
             >
               Find Friends
             </button>
           </div>
         </div>
-        
-        <button 
-          className="profile-circle-button" 
-          onClick={navigateToProfile}
-          aria-label="Go to profile"
-        >
-          {username ? username.charAt(0).toUpperCase() : ''}
-        </button>
       </main>
     </div>
   )
