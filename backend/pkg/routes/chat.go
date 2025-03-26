@@ -36,7 +36,6 @@ func ServeChatContacts(w http.ResponseWriter, r *http.Request) {
 
 	// Get chat contacts for the user
 	contacts, err := GetChatContacts(userID)
-	log.Printf("[DEBUG] Chat contacts for user ID %d: %+v", userID, contacts)
 	if err != nil {
 		log.Printf("[ERROR] Failed to get chat contacts: %v", err)
 		http.Error(w, "Failed to get chat contacts", http.StatusInternalServerError)
@@ -53,7 +52,6 @@ func ServeChatContacts(w http.ResponseWriter, r *http.Request) {
 
 // ServeFollowedUsers handles the request to get all users that the current user is following
 func ServeFollowedUsers(w http.ResponseWriter, r *http.Request) {
-	log.Printf("[DEBUG] ServeFollowedUsers called with method: %s", r.Method)
 
 	if r.Method != http.MethodGet {
 		log.Printf("[ERROR] Method not allowed: %s", r.Method)
@@ -68,30 +66,30 @@ func ServeFollowedUsers(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
-			log.Printf("[DEBUG] Fetching followed users for user ID: %d", userID)
+
 
 			var count int
 			err = db.DBInstance.DB.QueryRow("SELECT COUNT(*) FROM followers WHERE follower_id = ?", userID).Scan(&count)
 			if err != nil {
 				log.Printf("[ERROR] Failed to count followed users: %v", err)
 			}
-			log.Printf("[DEBUG] User %d is following %d users", userID, count)
+	
 
 			// Query to get all users that the current user is following with complete information
-			query := `
-										SELECT 
-														u.id,
-														u.first_name,
-														u.last_name,
-														u.nickname,
-														u.avatar
-										FROM users u
-										JOIN followers f ON u.id = f.followed_id
-										WHERE f.follower_id = ?
-										ORDER BY u.first_name, u.last_name
-						`
+				query := `
+						SELECT 
+							u.id,
+							u.first_name,
+							u.last_name,
+							u.nickname,
+							u.avatar
+						FROM users u
+						JOIN followers f ON u.id = f.following_id
+						WHERE f.follower_id = ?
+						ORDER BY u.first_name, u.last_name
+					`
 
-			log.Printf("[DEBUG] Executing query: %s", query)
+
 
 			rows, err := db.DBInstance.DB.Query(query, userID)
 			if err != nil {
@@ -131,14 +129,10 @@ func ServeFollowedUsers(w http.ResponseWriter, r *http.Request) {
 				followedUsers = append(followedUsers, user)
 			}
 
-			log.Printf("[DEBUG] Found %d followed users", len(followedUsers))
+	
 
-			// Check if we have any users
-			if len(followedUsers) == 0 {
-				log.Printf("[DEBUG] No followed users found for user ID: %d", userID)
-			} else {
-				log.Printf("[DEBUG] First followed user: %v", followedUsers[0])
-			}
+			
+	
 	// Return the followed users as JSON
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
@@ -146,7 +140,6 @@ func ServeFollowedUsers(w http.ResponseWriter, r *http.Request) {
 		"users":   followedUsers,
 	})
 
-	log.Printf("[DEBUG] Response sent successfully")
 }
 
 func GetChatContacts(userID int) ([]ChatContact, error) {
@@ -232,7 +225,6 @@ func GetChatContacts(userID int) ([]ChatContact, error) {
 		}
 
 		contacts = append(contacts, contact)
-		log.Printf("[INFO] Retrieved chat contact: %+v", contact)
 	}
 
 	return contacts, nil

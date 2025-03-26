@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from 'react'
 import Sidebar from '../../components/Sidebar'
 import './chat.css'
 import { WebSocketClient } from '../webscoket/websocket'
-
+import { fetchFollowedUsers, fetchChatContacts, fetchMessages, sendMessage } from './messageHandlers'
 interface User {
   id: number
   firstName: string
@@ -54,29 +54,79 @@ export default function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const [wsClient, setWsClient] = useState<WebSocketClient | null>(null)
 
-  // Get or create WebSocket connection
-  useEffect(() => {
-    // Get the singleton instance of WebSocketClient
-    const client = WebSocketClient.getInstance();
+      useEffect(() => {
+        const client = WebSocketClient.getInstance();
     
-    // Only set up message handlers if we have user data
-    if (currentUser) {
-        // Add message handler for private messages
-        client.addMessageHandler('private_message', (content) => {
-            // Your existing message handling code
-        });
+        if (currentUser) {
+          client.addMessageHandler('private_message', (content) => {
+            console.log('Received private message:', content);
         
-        // Don't call connect() here - it's already connected from Home page
-        // or will be connected by getInstance if needed
+            // Only process messages if they're from the currently selected contact
+            if (selectedContact && content.sender_id === selectedContact.id) {
+              const newMessage = {
+                id: content.id || 0,
+                sender_id: content.sender_id || 0,
+                receiver_id: currentUser.id,
+                content: content.content || "",
+                created_at: content.created_at || new Date().toISOString(),
+                is_read: false,
+                sender: {
+                  id: content.sender_id || 0,
+                  first_name: typeof content.sender === 'string' ? content.sender.split(' ')[0] : "",
+                  last_name: typeof content.sender === 'string' ? (content.sender.split(' ')[1] || "") : "",
+                  avatar: undefined
+                }
+              };
+          
+              setMessages(prev => [...prev, newMessage]);
+            }
         
-        setWsClient(client);
-    }
+            // Update the contact's last message in the contacts list
+            setContacts(prev => {
+              const updatedContacts = [...prev];
+              const contactIndex = updatedContacts.findIndex(c => c.id === content.sender_id);
+          
+              if (contactIndex >= 0) {
+                updatedContacts[contactIndex] = {
+                  ...updatedContacts[contactIndex],
+                  lastMessage: content.content || "",
+                  lastMessageTime: content.created_at || new Date().toISOString(),
+                  unreadCount: (updatedContacts[contactIndex].unreadCount || 0) + 1
+                };
+              } else if (content.sender_id) {
+                // If this is a new contact, we need to fetch their info and add them
+                fetch(`http://localhost:8080/users?id=${content.sender_id}`, {
+                  credentials: 'include'
+                })
+                .then(res => res.json())
+                .then(data => {
+                  if (data.success && data.user) {
+                    const newContact = {
+                      id: content.sender_id,
+                      firstName: data.user.firstName || data.user.first_name,
+                      lastName: data.user.lastName || data.user.last_name,
+                      nickname: data.user.nickname,
+                      avatar: data.user.avatar,
+                      lastMessage: content.content || "",
+                      lastMessageTime: content.created_at || new Date().toISOString(),
+                      unreadCount: 1
+                    };
+                    setContacts(prev => [...prev, newContact]);
+                  }
+                })
+                .catch(err => console.error('Error fetching new contact info:', err));
+              }
+          
+              return updatedContacts;
+            });
+          });
+      
+          setWsClient(client);
+        }
     
-    // No need to clean up the connection when leaving the chat page
-    // as we want to keep it alive for the entire session
-  }, [currentUser, selectedContact]);
+        // No cleanup needed as we want to keep the connection alive
+      }, [currentUser, selectedContact]);
 
-  // Fetch current user data
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -119,78 +169,7 @@ export default function Chat() {
     fetchUserData();
   }, [router]);
 
-  // Fetch chat contacts (users with message history)
-  const fetchChatContacts = async () => {
-    try {
-      // This endpoint doesn't exist yet, but we're assuming it will be implemented
-      const response = await fetch('http://localhost:8080/chat/contacts', {
-        method: 'GET',
-        credentials: 'include'
-      });
 
-      if (!response.ok) {
-        // If the endpoint doesn't exist yet, we'll just use an empty array
-        console.warn('Chat contacts endpoint not implemented yet');
-        return [];
-      }
-
-      const data = await response.json();
-      if (data.success && data.contacts) {
-        return data.contacts;
-      }
-      return [];
-    } catch (error) {
-      console.error('Error fetching chat contacts:', error);
-      return [];
-    }
-  };
-
-  // Fetch messages for a selected contact
-  const fetchMessages = async (contactId: number) => {
-    try {
-      const response = await fetch(`http://localhost:8080/messages/${contactId}`, {
-        method: 'GET',
-        credentials: 'include'
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch messages');
-      }
-
-      const data = await response.json();
-      if (data.success && data.messages) {
-        return data.messages;
-      }
-      return [];
-    } catch (error) {
-      console.error('Error fetching messages:', error);
-      return [];
-    }
-  };
-
-  // Fetch followed users
-  const fetchFollowedUsers = async () => {
-    try {
-      // We'll use the profile endpoint to get followed users
-      const response = await fetch('http://localhost:8080/profile', {
-        method: 'GET',
-        credentials: 'include'
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch followed users');
-      }
-
-      const data = await response.json();
-      if (data.following) {
-        return data.following;
-      }
-      return [];
-    } catch (error) {
-      console.error('Error fetching followed users:', error);
-      return [];
-    }
-  };
 
   // Handle selecting a contact
   const handleSelectContact = async (contact: ChatContact) => {
@@ -209,38 +188,68 @@ export default function Chat() {
       );
     }
   };
+    // Handle sending a message
+    const handleSendMessage = async () => {
+      if (!newMessage.trim() || !selectedContact || !currentUser) return;
 
-  // Handle sending a message
-  const handleSendMessage = async () => {
-    if (!newMessage.trim() || !selectedContact || !currentUser) return;
-
-    try {
-      const response = await fetch('http://localhost:8080/messages', {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          receiver_id: selectedContact.id,
-          content: newMessage
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to send message');
-      }
-
-      const data = await response.json();
-      if (data.success && data.message) {
-        // Add the new message to the messages list
-        setMessages(prev => [...prev, data.message]);
+      try {
+        // Try to send via WebSocket first
+        let sentViaWebSocket = false;
+        if (wsClient && wsClient.socket && wsClient.socket.readyState === WebSocket.OPEN) {
+          console.log('Attempting to send message via WebSocket');
+          sentViaWebSocket = wsClient.sendMessage(selectedContact.id, newMessage);
+          console.log('WebSocket send result:', sentViaWebSocket);
+        } else {
+          console.log('WebSocket not available, using HTTP');
+        }
         
+        // If WebSocket failed or not available, use HTTP
+        if (!sentViaWebSocket) {
+          console.log('Sending message via HTTP');
+          const response = await fetch('http://localhost:8080/messages', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              receiver_id: selectedContact.id,
+              content: newMessage
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to send message via HTTP');
+          }
+          
+          const data = await response.json();
+          console.log('HTTP response:', data);
+        }
+      
+        // Add the message to the UI regardless of how it was sent
+        const newMessageObj = {
+          id: Date.now(), // Temporary ID until we get the real one
+          sender_id: currentUser.id,
+          receiver_id: selectedContact.id,
+          content: newMessage,
+          created_at: new Date().toISOString(),
+          is_read: false,
+          sender: {
+            id: currentUser.id,
+            first_name: currentUser.firstName,
+            last_name: currentUser.lastName,
+            avatar: currentUser.avatar
+          }
+        };
+      
+        // Add the new message to the messages list
+        setMessages(prev => [...prev, newMessageObj]);
+      
         // Update the contact's last message
         setContacts(prev => {
           const updatedContacts = [...prev];
           const contactIndex = updatedContacts.findIndex(c => c.id === selectedContact.id);
-          
+        
           if (contactIndex >= 0) {
             updatedContacts[contactIndex] = {
               ...updatedContacts[contactIndex],
@@ -255,18 +264,16 @@ export default function Chat() {
               lastMessageTime: new Date().toISOString()
             });
           }
-          
+        
           return updatedContacts;
         });
-        
+      
         // Clear the input field
         setNewMessage('');
+      } catch (error) {
+        console.error('Error sending message:', error);
       }
-    } catch (error) {
-      console.error('Error sending message:', error);
-    }
-  };
-
+    };
   // Show the users list
   const handleShowUsersList = async () => {
     const users = await fetchFollowedUsers();

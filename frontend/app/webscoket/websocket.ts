@@ -49,7 +49,6 @@ export class WebSocketClient implements WebSocketClientInterface {
     addMessageHandler(type: string, handler: (content: any) => void): void {
     this.messageHandlers.set(type, handler);
     }
-
     connect(): void {
     // Don't reconnect if already connected or connecting
     if (this.socket && (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING)) {
@@ -58,18 +57,19 @@ export class WebSocketClient implements WebSocketClientInterface {
     }
 
     console.log('Attempting WebSocket connection...');
-    const sessionToken = localStorage.getItem('sessionToken');
+    const sessionToken = localStorage.getItem('sessionToken') || document.cookie.replace(/(?:(?:^|.*;\s*)session_token\s*\=\s*([^;]*).*$)|^.*$/, "$1");
 
     if (!sessionToken) {
         console.error('No session token found, skipping WebSocket connection');
         return;
     }
-    
-    this.socket = new WebSocket(`ws://localhost:8080/ws`);
-    
+
+    // Include session token in the URL for authentication
+    this.socket = new WebSocket(`ws://localhost:8080/ws?token=${encodeURIComponent(sessionToken)}`);
+
     this.socket.onopen = () => {
         console.log('WebSocket connected successfully');
-        
+    
         // Send a ping to test the connection
         if (this.socket && this.socket.readyState === WebSocket.OPEN) {
             this.socket.send(JSON.stringify({
@@ -83,11 +83,11 @@ export class WebSocketClient implements WebSocketClientInterface {
         try {
         const message = JSON.parse(event.data);
         console.log('Received WebSocket message:', message);
-        
+    
         if (message.type === 'pong') {
             console.log('Ping-pong successful, connection is working properly');
         }
-        
+    
         const handler = this.messageHandlers.get(message.type);
         if (handler) {
             handler(message.content);
@@ -100,7 +100,7 @@ export class WebSocketClient implements WebSocketClientInterface {
     this.socket.onclose = (event: CloseEvent) => {
         console.warn('WebSocket connection closed:', event.reason || 'Unknown reason');
         this.clearPingInterval();
-        
+    
         // Only attempt to reconnect if the close wasn't intentional (code 1000)
         if (event.code !== 1000) {
         console.log('Attempting to reconnect in 5 seconds...');
@@ -112,7 +112,6 @@ export class WebSocketClient implements WebSocketClientInterface {
         console.error('WebSocket error:', error);
     };
     }
-    
     startPingInterval(): void {
     this.pingInterval = setInterval(() => {
         if (this.socket && this.socket.readyState === WebSocket.OPEN) {
@@ -148,14 +147,31 @@ export class WebSocketClient implements WebSocketClientInterface {
         return false;
     }
     }
-
     sendMessage(receiverId: number, content: string): boolean {
-        return this.sendMessageWithType('private_message', {
-            receiver_id: receiverId,
-            content: content
-        });
-    }
+        if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+            console.error('WebSocket is not connected, readyState:', this.socket?.readyState);
+            return false;
+        }
     
+        try {
+            const message = {
+                type: 'private_message',
+                content: {
+                    receiver_id: receiverId,
+                    content: content
+                }
+            };
+            
+            console.log('Sending WebSocket message:', JSON.stringify(message));
+            this.socket.send(JSON.stringify(message));
+            
+            console.log('Message sent successfully via WebSocket');
+            return true;
+        } catch (error) {
+            console.error('Error sending message via WebSocket:', error);
+            return false;
+        }
+    }
     setTypingStatus(receiverId: number, isTyping: boolean): void {
     if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
         return;

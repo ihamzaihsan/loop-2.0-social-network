@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -41,7 +42,7 @@ func ServeMessages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userId, err := strconv.Atoi(pathParts[len(pathParts)-1])
+	otherUserID, err := strconv.Atoi(pathParts[len(pathParts)-1])
 	if err != nil {
 		http.Error(w, "Invalid user ID", http.StatusBadRequest)
 		return
@@ -59,17 +60,37 @@ func ServeMessages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get private messages between users
+	// First, find the chat between these two users
+	var chatID int
+	err = db.DBInstance.DB.QueryRow(`
+		SELECT id FROM chats 
+		WHERE (user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)
+	`, currentUserID, otherUserID, otherUserID, currentUserID).Scan(&chatID)
+	
+	if err == sql.ErrNoRows {
+		// No chat exists yet, return empty messages
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success":  true,
+			"messages": []interface{}{},
+		})
+		return
+	} else if err != nil {
+		log.Printf("[ERROR] Failed to find chat: %v", err)
+		http.Error(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+
+	// Get messages for this chat
 	rows, err := db.DBInstance.DB.Query(`
-        SELECT m.id, m.sender_id, m.receiver_id, m.content, m.created_at, m.is_read,
-                u.id, u.first_name, u.last_name, u.avatar
-        FROM messages m
-        JOIN users u ON m.sender_id = u.id
-        WHERE (m.sender_id = ? AND m.receiver_id = ? AND m.group_id IS NULL) 
-        OR (m.sender_id = ? AND m.receiver_id = ? AND m.group_id IS NULL)
-        ORDER BY m.created_at DESC
-        LIMIT ? OFFSET ?
-    `, currentUserID, userId, userId, currentUserID, limit, offset)
+		SELECT m.id, m.sender_id, m.content, m.created_at, 
+			    u.id, u.first_name, u.last_name, u.avatar
+		FROM messages m
+		JOIN users u ON m.sender_id = u.id
+		WHERE m.chat_id = ?
+		ORDER BY m.created_at ASC
+		LIMIT ? OFFSET ?
+	`, chatID, limit, offset)
 
 	if err != nil {
 		log.Printf("[ERROR] Database error fetching messages: %v", err)
@@ -82,17 +103,27 @@ func ServeMessages(w http.ResponseWriter, r *http.Request) {
 
 	for rows.Next() {
 		var msg MessageResponse
+		var isRead bool = true // Default to true since we don't track read status
+		
 		err := rows.Scan(
-			&msg.ID, &msg.SenderID, &msg.ReceiverID, &msg.Content, &msg.CreatedAt, &msg.IsRead,
+			&msg.ID, &msg.SenderID, &msg.Content, &msg.CreatedAt,
 			&msg.Sender.ID, &msg.Sender.FirstName, &msg.Sender.LastName, &msg.Sender.Avatar,
 		)
 		if err != nil {
 			log.Printf("[ERROR] Error scanning message row: %v", err)
 			continue
 		}
+		
+		// Set receiver_id based on sender
+		if msg.SenderID == currentUserID {
+			msg.ReceiverID = otherUserID
+		} else {
+			msg.ReceiverID = currentUserID
+		}
+		
+		msg.IsRead = isRead
 		messages = append(messages, msg)
 	}
-
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
@@ -182,7 +213,6 @@ func ServeGroupMessages(w http.ResponseWriter, r *http.Request) {
 		messages = append(messages, msg)
 	}
 
-
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success":  true,
@@ -240,10 +270,46 @@ func SendMessage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if request.ReceiverID != nil {
-		// Private message
+		// Private message - first get or create a chat between the two users
+		var chatID int
+
+		// Check if a chat already exists between these users
+		err = db.DBInstance.DB.QueryRow(`
+			SELECT id FROM chats 
+			WHERE (user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)
+		`, currentUserID, *request.ReceiverID, *request.ReceiverID, currentUserID).Scan(&chatID)
+
+		if err == sql.ErrNoRows {
+			// Create a new chat
+			result, err := db.DBInstance.DB.Exec(`
+				INSERT INTO chats (user1_id, user2_id, created_at) 
+				VALUES (?, ?, ?)
+			`, currentUserID, *request.ReceiverID, time.Now())
+
+			if err != nil {
+				log.Printf("[ERROR] Failed to create chat: %v", err)
+				http.Error(w, "Failed to send message", http.StatusInternalServerError)
+				return
+			}
+
+			chatIDInt64, err := result.LastInsertId()
+			if err != nil {
+				log.Printf("[ERROR] Failed to get last insert ID: %v", err)
+				http.Error(w, "Failed to send message", http.StatusInternalServerError)
+				return
+			}
+
+			chatID = int(chatIDInt64)
+		} else if err != nil {
+			log.Printf("[ERROR] Failed to check for existing chat: %v", err)
+			http.Error(w, "Failed to send message", http.StatusInternalServerError)
+			return
+		}
+
+		// Now insert the message with the chat_id
 		result, err := db.DBInstance.DB.Exec(
-			"INSERT INTO messages (sender_id, receiver_id, content, created_at, is_read) VALUES (?, ?, ?, ?, ?)",
-			currentUserID, *request.ReceiverID, request.Content, time.Now(), false,
+			"INSERT INTO messages (chat_id, sender_id, content, created_at) VALUES (?, ?, ?, ?)",
+			chatID, currentUserID, request.Content, time.Now(),
 		)
 		if err != nil {
 			log.Printf("[ERROR] Failed to store private message: %v", err)
@@ -259,11 +325,12 @@ func SendMessage(w http.ResponseWriter, r *http.Request) {
 			err = recipientConn.WriteJSON(Message{
 				Type: "private_message",
 				Content: map[string]interface{}{
-					"id":         messageID,
-					"sender_id":  currentUserID,
-					"sender":     sender.FirstName + " " + sender.LastName,
-					"content":    request.Content,
-					"created_at": time.Now(),
+					"id":          messageID,
+					"sender_id":   currentUserID,
+					"receiver_id": *request.ReceiverID,
+					"sender":      sender.FirstName + " " + sender.LastName,
+					"content":     request.Content,
+					"created_at":  time.Now(),
 				},
 			})
 
