@@ -32,21 +32,33 @@ var clients = make(map[int]*SafeConn)
 var clientsMutex sync.RWMutex
 
 func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
-	// Use the existing auth package to get the user ID from the session
+	log.Printf("[INFO] WebSocket connection attempt from %s", r.RemoteAddr)
+	
+	// Get the user ID from the session
 	userID, err := auth.GetUserID(r)
-	if err != nil || userID == 0 {
-		log.Printf("[ERROR] Unauthorized WebSocket connection attempt: %v", err)
+	if err != nil {
+		log.Printf("[ERROR] Failed to get user ID from session: %v", err)
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
-
+	
+	if userID == 0 {
+		log.Printf("[ERROR] Invalid user ID in session")
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	
+	log.Printf("[INFO] User ID %d authenticated for WebSocket connection", userID)
+	
 	// Upgrade the HTTP connection to a WebSocket connection
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Printf("[ERROR] WebSocket upgrade failed: %v", err)
 		return
 	}
-
+	
+	log.Printf("[INFO] WebSocket connection upgraded successfully for user %d", userID)
+	
 	// Get user info for the connected user
 	user, err := query.GetUserInfo(userID)
 	if err != nil {
@@ -54,19 +66,24 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		conn.Close()
 		return
 	}
-
+	
+	log.Printf("[INFO] Retrieved user info for %s %s (ID: %d)", user.FirstName, user.LastName, userID)
+	
 	// Create a thread-safe connection wrapper
 	safeConn := &SafeConn{
 		conn: conn,
 	}
-
+	
 	// Register the client
 	clientsMutex.Lock()
 	clients[userID] = safeConn
 	clientsMutex.Unlock()
-
+	
+	log.Printf("[INFO] Registered client for user %d", userID)
+	
 	// Clean up when the connection closes
 	defer func() {
+		log.Printf("[INFO] Cleaning up WebSocket connection for user %d", userID)
 		clientsMutex.Lock()
 		delete(clients, userID)
 		clientsMutex.Unlock()
@@ -74,24 +91,29 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		log.Printf("[INFO] WebSocket connection closed for user %d (%s %s)", 
 			userID, user.FirstName, user.LastName)
 	}()
-
+	
 	log.Printf("[INFO] New WebSocket connection established for user %d (%s %s)", 
 		userID, user.FirstName, user.LastName)
-
+	
 	// Message handling loop
 	for {
 		var msg Message
 		if err := conn.ReadJSON(&msg); err != nil {
-			log.Printf("[INFO] WebSocket read error: %v", err)
+			log.Printf("[INFO] WebSocket read error for user %d: %v", userID, err)
 			break
 		}
-
+		
+		log.Printf("[INFO] Received message of type '%s' from user %d", msg.Type, userID)
+		
 		switch msg.Type {
 		case "private_message":
+			log.Printf("[INFO] Handling private message from user %d", userID)
 			// TODO: Implement private message handling
 		case "typing_status":
+			log.Printf("[INFO] Handling typing status from user %d", userID)
 			// TODO: Implement typing status handling
 		case "ping":
+			log.Printf("[INFO] Handling ping from user %d", userID)
 			err = safeConn.WriteJSON(Message{
 				Type: "pong",
 				Content: map[string]interface{}{
@@ -101,6 +123,8 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				log.Printf("[ERROR] Failed to send pong to user %d (%s %s): %v", 
 					userID, user.FirstName, user.LastName, err)
+			} else {
+				log.Printf("[INFO] Sent pong to user %d", userID)
 			}
 		default:
 			log.Printf("[WARN] Unknown message type from user %d (%s %s): %s", 

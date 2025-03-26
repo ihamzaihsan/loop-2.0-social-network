@@ -62,7 +62,7 @@ func ServeMessages(w http.ResponseWriter, r *http.Request) {
 	// Get private messages between users
 	rows, err := db.DBInstance.DB.Query(`
         SELECT m.id, m.sender_id, m.receiver_id, m.content, m.created_at, m.is_read,
-               u.id, u.first_name, u.last_name, u.avatar
+                u.id, u.first_name, u.last_name, u.avatar
         FROM messages m
         JOIN users u ON m.sender_id = u.id
         WHERE (m.sender_id = ? AND m.receiver_id = ? AND m.group_id IS NULL) 
@@ -93,16 +93,6 @@ func ServeMessages(w http.ResponseWriter, r *http.Request) {
 		messages = append(messages, msg)
 	}
 
-	// Mark messages as read
-	_, err = db.DBInstance.DB.Exec(`
-		UPDATE messages 
-		SET is_read = true 
-		WHERE sender_id = ? AND receiver_id = ? AND is_read = false
-	`, userId, currentUserID)
-
-	if err != nil {
-		log.Printf("[ERROR] Failed to mark messages as read: %v", err)
-	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
@@ -162,7 +152,7 @@ func ServeGroupMessages(w http.ResponseWriter, r *http.Request) {
 	// Get group messages
 	rows, err := db.DBInstance.DB.Query(`
 		SELECT m.id, m.sender_id, NULL as receiver_id, m.group_id, m.content, m.created_at, m.is_read,
-			   u.id, u.first_name, u.last_name, u.avatar
+			    u.id, u.first_name, u.last_name, u.avatar
 		FROM messages m
 		JOIN users u ON m.sender_id = u.id
 		WHERE m.group_id = ?
@@ -192,15 +182,6 @@ func ServeGroupMessages(w http.ResponseWriter, r *http.Request) {
 		messages = append(messages, msg)
 	}
 
-	// Mark group messages as read for this user
-	_, err = db.DBInstance.DB.Exec(`
-		INSERT OR IGNORE INTO message_read_status (message_id, user_id, is_read)
-		SELECT id, ?, true FROM messages WHERE group_id = ? AND sender_id != ?
-	`, currentUserID, groupID, currentUserID)
-
-	if err != nil {
-		log.Printf("[ERROR] Failed to mark group messages as read: %v", err)
-	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
