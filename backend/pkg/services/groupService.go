@@ -12,7 +12,6 @@ func NewGroupService() *GroupService {
 	return &GroupService{}
 }
 
-// Update method names to match what's called in routes/groups.go
 func (s *GroupService) CreateGroup(title, description string, userID int) (int, error) {
 	return query.CreateGroup(title, description, userID)
 }
@@ -22,11 +21,11 @@ func (s *GroupService) GetUserGroups(userID int) (interface{}, error) {
 }
 
 func (s *GroupService) GetGroupDetails(groupID, userID int) (interface{}, error) {
-	return GetGroupDetailsService(groupID, userID) 
+	return GetGroupDetailsService(groupID, userID)
 }
 
 func (s *GroupService) InviteToGroup(groupID, inviterID int, userIDs []int) error {
-	return InviteToGroupService(groupID, inviterID, userIDs) 
+	return InviteToGroupService(groupID, inviterID, userIDs)
 }
 
 func (s *GroupService) GetGroupInvitations(userID int) (interface{}, error) {
