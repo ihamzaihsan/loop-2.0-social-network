@@ -7,6 +7,7 @@ import (
 	auth "socialNetwork/pkg/auth"
 	db "socialNetwork/pkg/db"
 	routes "socialNetwork/pkg/routes"
+	"socialNetwork/pkg/services"
 )
 
 func main() {
@@ -16,6 +17,8 @@ func main() {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
 	fmt.Println("Database initialized successfully!")
+
+	routes.SetGroupService(services.NewGroupService())
 
 	// Defer database closure
 	defer func() {

@@ -19,51 +19,56 @@ func SetGroupService(service models.GroupService) {
 }
 
 // CreateGroup handles the creation of a new group
+// In routes/groups.go
 func CreateGroup(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
+    if r.Method != http.MethodPost {
+        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+        return
+    }
 
-	// Get user ID from session
-	userID, err := auth.GetUserID(r)
-	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
+    // Get user ID from session
+    userID, err := auth.GetUserID(r)
+    if err != nil {
+        log.Printf("[ERROR] Failed to get user ID: %v", err)
+        http.Error(w, "Unauthorized", http.StatusUnauthorized)
+        return
+    }
 
-	// Parse request body
-	var req struct {
-		Title       string `json:"title"`
-		Description string `json:"description"`
-	}
+    // Parse request body
+    var req struct {
+        Title       string `json:"title"`
+        Description string `json:"description"`
+    }
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
+    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+        log.Printf("[ERROR] Failed to parse request body: %v", err)
+        http.Error(w, "Invalid request body", http.StatusBadRequest)
+        return
+    }
 
-	// Validate request
-	if req.Title == "" {
-		http.Error(w, "Group title is required", http.StatusBadRequest)
-		return
-	}
+    // Validate request
+    if req.Title == "" {
+        http.Error(w, "Group title is required", http.StatusBadRequest)
+        return
+    }
 
-	// Create group using service
-	groupID, err := GroupServiceImpl.CreateGroup(req.Title, req.Description, userID)
-	if err != nil {
-		log.Printf("[ERROR] Failed to create group: %v", err)
-		http.Error(w, "Failed to create group", http.StatusInternalServerError)
-		return
-	}
+    log.Printf("[INFO] Creating group with title: %s, description: %s, userID: %d", req.Title, req.Description, userID)
 
-	// Return response
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success":  true,
-		"group_id": groupID,
-		"message":  "Group created successfully",
-	})
+    // Create group using service
+    groupID, err := GroupServiceImpl.CreateGroup(req.Title, req.Description, userID)
+    if err != nil {
+        log.Printf("[ERROR] Failed to create group: %v", err)
+        http.Error(w, "Failed to create group: "+err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    // Return response
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(map[string]interface{}{
+        "success":  true,
+        "group_id": groupID,
+        "message":  "Group created successfully",
+    })
 }
 
 // GetUserGroups returns all groups a user is a member of

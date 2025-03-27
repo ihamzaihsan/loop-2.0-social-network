@@ -1,0 +1,265 @@
+.container {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f5f7fb;
+}
+
+.content {
+  flex: 1;
+  padding: 2rem;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.loading {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+}
+
+.error {
+  background-color: #ffebee;
+  color: #c62828;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
+}
+
+.header {
+  margin-bottom: 1.5rem;
+}
+
+.backButton {
+  background: none;
+  border: none;
+  color: #4a76a8;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 0;
+  font-size: 1rem;
+}
+
+.eventCard {
+  background-color: white;
+  border-radius: 8px;
+  padding: 2rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.eventTitle {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  color: #333;
+}
+
+.eventMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  color: #666;
+}
+
+.metaItem {
+  font-size: 0.95rem;
+}
+
+.eventDescription {
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #eee;
+}
+
+.eventDescription p {
+  color: #555;
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+
+.responseSection {
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #eee;
+}
+
+.responseSection h2 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  color: #333;
+}
+
+.responseOptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.responseOption {
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.responseOption:hover {
+  background-color: #eee;
+}
+
+.selectedResponse {
+  background-color: #e3f2fd;
+  border-color: #4a76a8;
+  color: #4a76a8;
+  font-weight: 500;
+}
+
+.currentResponse {
+  margin-top: 1rem;
+  color: #666;
+}
+
+.attendeesSection h2 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  color: #333;
+}
+
+.responseStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.statItem {
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  padding: 1rem;
+  min-width: 120px;
+  text-align: center;
+  flex: 1;
+}
+
+.statLabel {
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: #555;
+}
+
+.statValue {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #4a76a8;
+}
+
+.responseList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.responseItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.userAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.userInitials {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #4a76a8;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+}
+
+.responseTime {
+  color: #888;
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+}
+
+.userResponse {
+  display: flex;
+  align-items: center;
+}
+
+.responseTag {
+  background-color: #e3f2fd;
+  color: #4a76a8;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .content {
+    padding: 1rem;
+  }
+  
+  .eventCard {
+    padding: 1.5rem;
+  }
+  
+  .eventTitle {
+    font-size: 1.5rem;
+  }
+  
+  .responseOptions {
+    flex-direction: column;
+  }
+  
+  .responseOption {
+    width: 100%;
+    text-align: center;
+  }
+  
+  .responseStats {
+    flex-direction: column;
+  }
+  
+  .responseItem {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .userResponse {
+    align-self: flex-start;
+  }
+}
+

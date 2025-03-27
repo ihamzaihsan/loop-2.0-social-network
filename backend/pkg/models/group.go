@@ -100,7 +100,6 @@ type EventResponse struct {
 	OptionText       string    `json:"option_text,omitempty"`
 }
 
-// GroupService defines the interface for group-related operations to avoid cycle
 type GroupService interface {
 	CreateGroup(title, description string, userID int) (int, error)
 	GetUserGroups(userID int) (interface{}, error)
