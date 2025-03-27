@@ -1,0 +1,760 @@
+.container {
+    display: flex;
+    min-height: 100vh;
+    background-color: #f5f7fb;
+  }
+  
+  .content {
+    flex: 1;
+    padding: 2rem;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  
+  .loading {
+    text-align: center;
+    padding: 2rem;
+    color: #666;
+  }
+  
+  .error {
+    background-color: #ffebee;
+    color: #c62828;
+    padding: 1rem;
+    border-radius: 4px;
+    margin-bottom: 1.5rem;
+  }
+  
+  .header {
+    margin-bottom: 1.5rem;
+  }
+  
+  .backButton {
+    background: none;
+    border: none;
+    color: #4a76a8;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    padding: 0;
+    font-size: 1rem;
+  }
+  
+  /* Group Header */
+  .groupHeader {
+    background-color: white;
+    border-radius: 8px;
+    padding: 2rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    margin-bottom: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  
+  .groupTitle {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    color: #333;
+  }
+  
+  .groupDescription {
+    color: #666;
+    margin-bottom: 1rem;
+    line-height: 1.5;
+  }
+  
+  .groupMeta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    color: #888;
+    font-size: 0.9rem;
+  }
+  
+  .creatorBadge {
+    background-color: #4a76a8;
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+  }
+  
+  .groupActions {
+    display: flex;
+    gap: 1rem;
+  }
+  
+  .inviteButton {
+    background-color: #4a76a8;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  
+  /* Join Requests Section */
+  .joinRequestsSection {
+    background-color: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    margin-bottom: 2rem;
+  }
+  
+  .joinRequestsSection h2 {
+    margin-bottom: 1rem;
+    color: #333;
+  }
+  
+  .joinRequestsList {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+  }
+  
+  .requestCard {
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .requestUser {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  
+  .userAvatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+  
+  .userInitials {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: #4a76a8;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 1.2rem;
+  }
+  
+  .requestTime {
+    color: #888;
+    font-size: 0.9rem;
+    margin-top: 0.25rem;
+  }
+  
+  .requestActions {
+    display: flex;
+    gap: 0.75rem;
+  }
+  
+  .acceptButton {
+    background-color: #4caf50;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    flex: 1;
+  }
+  
+  .rejectButton {
+    background-color: #f44336;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    flex: 1;
+  }
+  
+  /* Tabs */
+  .tabsContainer {
+    margin-bottom: 2rem;
+  }
+  
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid #ddd;
+  }
+  
+  .tabButton {
+    background: none;
+    border: none;
+    padding: 1rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #666;
+    cursor: pointer;
+    position: relative;
+  }
+  
+  .activeTab {
+    color: #4a76a8;
+  }
+  
+  .activeTab::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background-color: #4a76a8;
+  }
+  
+  /* Posts Section */
+  .postsSection {
+    margin-bottom: 2rem;
+  }
+  
+  .createPostForm {
+    background-color: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    margin-bottom: 2rem;
+  }
+  
+  .postInput {
+    width: 100%;
+    min-height: 100px;
+    padding: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+    margin-bottom: 1rem;
+    resize: vertical;
+  }
+  
+  .imagePreview {
+    position: relative;
+    margin-bottom: 1rem;
+  }
+  
+  .imagePreview img {
+    max-width: 100%;
+    max-height: 300px;
+    border-radius: 4px;
+  }
+  
+  .removeImageButton {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    cursor: pointer;
+  }
+  
+  .postActions {
+    display: flex;
+    justify-content: space-between;
+  }
+  
+  .uploadButton {
+    display: inline-block;
+    background-color: #f5f5f5;
+    color: #333;
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .postButton {
+    background-color: #4a76a8;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  
+  .postButton:disabled {
+    background-color: #b0bec5;
+    cursor: not-allowed;
+  }
+  
+  .postsList {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  
+  .postCard {
+    background-color: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  }
+  
+  .postHeader {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+  }
+  
+  .postAuthor {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  
+  .authorAvatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+  
+  .authorInitials {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: #4a76a8;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 1.2rem;
+  }
+  
+  .postTime {
+    color: #888;
+    font-size: 0.9rem;
+    margin-top: 0.25rem;
+  }
+  
+  .postContent {
+    margin-bottom: 1.5rem;
+  }
+  
+  .postContent p {
+    margin-bottom: 1rem;
+    white-space: pre-wrap;
+  }
+  
+  .postImage {
+    max-width: 100%;
+    border-radius: 8px;
+    margin-top: 0.5rem;
+  }
+  
+  .postFooter {
+    border-top: 1px solid #eee;
+    padding-top: 1rem;
+    display: flex;
+    justify-content: flex-end;
+  }
+  
+  .commentButton {
+    background: none;
+    border: none;
+    color: #4a76a8;
+    cursor: pointer;
+    font-weight: 500;
+  }
+  
+  /* Events Section */
+  .eventsSection {
+    margin-bottom: 2rem;
+  }
+  
+  .eventsSectionHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+  
+  .createEventButton {
+    background-color: #4a76a8;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  
+  .eventsList {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+  }
+  
+  .eventCard {
+    background-color: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .eventHeader {
+    margin-bottom: 0.5rem;
+  }
+  
+  .eventTitle {
+    font-size: 1.25rem;
+    margin-bottom: 0.5rem;
+    color: #333;
+  }
+  
+  .eventTime {
+    color: #4a76a8;
+    font-weight: 500;
+  }
+  
+  .eventDescription {
+    color: #666;
+    margin-bottom: 0.5rem;
+  }
+  
+  .eventResponseSection {
+    margin-bottom: 1rem;
+  }
+  
+  .userResponse {
+    padding: 0.75rem;
+    background-color: #f5f7fb;
+    border-radius: 4px;
+  }
+  
+  .responseHighlight {
+    font-weight: 600;
+    color: #4a76a8;
+  }
+  
+  .responseOptions {
+    display: flex;
+    gap: 0.75rem;
+  }
+  
+  .responseOption {
+    background-color: #f5f7fb;
+    border: 1px solid #ddd;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    flex: 1;
+  }
+  
+  .responseOption:hover {
+    background-color: #e3f2fd;
+  }
+  
+  .eventFooter {
+    margin-top: auto;
+  }
+  
+  .viewEventButton {
+    width: 100%;
+    background-color: #4a76a8;
+    color: white;
+    border: none;
+    padding: 0.75rem 0;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  
+  /* Members Section */
+  .membersSection {
+    margin-bottom: 2rem;
+  }
+  
+  .membersSection h2 {
+    margin-bottom: 1.5rem;
+    color: #333;
+  }
+  
+  .membersList {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1.5rem;
+  }
+  
+  .memberCard {
+    background-color: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  }
+  
+  .memberInfo {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  
+  .memberAvatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+  
+  .memberInitials {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: #4a76a8;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 1.2rem;
+  }
+  
+  .creatorTag {
+    display: inline-block;
+    background-color: #4a76a8;
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    margin-top: 0.5rem;
+  }
+  
+  /* Modal Styles */
+  .modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  
+  .modal {
+    background-color: white;
+    border-radius: 8px;
+    padding: 2rem;
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+  }
+  
+  .modal h2 {
+    margin-bottom: 1.5rem;
+    color: #333;
+  }
+  
+  .usersList {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 1.5rem;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    padding: 0.5rem;
+  }
+  
+  .userItem {
+    padding: 0.75rem;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .userItem:last-child {
+    border-bottom: none;
+  }
+  
+  .checkboxLabel {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+  }
+  
+  .formGroup {
+    margin-bottom: 1.5rem;
+  }
+  
+  .formGroup label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #555;
+  }
+  
+  .formGroup input,
+  .formGroup textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+  }
+  
+  .optionsHelp {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 0.75rem;
+  }
+  
+  .optionItem {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .removeOptionButton {
+    background-color: #f44336;
+    color: white;
+    border: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+  
+  .addOptionButton {
+    background: none;
+    border: 1px dashed #4a76a8;
+    color: #4a76a8;
+    padding: 0.5rem;
+    border-radius: 4px;
+    width: 100%;
+    cursor: pointer;
+    margin-top: 0.5rem;
+  }
+  
+  .modalActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+  
+  .cancelButton {
+    background-color: #f5f5f5;
+    color: #333;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  
+  .createButton {
+    background-color: #4a76a8;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  
+  .createButton:disabled {
+    background-color: #b0bec5;
+    cursor: not-allowed;
+  }
+  
+  .emptyState {
+    text-align: center;
+    padding: 3rem;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    color: #666;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .content {
+      padding: 1rem;
+    }
+    
+    .groupHeader {
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    
+    .groupActions {
+      width: 100%;
+    }
+    
+    .inviteButton {
+      width: 100%;
+    }
+    
+    .tabs {
+      overflow-x: auto;
+    }
+    
+    .tabButton {
+      padding: 1rem;
+    }
+    
+    .eventsList {
+      grid-template-columns: 1fr;
+    }
+    
+    .membersList {
+      grid-template-columns: 1fr;
+    }
+    
+    .joinRequestsList {
+      grid-template-columns: 1fr;
+    }
+    
+    .modal {
+      width: 95%;
+      padding: 1.5rem;
+    }
+    
+    .postActions {
+      flex-direction: column;
+      gap: 1rem;
+    }
+    
+    .postButton {
+      width: 100%;
+    }
+    
+    .uploadButton {
+      display: block;
+      text-align: center;
+    }
+  }
+  
+  
