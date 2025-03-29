@@ -44,13 +44,13 @@ func main() {
 	http.HandleFunc("/follow", auth.CorsMiddleware(auth.AuthMiddleware(routes.FollowUser)))
 	http.HandleFunc("/unfollow", auth.CorsMiddleware(auth.AuthMiddleware(routes.UnfollowUser)))
 	http.HandleFunc("/users", auth.CorsMiddleware(auth.AuthMiddleware(routes.GetAllUsers)))
-	http.HandleFunc("/groups/create", auth.CorsMiddleware(auth.AuthMiddleware(routes.CreateGroup)))
-	http.HandleFunc("/groups/user", auth.CorsMiddleware(auth.AuthMiddleware(routes.GetUserGroups)))
+	http.HandleFunc("/groups/create", auth.CorsMiddleware(auth.AuthMiddleware(routes.CreateGroup))) //done
+	http.HandleFunc("/groups/user", auth.CorsMiddleware(auth.AuthMiddleware(routes.GetUserGroups))) //done
 	http.HandleFunc("/groups/details", auth.CorsMiddleware(auth.AuthMiddleware(routes.GetGroupDetails)))
-	http.HandleFunc("/groups/invite", auth.CorsMiddleware(auth.AuthMiddleware(routes.InviteToGroup)))
-	http.HandleFunc("/groups/invitations", auth.CorsMiddleware(auth.AuthMiddleware(routes.GetGroupInvitations)))
-	http.HandleFunc("/groups/join/request", auth.CorsMiddleware(auth.AuthMiddleware(routes.RequestToJoinGroup)))
-	http.HandleFunc("/groups/membership/handle", auth.CorsMiddleware(auth.AuthMiddleware(routes.HandleGroupMembershipRequest)))
+	http.HandleFunc("/groups/invite", auth.CorsMiddleware(auth.AuthMiddleware(routes.InviteToGroup)))                           // 1/2 done
+	http.HandleFunc("/groups/invitations", auth.CorsMiddleware(auth.AuthMiddleware(routes.GetGroupInvitations)))                // 1/2 done
+	http.HandleFunc("/groups/join/requests", auth.CorsMiddleware(auth.AuthMiddleware(routes.GetJoinRequestsForCreator)))        //done
+	http.HandleFunc("/groups/membership/handle", auth.CorsMiddleware(auth.AuthMiddleware(routes.HandleGroupMembershipRequest))) //done
 	http.HandleFunc("/groups/posts/create", auth.CorsMiddleware(auth.AuthMiddleware(routes.CreateGroupPost)))
 	http.HandleFunc("/groups/posts", auth.CorsMiddleware(auth.AuthMiddleware(routes.GetGroupPosts)))
 	http.HandleFunc("/groups/posts/comments", auth.CorsMiddleware(auth.AuthMiddleware(routes.GetGroupPostComments)))
@@ -59,6 +59,7 @@ func main() {
 	http.HandleFunc("/groups/events", auth.CorsMiddleware(auth.AuthMiddleware(routes.GetGroupEvents)))
 	http.HandleFunc("/groups/events/details", auth.CorsMiddleware(auth.AuthMiddleware(routes.GetGroupEvent)))
 	http.HandleFunc("/groups/events/respond", auth.CorsMiddleware(auth.AuthMiddleware(routes.RespondToEvent)))
+	http.HandleFunc("/groups/all", auth.CorsMiddleware(auth.AuthMiddleware(services.GetAllGroups))) //done
 
 	fmt.Println("Server is running on http://localhost:8080")
 	err = http.ListenAndServe(":8080", nil)

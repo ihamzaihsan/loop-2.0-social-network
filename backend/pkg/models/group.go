@@ -10,6 +10,8 @@ type Group struct {
 	CreatedAt   time.Time `json:"created_at"`
 	MemberCount int       `json:"member_count,omitempty"`
 	IsCreator   bool      `json:"is_creator,omitempty"`
+	Role        string    `json:"role,omitempty"`
+	Status      string    `json:"status,omitempty"`
 }
 
 type GroupMember struct {
@@ -38,6 +40,7 @@ type GroupInvitation struct {
 type GroupJoinRequest struct {
 	ID        int       `json:"id"`
 	GroupID   int       `json:"group_id"`
+	Title    string    `json:"title"`
 	UserID    int       `json:"user_id"`
 	Status    string    `json:"status"`
 	CreatedAt time.Time `json:"created_at"`
