@@ -32,6 +32,9 @@ export interface WebSocketClientInterface {
     startPingInterval(): void;
     clearPingInterval(): void;
     sendMessage(receiverId: number, content: string): boolean;
-    sendGroupMessage(groupId: number, content: string): boolean; // Add method for group messages
+    sendGroupMessage(groupId: number, content: string): boolean;
+    sendGroupPost(groupId: number, content: string, image?: string): boolean;
+    sendGroupEvent(groupId: number, title: string, description: string, eventTime: string, options?: string[]): boolean;
+    sendEventResponse(eventId: number, optionId: number): boolean;
     setTypingStatus(receiverId: number, isTyping: boolean): void;
 }

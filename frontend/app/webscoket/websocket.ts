@@ -231,4 +231,86 @@ export class WebSocketClient implements WebSocketClientInterface {
             this.socket = null;
         }
     }
+
+    sendGroupPost(groupId: number, content: string, image?: string): boolean {
+        if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+            console.error('WebSocket is not connected, readyState:', this.socket?.readyState);
+            return false;
+        }
+
+        try {
+            const message = {
+                type: 'group_post',
+                content: {
+                    group_id: groupId,
+                    content: content,
+                    image: image
+                }
+            };
+            
+            console.log('Sending group post via WebSocket:', JSON.stringify(message));
+            this.socket.send(JSON.stringify(message));
+            
+            console.log('Group post sent successfully via WebSocket');
+            return true;
+        } catch (error) {
+            console.error('Error sending group post via WebSocket:', error);
+            return false;
+        }
+    }
+
+    sendGroupEvent(groupId: number, title: string, description: string, eventTime: string, options?: string[]): boolean {
+        if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+            console.error('WebSocket is not connected, readyState:', this.socket?.readyState);
+            return false;
+        }
+
+        try {
+            const message = {
+                type: 'group_event',
+                content: {
+                    group_id: groupId,
+                    title: title,
+                    description: description,
+                    event_time: eventTime,
+                    options: options || ["Going", "Not Going"]
+                }
+            };
+            
+            console.log('Sending group event via WebSocket:', JSON.stringify(message));
+            this.socket.send(JSON.stringify(message));
+            
+            console.log('Group event sent successfully via WebSocket');
+            return true;
+        } catch (error) {
+            console.error('Error sending group event via WebSocket:', error);
+            return false;
+        }
+    }
+
+    sendEventResponse(eventId: number, optionId: number): boolean {
+        if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+            console.error('WebSocket is not connected, readyState:', this.socket?.readyState);
+            return false;
+        }
+
+        try {
+            const message = {
+                type: 'event_response',
+                content: {
+                    event_id: eventId,
+                    option_id: optionId
+                }
+            };
+            
+            console.log('Sending event response via WebSocket:', JSON.stringify(message));
+            this.socket.send(JSON.stringify(message));
+            
+            console.log('Event response sent successfully via WebSocket');
+            return true;
+        } catch (error) {
+            console.error('Error sending event response via WebSocket:', error);
+            return false;
+        }
+    }
 }

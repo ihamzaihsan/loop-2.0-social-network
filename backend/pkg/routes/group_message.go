@@ -230,36 +230,57 @@ func SendGroupMessage(w http.ResponseWriter, r *http.Request) {
 }
 
 // broadcastToGroupMembers sends a message to all online group members except the sender
-func broadcastToGroupMembers(groupID, senderID int, message GroupMessageResponse) {
-	// Get all members of the group
-	rows, err := db.DBInstance.DB.Query(`
-		SELECT user_id FROM group_members
-		WHERE group_id = ?
-	`, groupID)
+func broadcastToGroupMembers(groupID, senderID int, message interface{}) {
+    // Get all members of the group
+    rows, err := db.DBInstance.DB.Query(`
+        SELECT user_id FROM group_members
+        WHERE group_id = ?
+    `, groupID)
 
-	if err != nil {
-		log.Printf("[ERROR] Failed to get group members for broadcast: %v", err)
-		return
-	}
-	defer rows.Close()
+    if err != nil {
+        log.Printf("[ERROR] Failed to get group members for broadcast: %v", err)
+        return
+    }
+    defer rows.Close()
 
-	var memberIDs []int
-	for rows.Next() {
-		var memberID int
-		if err := rows.Scan(&memberID); err != nil {
-			log.Printf("[ERROR] Failed to scan member ID: %v", err)
-			continue
-		}
-		memberIDs = append(memberIDs, memberID)
-	}
+    var memberIDs []int
+    for rows.Next() {
+        var memberID int
+        if err := rows.Scan(&memberID); err != nil {
+            log.Printf("[ERROR] Failed to scan member ID: %v", err)
+            continue
+        }
+        memberIDs = append(memberIDs, memberID)
+    }
 
-	// Send the message to all online members except the sender
-	for _, memberID := range memberIDs {
-		if memberID != senderID {
-			SendToUser(memberID, Message{
-				Type:    "group_message",
-				Content: message,
-			})
-		}
-	}
+    // Determine the message type based on the type of the message parameter
+    var msgType string
+    switch message.(type) {
+    case GroupMessageResponse:
+        msgType = "group_message"
+    case Message:
+        // For Message type, the Type field is already set
+        msg, ok := message.(Message)
+        if ok {
+            // Send the message to all online members except the sender
+            for _, memberID := range memberIDs {
+                if memberID != senderID || senderID == 0 {
+                    SendToUser(memberID, msg)
+                }
+            }
+            return
+        }
+    default:
+        msgType = "group_update" // Default type
+    }
+
+    // Send the message to all online members except the sender
+    for _, memberID := range memberIDs {
+        if memberID != senderID || senderID == 0 {
+            SendToUser(memberID, Message{
+                Type:    msgType,
+                Content: message,
+            })
+        }
+    }
 }

@@ -271,9 +271,9 @@ const [userEventResponses, setUserEventResponses] = useState<{[eventId: number]:
                         created_at: content.created_at || new Date().toISOString(),
                         sender: {
                             id: content.sender_id || 0,
-                            firstName: typeof content.sender === 'string' ? content.sender.split(' ')[0] : "",
-                            lastName: typeof content.sender === 'string' ? (content.sender.split(' ')[1] || "") : "",
-                            avatar: undefined
+                            firstName: content.sender?.firstName || "",
+                            lastName: content.sender?.lastName || "",
+                            avatar: content.sender?.avatar
                         }
                     };
                     
@@ -297,6 +297,39 @@ const [userEventResponses, setUserEventResponses] = useState<{[eventId: number]:
                     setEvents(prev => [...prev, content]);
                 }
             });
+
+            client.addMessageHandler('event_response', (content) => {
+                console.log('Received event response:', content);
+                
+                if (content.event_id) {
+                    // Update the events array with new counts
+                    setEvents(prev => 
+                        prev.map(event => 
+                            event.id === content.event_id 
+                                ? {
+                                    ...event,
+                                    going_count: content.going_count,
+                                    not_going_count: content.not_going_count,
+                                    // Update user_response if this is the current user's response
+                                    user_response: content.user_id === currentUser.id 
+                                        ? content.response 
+                                        : event.user_response
+                                } 
+                                : event
+                        )
+                    );
+                    
+                    // Also update userEventResponses state if needed
+                    if (content.user_id === currentUser.id) {
+                        setUserEventResponses(prev => ({
+                            ...prev,
+                            [content.event_id]: content.option_id
+                        }));
+                    }
+                }
+            });
+
+            
             
             setWsClient(client);
         }
@@ -440,16 +473,30 @@ const [userEventResponses, setUserEventResponses] = useState<{[eventId: number]:
     const handleCreatePost = async () => {
         if (!newPostContent.trim() || !groupId) return;
         
-        try {
-            const newPost = await createGroupPost(groupId, newPostContent, newPostImage || undefined);
-            if (newPost) {
-                setPosts(prev => [newPost, ...prev]);
-                setNewPostContent('');
-                setNewPostImage(null);
-            }
-        } catch (error) {
-            console.error('Error creating post:', error);
+    try {
+        console.log(currentUser);
+        const newPost = await createGroupPost(groupId, newPostContent, newPostImage || undefined, currentUser);
+        if (newPost) {
+            // Only add to posts if it's not already there (might be added by WebSocket)
+            setPosts(prev => {
+                // Check if this post is already in the list (by content and timestamp)
+                const isDuplicate = prev.some(p => 
+                    p.content === newPostContent && 
+                    (new Date().getTime() - new Date(p.created_at).getTime()) < 5000
+                );
+                
+                if (!isDuplicate) {
+                    return [newPost, ...prev];
+                }
+                return prev;
+            });
+            
+            setNewPostContent('');
+            setNewPostImage(null);
         }
+    } catch (error) {
+        console.error('Error creating post:', error);
+    }
     };
 
     // Handle creating a comment
@@ -511,12 +558,23 @@ const [userEventResponses, setUserEventResponses] = useState<{[eventId: number]:
                 eventTitle,
                 eventDescription,
                 isoDateTime,
-                eventOptions // Pass the options
+                eventOptions
             );
             
             if (createdEvent) {
-                // Add the new event to the events list
-                setEvents(prev => [createdEvent, ...prev]);
+                // Only add to events if it's not already there (might be added by WebSocket)
+                setEvents(prev => {
+                    // Check if this event is already in the list (by title and timestamp)
+                    const isDuplicate = prev.some(e => 
+                        e.title === eventTitle && 
+                        (new Date().getTime() - new Date(e.created_at).getTime()) < 5000
+                    );
+                    
+                    if (!isDuplicate) {
+                        return [createdEvent, ...prev];
+                    }
+                    return prev;
+                });
                 
                 // Reset the form
                 setEventTitle('');
@@ -576,24 +634,59 @@ const [userEventResponses, setUserEventResponses] = useState<{[eventId: number]:
             try {
                 console.log(`Responding to event ${eventId} with option ${optionId}`);
                 
+                // Optimistically update the UI
+                const optionText = optionId === 1 ? 'Going' : 'Not Going';
+                
+                setEvents(prev => 
+                    prev.map(event => {
+                        if (event.id === eventId) {
+                            // Calculate new counts
+                            let goingCount = event.going_count || 0;
+                            let notGoingCount = event.not_going_count || 0;
+                            
+                            // If user already responded, adjust the old count down
+                            if (event.user_response === 'Going') {
+                                goingCount--;
+                            } else if (event.user_response === 'Not Going') {
+                                notGoingCount--;
+                            }
+                            
+                            // Adjust the new count up
+                            if (optionText === 'Going') {
+                                goingCount++;
+                            } else if (optionText === 'Not Going') {
+                                notGoingCount++;
+                            }
+                            
+                            return {
+                                ...event,
+                                going_count: goingCount,
+                                not_going_count: notGoingCount,
+                                user_response: optionText
+                            };
+                        }
+                        return event;
+                    })
+                );
+                
+                // Update the user responses state
+                setUserEventResponses(prev => ({
+                    ...prev,
+                    [eventId]: optionId
+                }));
+                
+                // Send the response to the server
                 const success = await respondToEvent(eventId, optionId);
                 
-                if (success) {
-                    console.log("Response recorded successfully");
-                    
-                    // Update the UI to reflect the new response
-                    setUserEventResponses(prev => ({
-                        ...prev,
-                        [eventId]: optionId
-                    }));
-                    
-                    // Refresh the events to get updated counts
-                    fetchGroupEvents();
-                } else {
+                if (!success) {
                     console.error("Failed to record response");
+                    // Revert the optimistic update if the server request fails
+                    fetchGroupEvents();
                 }
             } catch (error) {
                 console.error("Error responding to event:", error);
+                // Revert the optimistic update if there's an error
+                fetchGroupEvents();
             }
         };
 
