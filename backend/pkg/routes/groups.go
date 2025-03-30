@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"socialNetwork/pkg/auth"
+	query "socialNetwork/pkg/db/query"
 	"socialNetwork/pkg/models"
 	"strconv"
 	"time"
@@ -12,7 +13,6 @@ import (
 
 // Global service instance
 var GroupServiceImpl models.GroupService
-
 
 // SetGroupService allows setting the service implementation from outside
 func SetGroupService(service models.GroupService) {
@@ -22,54 +22,54 @@ func SetGroupService(service models.GroupService) {
 // CreateGroup handles the creation of a new group
 // In routes/groups.go
 func CreateGroup(w http.ResponseWriter, r *http.Request) {
-    if r.Method != http.MethodPost {
-        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-        return
-    }
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
 
-    // Get user ID from session
-    userID, err := auth.GetUserID(r)
-    if err != nil {
-        log.Printf("[ERROR] Failed to get user ID: %v", err)
-        http.Error(w, "Unauthorized", http.StatusUnauthorized)
-        return
-    }
+	// Get user ID from session
+	userID, err := auth.GetUserID(r)
+	if err != nil {
+		log.Printf("[ERROR] Failed to get user ID: %v", err)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
 
-    // Parse request body
-    var req struct {
-        Title       string `json:"title"`
-        Description string `json:"description"`
-    }
+	// Parse request body
+	var req struct {
+		Title       string `json:"title"`
+		Description string `json:"description"`
+	}
 
-    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-        log.Printf("[ERROR] Failed to parse request body: %v", err)
-        http.Error(w, "Invalid request body", http.StatusBadRequest)
-        return
-    }
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("[ERROR] Failed to parse request body: %v", err)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
 
-    // Validate request
-    if req.Title == "" {
-        http.Error(w, "Group title is required", http.StatusBadRequest)
-        return
-    }
+	// Validate request
+	if req.Title == "" {
+		http.Error(w, "Group title is required", http.StatusBadRequest)
+		return
+	}
 
-    log.Printf("[INFO] Creating group with title: %s, description: %s, userID: %d", req.Title, req.Description, userID)
+	log.Printf("[INFO] Creating group with title: %s, description: %s, userID: %d", req.Title, req.Description, userID)
 
-    // Create group using service
-    groupID, err := GroupServiceImpl.CreateGroup(req.Title, req.Description, userID)
-    if err != nil {
-        log.Printf("[ERROR] Failed to create group: %v", err)
-        http.Error(w, "Failed to create group: "+err.Error(), http.StatusInternalServerError)
-        return
-    }
+	// Create group using service
+	groupID, err := GroupServiceImpl.CreateGroup(req.Title, req.Description, userID)
+	if err != nil {
+		log.Printf("[ERROR] Failed to create group: %v", err)
+		http.Error(w, "Failed to create group: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-    // Return response
-    w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(map[string]interface{}{
-        "success":  true,
-        "group_id": groupID,
-        "message":  "Group created successfully",
-    })
+	// Return response
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success":  true,
+		"group_id": groupID,
+		"message":  "Group created successfully",
+	})
 }
 
 // GetUserGroups returns all groups a user is a member of
@@ -256,6 +256,8 @@ func RequestToJoinGroup(w http.ResponseWriter, r *http.Request) {
 
 // HandleGroupMembershipRequest processes a group invitation or join request
 func HandleGroupMembershipRequest(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -264,6 +266,7 @@ func HandleGroupMembershipRequest(w http.ResponseWriter, r *http.Request) {
 	// Get user ID from session
 	userID, err := auth.GetUserID(r)
 	if err != nil {
+		log.Printf("[ERROR] Unauthorized: %v", err)
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
@@ -271,37 +274,68 @@ func HandleGroupMembershipRequest(w http.ResponseWriter, r *http.Request) {
 	// Parse request body
 	var req struct {
 		GroupID     int    `json:"group_id"`
-		UserID      int    `json:"user_id"`
-		Action      string `json:"action"`       // accept or reject
-		RequestType string `json:"request_type"` // invitation or request
+		UserID      int    `json:"user_id,omitempty"` 
+		Action      string `json:"action"`
+		RequestType string `json:"request_type"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("[ERROR] Invalid request body: %v", err)
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	// Validate action
-	if req.Action != "accept" && req.Action != "reject" {
-		http.Error(w, "Invalid action", http.StatusBadRequest)
-		return
+	log.Printf("[INFO] Handling %s %s: group_id=%d, user_id=%d",
+		req.Action, req.RequestType, req.GroupID, userID)
+
+	targetUserID := userID
+	if req.RequestType == "request" && req.UserID > 0 {
+		targetUserID = req.UserID
 	}
 
-	// Validate request type
-	if req.RequestType != "invitation" && req.RequestType != "request" {
-		http.Error(w, "Invalid request type", http.StatusBadRequest)
-		return
-	}
-
-	// Process request using service
-	err = GroupServiceImpl.HandleGroupMembershipRequest(req.GroupID, req.UserID, userID, req.Action, req.RequestType)
+	// Handle the request
+	err = query.HandleGroupMembershipRequest(req.GroupID, targetUserID, req.Action, req.RequestType)
 	if err != nil {
+		log.Printf("[ERROR] Failed to handle group membership request: %v", err)
 		http.Error(w, "Failed to process request", http.StatusInternalServerError)
 		return
 	}
 
-	// Return response
-	w.Header().Set("Content-Type", "application/json")
+	// Send notification if request was accepted
+	if req.Action == "accept" {
+		// If it's an invitation, notify the group creator
+		// If it's a join request, notify the user who requested to join
+		recipientID := targetUserID
+		if req.RequestType == "invitation" {
+			// Get group creator ID to notify them
+			group, err := query.GetGroupByID(req.GroupID, userID)
+			if err == nil && group.CreatorID > 0 {
+				recipientID = group.CreatorID
+
+				// Send WebSocket notification to group creator
+				SendToUser(recipientID, Message{
+					Type: "group_member_joined",
+					Content: map[string]interface{}{
+						"group_id": req.GroupID,
+						"user_id":  userID,
+						"message":  "A user has accepted your invitation to join the group",
+					},
+				})
+			}
+		} else if req.RequestType == "request" {
+			// Send WebSocket notification to the user who requested to join
+			SendToUser(targetUserID, Message{
+				Type: "group_join_approved",
+				Content: map[string]interface{}{
+					"group_id": req.GroupID,
+					"message":  "Your request to join the group has been approved",
+				},
+			})
+		}
+	}
+
+	// Return success response
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
 		"message": "Group membership request processed successfully",
@@ -618,53 +652,51 @@ func GetGroupEvent(w http.ResponseWriter, r *http.Request) {
 // RespondToEvent records a user's response to an event
 // RespondToEvent records a user's response to an event
 func RespondToEvent(w http.ResponseWriter, r *http.Request) {
-    if r.Method != http.MethodPost {
-        log.Printf("[ERROR] Method not allowed: %s", r.Method)
-        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-        return
-    }
+	if r.Method != http.MethodPost {
+		log.Printf("[ERROR] Method not allowed: %s", r.Method)
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
 
-    // Get user ID from session
-    userID, err := auth.GetUserID(r)
-    if err != nil {
-        log.Printf("[ERROR] Unauthorized: %v", err)
-        http.Error(w, "Unauthorized", http.StatusUnauthorized)
-        return
-    }
+	// Get user ID from session
+	userID, err := auth.GetUserID(r)
+	if err != nil {
+		log.Printf("[ERROR] Unauthorized: %v", err)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
 
-    // Parse request body
-    var req struct {
-        EventID  int `json:"event_id"`
-        OptionID int `json:"option_id"`
-    }
+	// Parse request body
+	var req struct {
+		EventID  int `json:"event_id"`
+		OptionID int `json:"option_id"`
+	}
 
-    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-        log.Printf("[ERROR] Invalid request body: %v", err)
-        http.Error(w, "Invalid request body", http.StatusBadRequest)
-        return
-    }
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("[ERROR] Invalid request body: %v", err)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
 
-    log.Printf("[INFO] Responding to event: event_id=%d, user_id=%d, option_id=%d", req.EventID, userID, req.OptionID)
+	log.Printf("[INFO] Responding to event: event_id=%d, user_id=%d, option_id=%d", req.EventID, userID, req.OptionID)
 
-    // Record response using service
-    err = GroupServiceImpl.RespondToEvent(req.EventID, userID, req.OptionID)
-    if err != nil {
-        log.Printf("[ERROR] Failed to record response: %v", err)
-        http.Error(w, "Failed to record response", http.StatusInternalServerError)
-        return
-    }
+	// Record response using service
+	err = GroupServiceImpl.RespondToEvent(req.EventID, userID, req.OptionID)
+	if err != nil {
+		log.Printf("[ERROR] Failed to record response: %v", err)
+		http.Error(w, "Failed to record response", http.StatusInternalServerError)
+		return
+	}
 
-    log.Printf("[INFO] Response recorded successfully")
+	log.Printf("[INFO] Response recorded successfully")
 
-    // Return response
-    w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(map[string]interface{}{
-        "success": true,
-        "message": "Response recorded successfully",
-    })
+	// Return response
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"message": "Response recorded successfully",
+	})
 }
-
-
 
 // GetGroupMessages returns all messages for a specific group
 func GetGroupMessages(w http.ResponseWriter, r *http.Request) {
@@ -720,7 +752,3 @@ func GetGroupMessages(w http.ResponseWriter, r *http.Request) {
 		"messages": messages,
 	})
 }
-
-
-
-

@@ -112,6 +112,7 @@ export default function GroupInvitationsPage() {
                 setInvitations(prev => prev.filter(inv => inv.id !== invitationId))
 
                 if (action === 'accept') {
+                    // Refresh the groups list to show the newly joined group
                     setTimeout(() => {
                         router.push(`/groups/${groupId}`)
                     }, 1500)

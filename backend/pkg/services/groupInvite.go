@@ -1,6 +1,7 @@
 package services
 
 import (
+	"database/sql"
 	"log"
 	"socialNetwork/pkg/db"
 	"socialNetwork/pkg/db/query"
@@ -51,4 +52,24 @@ func InviteToGroupService(groupID, inviterID int, userIDs []int) error {
 	}
 
 	return nil
+}
+
+// GetGroupMembershipStatus checks the current status of a user's membership in a group
+func GetGroupMembershipStatus(groupID, userID int) (string, error) {
+	var status string
+	err := db.DBInstance.DB.QueryRow(`
+        SELECT status FROM group_members 
+        WHERE group_id = ? AND user_id = ?
+    `, groupID, userID).Scan(&status)
+
+	if err == sql.ErrNoRows {
+		return "not_member", nil
+	}
+
+	if err != nil {
+		log.Printf("[ERROR] Failed to get group membership status: %v", err)
+		return "", err
+	}
+
+	return status, nil
 }
