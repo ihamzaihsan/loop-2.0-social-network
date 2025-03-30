@@ -79,5 +79,16 @@ func (s *GroupService) GetGroupEvent(eventID, userID int) (interface{}, interfac
 }
 
 func (s *GroupService) RespondToEvent(eventID, userID, optionID int) error {
-	return query.RespondToEvent(eventID, userID, optionID)
+	_, err := RespondToEventService(eventID, userID, optionID)
+	return err
+}
+
+// IsGroupMember checks if a user is a member of a group
+func (s *GroupService) IsGroupMember(groupID, userID int) (bool, error) {
+	return query.IsGroupMember(groupID, userID)
+}
+
+// GetGroupMessages retrieves all messages for a group
+func (s *GroupService) GetGroupMessages(groupID int) ([]models.GroupMessage, error) {
+	return query.GetGroupMessages(groupID)
 }

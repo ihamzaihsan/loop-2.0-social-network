@@ -74,16 +74,22 @@ type GroupComment struct {
 }
 
 type GroupEvent struct {
-	ID              int                   `json:"id"`
-	GroupID         int                   `json:"group_id"`
-	Title           string                `json:"title"`
-	Description     string                `json:"description"`
-	EventTime       time.Time             `json:"event_time"`
-	CreatedAt       time.Time             `json:"created_at"`
+	ID             int                   `json:"id"`
+	GroupID        int                   `json:"group_id"`
+	Title          string                `json:"title"`
+	Description    string                `json:"description"`
+	EventTime      time.Time             `json:"event_time"`
+	CreatedAt      time.Time             `json:"created_at"`
+	UserResponse   string                `json:"user_response,omitempty"`
+	GoingCount     int                   `json:"going_count"`
+	NotGoingCount  int                   `json:"not_going_count"`
 	ResponseOptions []EventResponseOption `json:"response_options,omitempty"`
-	UserResponse    string                `json:"user_response,omitempty"`
 }
-
+type UserEventResponse struct {
+	ID         int    `json:"id"`
+	OptionID   int    `json:"option_id"`
+	OptionText string `json:"option_text"`
+}
 type EventResponseOption struct {
 	ID            int    `json:"id"`
 	EventID       int    `json:"event_id"`
@@ -103,6 +109,20 @@ type EventResponse struct {
 	OptionText       string    `json:"option_text,omitempty"`
 }
 
+type GroupMessage struct {
+	ID        int       `json:"id"`
+	SenderID  int       `json:"sender_id"`
+	GroupID   int       `json:"group_id,omitempty"`
+	Content   string    `json:"content"`
+	CreatedAt time.Time `json:"created_at"`
+	Sender    struct {
+		ID        int    `json:"id"`
+		FirstName string `json:"firstName"`
+		LastName  string `json:"lastName"`
+		Avatar    string `json:"avatar,omitempty"`
+	} `json:"sender"`
+}
+
 type GroupService interface {
 	CreateGroup(title, description string, userID int) (int, error)
 	GetUserGroups(userID int) (interface{}, error)
@@ -119,4 +139,6 @@ type GroupService interface {
 	GetGroupEvents(groupID, userID int) (interface{}, error)
 	GetGroupEvent(eventID, userID int) (interface{}, interface{}, error)
 	RespondToEvent(eventID, userID, optionID int) error
+	IsGroupMember(groupID, userID int) (bool, error)
+	GetGroupMessages(groupID int) ([]GroupMessage, error)
 }

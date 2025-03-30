@@ -13,6 +13,7 @@ import (
 // Global service instance
 var GroupServiceImpl models.GroupService
 
+
 // SetGroupService allows setting the service implementation from outside
 func SetGroupService(service models.GroupService) {
 	GroupServiceImpl = service
@@ -615,8 +616,59 @@ func GetGroupEvent(w http.ResponseWriter, r *http.Request) {
 }
 
 // RespondToEvent records a user's response to an event
+// RespondToEvent records a user's response to an event
 func RespondToEvent(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
+    if r.Method != http.MethodPost {
+        log.Printf("[ERROR] Method not allowed: %s", r.Method)
+        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+        return
+    }
+
+    // Get user ID from session
+    userID, err := auth.GetUserID(r)
+    if err != nil {
+        log.Printf("[ERROR] Unauthorized: %v", err)
+        http.Error(w, "Unauthorized", http.StatusUnauthorized)
+        return
+    }
+
+    // Parse request body
+    var req struct {
+        EventID  int `json:"event_id"`
+        OptionID int `json:"option_id"`
+    }
+
+    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+        log.Printf("[ERROR] Invalid request body: %v", err)
+        http.Error(w, "Invalid request body", http.StatusBadRequest)
+        return
+    }
+
+    log.Printf("[INFO] Responding to event: event_id=%d, user_id=%d, option_id=%d", req.EventID, userID, req.OptionID)
+
+    // Record response using service
+    err = GroupServiceImpl.RespondToEvent(req.EventID, userID, req.OptionID)
+    if err != nil {
+        log.Printf("[ERROR] Failed to record response: %v", err)
+        http.Error(w, "Failed to record response", http.StatusInternalServerError)
+        return
+    }
+
+    log.Printf("[INFO] Response recorded successfully")
+
+    // Return response
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(map[string]interface{}{
+        "success": true,
+        "message": "Response recorded successfully",
+    })
+}
+
+
+
+// GetGroupMessages returns all messages for a specific group
+func GetGroupMessages(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
@@ -628,28 +680,47 @@ func RespondToEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse request body
-	var req struct {
-		EventID  int `json:"event_id"`
-		OptionID int `json:"option_id"`
-	}
-
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	// Get group ID from query parameters
+	groupIDStr := r.URL.Query().Get("id")
+	if groupIDStr == "" {
+		http.Error(w, "Group ID is required", http.StatusBadRequest)
 		return
 	}
 
-	// Record response using service
-	err = GroupServiceImpl.RespondToEvent(req.EventID, userID, req.OptionID)
+	groupID, err := strconv.Atoi(groupIDStr)
 	if err != nil {
-		http.Error(w, "Failed to record response", http.StatusInternalServerError)
+		http.Error(w, "Invalid group ID", http.StatusBadRequest)
+		return
+	}
+
+	// Check if user is a member of the group
+	isMember, err := GroupServiceImpl.IsGroupMember(groupID, userID)
+	if err != nil {
+		http.Error(w, "Failed to check group membership", http.StatusInternalServerError)
+		return
+	}
+
+	if !isMember {
+		http.Error(w, "You are not a member of this group", http.StatusForbidden)
+		return
+	}
+
+	// Get messages using service
+	messages, err := GroupServiceImpl.GetGroupMessages(groupID)
+	if err != nil {
+		log.Printf("[ERROR] Failed to get group messages: %v", err)
+		http.Error(w, "Failed to retrieve messages", http.StatusInternalServerError)
 		return
 	}
 
 	// Return response
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success": true,
-		"message": "Response recorded successfully",
+		"success":  true,
+		"messages": messages,
 	})
 }
+
+
+
+

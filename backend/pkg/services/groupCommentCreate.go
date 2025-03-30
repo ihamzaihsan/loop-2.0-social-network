@@ -4,7 +4,6 @@ import (
 	"log"
 	"socialNetwork/pkg/db"
 	"socialNetwork/pkg/db/query"
-	"socialNetwork/pkg/routes"
 )
 
 // CreateGroupCommentService adds a comment to a group post
@@ -19,7 +18,8 @@ func CreateGroupCommentService(postID, userID int, content string) (int, error) 
 	isMember, err := query.IsGroupMember(post.GroupID, userID)
 	if err != nil || !isMember {
 		return 0, err
-	}
+	} 
+	
 
 	// Create comment
 	commentID, err := query.CreateGroupComment(postID, userID, content)
@@ -28,7 +28,7 @@ func CreateGroupCommentService(postID, userID int, content string) (int, error) 
 		return 0, err
 	}
 
-	// Notify post creator if different from commenter
+	// Only prepare notification data if post creator is different from commenter
 	if post.UserID != userID {
 		// Get user info
 		var firstName, lastName string
@@ -37,20 +37,18 @@ func CreateGroupCommentService(postID, userID int, content string) (int, error) 
 		).Scan(&firstName, &lastName)
 
 		if err == nil {
-			// Send WebSocket notification
-			routes.SendToUser(post.UserID, routes.Message{
-				Type: "group_comment",
-				Content: map[string]interface{}{
-					"group_id":        post.GroupID,
-					"post_id":         post.ID,
-					"comment_id":      commentID,
-					"user_id":         userID,
-					"user_name":       firstName + " " + lastName,
-					"content_preview": truncateString(content, 50),
-				},
-			})
+			// Store notification in database instead of directly sending WebSocket message
+			_, err := db.DBInstance.DB.Exec(`
+				INSERT INTO notifications (user_id, type, related_id, content, created_at)
+				VALUES (?, 'group_comment', ?, ?, NOW())
+			`, post.UserID, commentID, truncateString(content, 50))
+			
+			if err != nil {
+				log.Printf("[ERROR] Failed to store notification: %v", err)
+			}
 		}
 	}
 
 	return commentID, nil
 }
+

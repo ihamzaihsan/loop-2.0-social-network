@@ -11,6 +11,7 @@ func GetGroupEvent(eventID, userID int) (*models.GroupEvent, error) {
 	var event models.GroupEvent
 	var userResponseID sql.NullInt64
 	var userResponse sql.NullString
+	var goingCount, notGoingCount int
 
 	err := db.DBInstance.DB.QueryRow(`
 		SELECT ge.id, ge.group_id, ge.title, ge.description, ge.event_time, ge.created_at,
@@ -21,7 +22,15 @@ func GetGroupEvent(eventID, userID int) (*models.GroupEvent, error) {
 			   (SELECT ero.option_text 
 				FROM event_responses er 
 				JOIN event_response_options ero ON er.response_option_id = ero.id
-				WHERE er.event_id = ge.id AND er.user_id = ?) as user_response
+				WHERE er.event_id = ge.id AND er.user_id = ?) as user_response,
+               (SELECT COUNT(*) 
+                FROM event_responses er 
+                JOIN event_response_options ero ON er.response_option_id = ero.id 
+                WHERE er.event_id = ge.id AND ero.option_text = 'Going') as going_count,
+               (SELECT COUNT(*) 
+                FROM event_responses er 
+                JOIN event_response_options ero ON er.response_option_id = ero.id 
+                WHERE er.event_id = ge.id AND ero.option_text = 'Not Going') as not_going_count
 		FROM group_events ge
 		WHERE ge.id = ?
 	`, userID, userID, eventID).Scan(
@@ -33,6 +42,8 @@ func GetGroupEvent(eventID, userID int) (*models.GroupEvent, error) {
 		&event.CreatedAt,
 		&userResponseID,
 		&userResponse,
+		&goingCount,
+		&notGoingCount,
 	)
 
 	if err != nil {
@@ -42,6 +53,9 @@ func GetGroupEvent(eventID, userID int) (*models.GroupEvent, error) {
 	if userResponse.Valid {
 		event.UserResponse = userResponse.String
 	}
+	
+	event.GoingCount = goingCount
+	event.NotGoingCount = notGoingCount
 
 	optionRows, err := db.DBInstance.DB.Query(`
 		SELECT ero.id, ero.event_id, ero.option_text,

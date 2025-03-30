@@ -54,3 +54,23 @@ func GetEventResponses(eventID int) ([]models.EventResponse, error) {
 
 	return responses, nil
 }
+
+// GetUserEventResponse returns a user's response to a specific event
+func GetUserEventResponse(eventID, userID int) (int, error) {
+    var responseOptionID int
+    err := db.DBInstance.DB.QueryRow(`
+        SELECT response_option_id
+        FROM event_responses
+        WHERE event_id = ? AND user_id = ?
+    `, eventID, userID).Scan(&responseOptionID)
+
+    if err == sql.ErrNoRows {
+        return 0, nil // User hasn't responded yet
+    }
+
+    return responseOptionID, err
+}
+
+
+
+

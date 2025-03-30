@@ -4,6 +4,15 @@ import { useState, useEffect, useRef } from 'react'
 import Sidebar from '@/components/Sidebar'
 import { useRouter, useParams } from 'next/navigation'
 import './groupChat.css'
+import { WebSocketClient } from '../../webscoket/websocket'
+import { 
+    fetchGroupMessages, 
+    sendGroupMessage, 
+    createGroupPost, 
+    createGroupComment, 
+    createGroupEvent, 
+    respondToEvent 
+} from '../../chat/messageHandlers'
 
 interface Group {
     id: number
@@ -25,16 +34,17 @@ interface GroupMember {
 }
 
 interface GroupMessage {
-    id: number
-    sender_id: number
-    content: string
-    created_at: string
+    id: number;
+    sender_id: number;
+    group_id: number;
+    content: string;
+    created_at: string;
     sender: {
-        id: number
-        firstName: string
-        lastName: string
-        avatar?: string
-    }
+        id: number;
+        firstName: string;
+        lastName: string;
+        avatar?: string;
+    };
 }
 
 interface GroupPost {
@@ -43,10 +53,16 @@ interface GroupPost {
     content: string
     image?: string
     created_at: string
-    firstName: string
-    lastName: string
+    first_name: string
+    last_name: string
     avatar?: string
     comment_count: number
+}
+interface EventResponseOption {
+    id: number;
+    event_id: number;
+    option_text: string;
+    response_count: number;
 }
 
 interface GroupEvent {
@@ -55,7 +71,12 @@ interface GroupEvent {
     description: string
     event_time: string
     created_at: string
+    going_count?: number
+    not_going_count?: number
+    user_response?: string
+    ResponseOptions?: EventResponseOption[] 
 }
+
 
 interface User {
     id: number
@@ -79,6 +100,26 @@ export default function GroupChatPage() {
     const [error, setError] = useState('')
     const [activeTab, setActiveTab] = useState('chat') // 'chat', 'posts', or 'events'
 
+    const [wsClient, setWsClient] = useState<WebSocketClient | null>(null)
+    const [currentUser, setCurrentUser] = useState<User | null>(null)
+    const messagesEndRef = useRef<HTMLDivElement>(null)
+    
+    // For posts functionality
+    const [newPostContent, setNewPostContent] = useState('')
+    const [newPostImage, setNewPostImage] = useState<string | null>(null)
+    const [selectedPost, setSelectedPost] = useState<number | null>(null)
+    const [newComment, setNewComment] = useState('')
+    
+    // For events functionality
+    const [showEventForm, setShowEventForm] = useState(false)
+    const [eventTitle, setEventTitle] = useState('')
+    const [eventDescription, setEventDescription] = useState('')
+    const [eventDate, setEventDate] = useState('')
+    const [eventTime, setEventTime] = useState('')
+    const [eventError, setEventError] = useState<string>('');
+    // Add this to your state variables
+const [userEventResponses, setUserEventResponses] = useState<{[eventId: number]: number}>({});
+
     // Invite users functionality
     const [showInviteModal, setShowInviteModal] = useState(false)
     const [users, setUsers] = useState<User[]>([])
@@ -87,39 +128,188 @@ export default function GroupChatPage() {
     const [inviteSuccess, setInviteSuccess] = useState('')
     const [inviteError, setInviteError] = useState('')
 
+    // Fetch current user data
     useEffect(() => {
-        const fetchGroupDetails = async () => {
+        const fetchUserData = async () => {
             try {
-                // Fetch group details
-                const response = await fetch(`http://localhost:8080/groups/details?id=${groupId}`, {
+                const response = await fetch('http://localhost:8080/profile', {
                     method: 'GET',
                     credentials: 'include'
-                })
+                });
 
-                if (response.ok) {
-                    const data = await response.json()
-                    if (data.success && data.data) {
-                        setGroup(data.data.group)
-                        setMembers(data.data.members || [])
-                    } else {
-                        setError('Failed to load group details')
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        router.push('/');
+                        return;
                     }
-                } else {
-                    setError('Failed to load group')
-                    router.push('/groups')
+                    throw new Error('Failed to fetch user data');
                 }
-            } catch (error) {
-                console.error('Error fetching group details:', error)
-                setError('An error occurred while loading the group')
-            } finally {
-                setLoading(false)
+
+                const data = await response.json();
+                
+                if (data.user) {
+                    setCurrentUser({
+                        id: data.user.id,
+                        firstName: data.user.firstName,
+                        lastName: data.user.lastName,
+                        avatar: data.user.avatar
+                    });
+                }
+            } catch (error: any) {
+                console.error('Error fetching user data:', error);
             }
+        };
+
+        fetchUserData();
+    }, [router]);
+
+    // Fetch group details
+    useEffect(() => {
+        const fetchGroupDetails = async () => {
+    try {
+        // Fetch group details
+        const response = await fetch(`http://localhost:8080/groups/details?id=${groupId}`, {
+            method: 'GET',
+            credentials: 'include'
+        })
+
+        if (response.ok) {
+            const data = await response.json()
+            if (data.success && data.data) {
+                setGroup(data.data.group)
+                setMembers(data.data.members || [])
+            } else {
+                setError('Failed to load group details')
+            }
+        } else {
+            setError('Failed to load group')
+            router.push('/groups')
         }
+    } catch (error) {
+        console.error('Error fetching group details:', error)
+        setError('An error occurred while loading the group')
+    } finally {
+        setLoading(false)
+    }
+}
 
         if (groupId) {
             fetchGroupDetails()
         }
     }, [groupId, router])
+
+    // Fetch group messages, posts, and events
+    useEffect(() => {
+        const fetchGroupData = async () => {
+            if (!groupId) return;
+            
+            try {
+                // Fetch group messages
+                const messagesResponse = await fetch(`http://localhost:8080/groups/messages?id=${groupId}`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                if (messagesResponse.ok) {
+                    const messagesData = await messagesResponse.json();
+                    if (messagesData.success && messagesData.messages) {
+                        setMessages(messagesData.messages);
+                    }
+                }
+                
+                // Fetch group posts
+                const postsResponse = await fetch(`http://localhost:8080/groups/posts?group_id=${groupId}`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                if (postsResponse.ok) {
+                    const postsData = await postsResponse.json();
+                    if (postsData.success && postsData.posts) {
+                        setPosts(postsData.posts);
+                    }
+                }
+                
+                // Fetch group events
+                const eventsResponse = await fetch(`http://localhost:8080/groups/events?group_id=${groupId}`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                if (eventsResponse.ok) {
+                    const eventsData = await eventsResponse.json();
+                    if (eventsData.success && eventsData.events) {
+                        setEvents(eventsData.events);
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching group data:', error);
+            }
+        };
+        
+        if (groupId) {
+            fetchGroupData();
+        }
+    }, [groupId]);
+
+    // Setup WebSocket connection
+    useEffect(() => {
+        const client = WebSocketClient.getInstance();
+        
+        if (client && currentUser) {
+            // Add message handler for group messages
+            client.addMessageHandler('group_message', (content) => {
+                console.log('Received group message:', content);
+                
+                // Only process messages for the current group
+                if (content.group_id === groupId) {
+                    const newMessage: GroupMessage = {
+                        id: content.id || 0,
+                        sender_id: content.sender_id || 0,
+                        group_id: content.group_id || 0,
+                        content: content.content || "",
+                        created_at: content.created_at || new Date().toISOString(),
+                        sender: {
+                            id: content.sender_id || 0,
+                            firstName: typeof content.sender === 'string' ? content.sender.split(' ')[0] : "",
+                            lastName: typeof content.sender === 'string' ? (content.sender.split(' ')[1] || "") : "",
+                            avatar: undefined
+                        }
+                    };
+                    
+                    // Don't add messages from the current user (they're added directly when sent)
+                    if (newMessage.sender_id !== currentUser.id) {
+                        setMessages(prev => [...prev, newMessage]);
+                    }
+                }
+            });
+            
+            // Add message handler for group posts
+            client.addMessageHandler('group_post', (content) => {
+                if (content.group_id === groupId && content.user_id !== currentUser.id) {
+                    setPosts(prev => [content, ...prev]);
+                }
+            });
+            
+            // Add message handler for group events
+            client.addMessageHandler('group_event', (content) => {
+                if (content.group_id === groupId && content.creator_id !== currentUser.id) {
+                    setEvents(prev => [...prev, content]);
+                }
+            });
+            
+            setWsClient(client);
+        }
+        
+        // No cleanup needed as we want to keep the connection alive
+    }, [currentUser, groupId]);
+
+    // Scroll to bottom of messages when new messages arrive
+    useEffect(() => {
+        if (messagesEndRef.current && activeTab === 'chat') {
+            messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [messages, activeTab]);
 
     // Fetch all users for invitation
     const fetchUsers = async () => {
@@ -198,11 +388,217 @@ export default function GroupChatPage() {
         )
     }
 
-    const handleSendMessage = (e: React.FormEvent) => {
-        e.preventDefault()
-        console.log('Message would be sent:', newMessage)
-        setNewMessage('')
-    }
+    // Handle sending a group message
+    const handleSendMessage = async (e: React.FormEvent) => {
+        e.preventDefault();
+        
+        if (!newMessage.trim() || !groupId || !currentUser) return;
+        
+        try {
+            // Try to send via WebSocket first
+            let sentViaWebSocket = false;
+            if (wsClient && wsClient.socket && wsClient.socket.readyState === WebSocket.OPEN) {
+                console.log('Attempting to send group message via WebSocket');
+                sentViaWebSocket = wsClient.sendGroupMessage(groupId, newMessage);
+                console.log('WebSocket send result:', sentViaWebSocket);
+            } else {
+                console.log('WebSocket not available, using HTTP');
+            }
+            
+            // If WebSocket failed or not available, use HTTP
+            if (!sentViaWebSocket) {
+                console.log('Sending group message via HTTP');
+                await sendGroupMessage(groupId, newMessage);
+            }
+            
+            // Add the message to the UI regardless of how it was sent
+            const newMessageObj: GroupMessage = {
+                id: Date.now(), // Temporary ID until we get the real one
+                sender_id: currentUser.id,
+                group_id: groupId,
+                content: newMessage,
+                created_at: new Date().toISOString(),
+                sender: {
+                    id: currentUser.id,
+                    firstName: currentUser.firstName,
+                    lastName: currentUser.lastName,
+                    avatar: currentUser.avatar
+                }
+            };
+            
+            // Add the new message to the messages list
+            setMessages(prev => [...prev, newMessageObj]);
+            
+            // Clear the input field
+            setNewMessage('');
+        } catch (error) {
+            console.error('Error sending group message:', error);
+        }
+    };
+
+    // Handle creating a post
+    const handleCreatePost = async () => {
+        if (!newPostContent.trim() || !groupId) return;
+        
+        try {
+            const newPost = await createGroupPost(groupId, newPostContent, newPostImage || undefined);
+            if (newPost) {
+                setPosts(prev => [newPost, ...prev]);
+                setNewPostContent('');
+                setNewPostImage(null);
+            }
+        } catch (error) {
+            console.error('Error creating post:', error);
+        }
+    };
+
+    // Handle creating a comment
+    const handleCreateComment = async (postId: number) => {
+        if (!newComment.trim()) return;
+        
+        try {
+            const newCommentObj = await createGroupComment(postId, newComment);
+            if (newCommentObj) {
+                // Update the post's comment count
+                setPosts(prev => 
+                    prev.map(post => 
+                        post.id === postId 
+                            ? { ...post, comment_count: post.comment_count + 1 } 
+                            : post
+                    )
+                );
+                
+                // Clear the comment input
+                setNewComment('');
+                
+                // Close the comment form
+                setSelectedPost(null);
+            }
+        } catch (error) {
+            console.error('Error creating comment:', error);
+        }
+    };
+
+    // Handle creating an event
+    const handleCreateEvent = async () => {
+        try {
+            // First, validate that date and time are not empty
+            if (!eventDate || !eventTime) {
+                setEventError("Please select both date and time");
+                return;
+            }
+    
+            // Create a date string in the format that JavaScript can parse
+            const dateTimeString = `${eventDate}T${eventTime}`;
+            
+            // Validate the date before converting to ISO string
+            const eventDateTime = new Date(dateTimeString);
+            
+            if (isNaN(eventDateTime.getTime())) {
+                setEventError("Invalid date or time format");
+                return;
+            }
+            
+            // Now it's safe to convert to ISO string
+            const isoDateTime = eventDateTime.toISOString();
+            
+            // Define response options for the event
+            const eventOptions = ["Going", "Maybe", "Not Going"];
+            
+            // Create the event
+            const createdEvent = await createGroupEvent(
+                groupId,
+                eventTitle,
+                eventDescription,
+                isoDateTime,
+                eventOptions // Pass the options
+            );
+            
+            if (createdEvent) {
+                // Add the new event to the events list
+                setEvents(prev => [createdEvent, ...prev]);
+                
+                // Reset the form
+                setEventTitle('');
+                setEventDescription('');
+                setEventDate('');
+                setEventTime('');
+                setShowEventForm(false);
+            } else {
+                setEventError("Failed to create event. Please try again.");
+            }
+        } catch (error) {
+            console.error("Error creating event:", error);
+            setEventError("Failed to create event. Please try again.");
+        }
+    };
+
+    const fetchGroupEvents = async () => {
+        try {
+            const response = await fetch(`http://localhost:8080/groups/events?group_id=${groupId}`, {
+                method: 'GET',
+                credentials: 'include'
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success && data.events) {
+                    setEvents(data.events);
+                    
+                    // Initialize user responses from the fetched data
+                    const userResponses: {[eventId: number]: number} = {};
+                    data.events.forEach((event: any) => {
+                        if (event.user_response_id) {
+                            userResponses[event.id] = event.user_response_id;
+                        }
+                    });
+                    setUserEventResponses(userResponses);
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching events:', error);
+        }
+    };
+    
+    // Call this function when the tab changes to events
+    useEffect(() => {
+        if (groupId && activeTab === 'events') {
+            fetchGroupEvents();
+        }
+    }, [groupId, activeTab]);
+    
+    
+    
+
+    // Handle responding to an event
+        // Handle responding to an event
+        const handleEventResponse = async (eventId: number, optionId: number) => {
+            try {
+                console.log(`Responding to event ${eventId} with option ${optionId}`);
+                
+                const success = await respondToEvent(eventId, optionId);
+                
+                if (success) {
+                    console.log("Response recorded successfully");
+                    
+                    // Update the UI to reflect the new response
+                    setUserEventResponses(prev => ({
+                        ...prev,
+                        [eventId]: optionId
+                    }));
+                    
+                    // Refresh the events to get updated counts
+                    fetchGroupEvents();
+                } else {
+                    console.error("Failed to record response");
+                }
+            } catch (error) {
+                console.error("Error responding to event:", error);
+            }
+        };
+
+
+    
 
     if (loading) {
         return (
@@ -342,9 +738,9 @@ export default function GroupChatPage() {
                                         {messages.map(message => (
                                             <div
                                                 key={message.id}
-                                                className={`message ${message.sender_id === 1 ? 'sent' : 'received'}`}
+                                                className={`message ${message.sender_id === currentUser?.id ? 'sent' : 'received'}`}
                                             >
-                                                {message.sender_id !== 1 && (
+                                                {message.sender_id !== currentUser?.id && (
                                                     <div className="message-sender">
                                                         <div className="sender-avatar">
                                                             {message.sender.avatar ? (
@@ -364,6 +760,7 @@ export default function GroupChatPage() {
                                                 </div>
                                             </div>
                                         ))}
+                                        <div ref={messagesEndRef} />
                                     </div>
                                 ) : (
                                     <div className="empty-messages">
@@ -398,49 +795,87 @@ export default function GroupChatPage() {
                                     className="post-input"
                                     placeholder="Write a post..."
                                     rows={3}
+                                    value={newPostContent}
+                                    onChange={(e) => setNewPostContent(e.target.value)}
                                 ></textarea>
-                                <button className="post-button">Post</button>
+                                <div className="post-image-upload">
+                                    <input 
+                                        type="text" 
+                                        placeholder="Image URL (optional)" 
+                                        value={newPostImage || ''}
+                                        onChange={(e) => setNewPostImage(e.target.value || null)}
+                                    />
+                                </div>
+                                <button 
+                                    className="post-button"
+                                    onClick={handleCreatePost}
+                                    disabled={!newPostContent.trim()}
+                                >
+                                    Post
+                                </button>
                             </div>
 
                             {posts.length > 0 ? (
-                                <div className="posts-list">
-                                    {posts.map(post => (
-                                        <div key={post.id} className="post-item">
-                                            <div className="post-header">
-                                                <div className="post-author">
-                                                    <div className="author-avatar">
-                                                        {post.avatar ? (
-                                                            <img src={post.avatar} alt={`${post.firstName}'s avatar`} />
-                                                        ) : (
-                                                            <div className="avatar-placeholder">
-                                                                {post.firstName.charAt(0)}
-                                                            </div>
-                                                        )}
+                        <div className="posts-list">
+                            {posts.map(post => (
+                                <div key={post.id} className="post-item">
+                                    <div className="post-header">
+                                        <div className="post-author">
+                                            <div className="author-avatar">
+                                                {post.avatar ? (
+                                                    <img src={post.avatar} alt={`${post.first_name}'s avatar`} />
+                                                ) : (
+                                                    <div className="avatar-placeholder">
+                                                        {post.first_name ? post.first_name.charAt(0) : 'U'}
                                                     </div>
-                                                    <div className="author-info">
-                                                        <span className="author-name">{post.firstName} {post.lastName}</span>
-                                                        <span className="post-time">{new Date(post.created_at).toLocaleString()}</span>
-                                                    </div>
-                                                </div>
+                                                )}
                                             </div>
-                                            <div className="post-content">{post.content}</div>
-                                            {post.image && (
-                                                <div className="post-image">
-                                                    <img src={post.image} alt="Post attachment" />
-                                                </div>
-                                            )}
-                                            <div className="post-footer">
-                                                <button className="comment-button">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                                                    </svg>
-                                                    {post.comment_count} Comments
-                                                </button>
+                                            <div className="author-info">
+                                                <span className="author-name">{post.first_name || 'Unknown'} {post.last_name || ''}</span>
+                                                <span className="post-time">{post.created_at ? new Date(post.created_at).toLocaleString() : 'Unknown date'}</span>
                                             </div>
                                         </div>
-                                    ))}
+                                    </div>
+                                    <div className="post-content">{post.content || ''}</div>
+                                    {post.image && (
+                                        <div className="post-image">
+                                            <img src={post.image} alt="Post attachment" />
+                                        </div>
+                                    )}
+                                    <div className="post-footer">
+                                        <button
+                                            className="comment-button"
+                                            onClick={() => setSelectedPost(selectedPost === post.id ? null : post.id)}
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                            </svg>
+                                            {post.comment_count || 0} Comments
+                                        </button>
+                                    </div>
+                                    
+                                    {/* Comment form */}
+                                    {selectedPost === post.id && (
+                                        <div className="comment-form">
+                                            <textarea
+                                                className="comment-input"
+                                                placeholder="Write a comment..."
+                                                value={newComment}
+                                                onChange={(e) => setNewComment(e.target.value)}
+                                            ></textarea>
+                                            <button
+                                                className="comment-submit-button"
+                                                onClick={() => handleCreateComment(post.id)}
+                                                disabled={!newComment.trim()}
+                                            >
+                                                Comment
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
-                            ) : (
+                            ))}
+                        </div>
+                    ) : (
                                 <div className="empty-posts">
                                     <p>No posts in this group yet. Create the first post!</p>
                                 </div>
@@ -451,7 +886,10 @@ export default function GroupChatPage() {
                     {activeTab === 'events' && (
                         <div className="group-events">
                             <div className="create-event">
-                                <button className="create-event-button">
+                                <button 
+                                    className="create-event-button"
+                                    onClick={() => setShowEventForm(!showEventForm)}
+                                >
                                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                         <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                                         <line x1="16" y1="2" x2="16" y2="6"></line>
@@ -463,6 +901,77 @@ export default function GroupChatPage() {
                                     Create Event
                                 </button>
                             </div>
+
+                            {/* Event creation form */}
+                            {showEventForm && (
+                                <div className="event-form">
+                                <h3>Create New Event</h3>
+                                
+                                {eventError && (
+                                    <div className="error-message">
+                                        {eventError}
+                                    </div>
+                                )}
+                                
+                                <div className="form-group">
+                                    <label>Event Title</label>
+                                    <input
+                                        type="text"
+                                        value={eventTitle}
+                                        onChange={(e) => setEventTitle(e.target.value)}
+                                        placeholder="Enter event title"
+                                    />
+                                </div>
+                                
+                                <div className="form-group">
+                                    <label>Description</label>
+                                    <textarea
+                                        value={eventDescription}
+                                        onChange={(e) => setEventDescription(e.target.value)}
+                                        placeholder="Describe your event"
+                                        rows={3}
+                                    ></textarea>
+                                </div>
+                                
+                                <div className="form-group">
+                                    <label>Date</label>
+                                    <input
+                                        type="date"
+                                        value={eventDate}
+                                        onChange={(e) => setEventDate(e.target.value)}
+                                    />
+                                </div>
+                                
+                                <div className="form-group">
+                                    <label>Time</label>
+                                    <input
+                                        type="time"
+                                        value={eventTime}
+                                        onChange={(e) => setEventTime(e.target.value)}
+                                    />
+                                </div>
+                                
+                                <div className="form-actions">
+                                    <button
+                                        className="cancel-button"
+                                        onClick={() => {
+                                            setShowEventForm(false);
+                                            setEventError(''); // Clear error when canceling
+                                        }}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        className="create-button"
+                                        onClick={handleCreateEvent}
+                                        disabled={!eventTitle.trim() || !eventDescription.trim() || !eventDate || !eventTime}
+                                    >
+                                        Create Event
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            )}
 
                             {events.length > 0 ? (
                                 <div className="events-list">
@@ -486,15 +995,23 @@ export default function GroupChatPage() {
                                                     </svg>
                                                     {new Date(event.event_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </div>
+                                                <div className="event-stats">
+                                                    <span className="going-count">{event.going_count || 0} going</span>
+                                                    <span className="not-going-count">{event.not_going_count || 0} not going</span>
+                                                </div>
+
                                             </div>
                                             <div className="event-actions">
-                                                <button className="event-action-button">
+                                                <button 
+                                                    className={`event-action-button ${event.user_response === 'Going' ? 'active' : ''}`}
+                                                    onClick={() => handleEventResponse(event.id, 1)}
+                                                >
                                                     Going
                                                 </button>
-                                                <button className="event-action-button">
-                                                    Maybe
-                                                </button>
-                                                <button className="event-action-button">
+                                                <button 
+                                                    className={`event-action-button ${event.user_response === 'Not Going' ? 'active' : ''}`}
+                                                    onClick={() => handleEventResponse(event.id, 2)}
+                                                >
                                                     Not Going
                                                 </button>
                                             </div>
@@ -585,4 +1102,3 @@ export default function GroupChatPage() {
         </div>
     )
 }
-

@@ -11,14 +11,22 @@ import (
 func GetGroupEvents(groupID, userID int) ([]models.GroupEvent, error) {
 	rows, err := db.DBInstance.DB.Query(`
 		SELECT ge.id, ge.group_id, ge.title, ge.description, ge.event_time, ge.created_at,
-			   (SELECT er.response_option_id 
+			    (SELECT er.response_option_id 
 				FROM event_responses er 
 				JOIN event_response_options ero ON er.response_option_id = ero.id
 				WHERE er.event_id = ge.id AND er.user_id = ?) as user_response_id,
-			   (SELECT ero.option_text 
+			    (SELECT ero.option_text 
 				FROM event_responses er 
 				JOIN event_response_options ero ON er.response_option_id = ero.id
-				WHERE er.event_id = ge.id AND er.user_id = ?) as user_response
+				WHERE er.event_id = ge.id AND er.user_id = ?) as user_response,
+               (SELECT COUNT(*) 
+                FROM event_responses er 
+                JOIN event_response_options ero ON er.response_option_id = ero.id 
+                WHERE er.event_id = ge.id AND ero.option_text = 'Going') as going_count,
+               (SELECT COUNT(*) 
+                FROM event_responses er 
+                JOIN event_response_options ero ON er.response_option_id = ero.id 
+                WHERE er.event_id = ge.id AND ero.option_text = 'Not Going') as not_going_count
 		FROM group_events ge
 		WHERE ge.group_id = ?
 		ORDER BY ge.event_time ASC
@@ -34,6 +42,7 @@ func GetGroupEvents(groupID, userID int) ([]models.GroupEvent, error) {
 		var event models.GroupEvent
 		var userResponseID sql.NullInt64
 		var userResponse sql.NullString
+		var goingCount, notGoingCount int
 
 		if err := rows.Scan(
 			&event.ID,
@@ -44,7 +53,11 @@ func GetGroupEvents(groupID, userID int) ([]models.GroupEvent, error) {
 			&event.CreatedAt,
 			&userResponseID,
 			&userResponse,
-		); err != nil {
+			&goingCount,
+			&notGoingCount,
+		);
+		
+		err != nil {
 			log.Printf("Error scanning group event row: %v", err)
 			continue
 		}
@@ -52,6 +65,9 @@ func GetGroupEvents(groupID, userID int) ([]models.GroupEvent, error) {
 		if userResponse.Valid {
 			event.UserResponse = userResponse.String
 		}
+		
+		event.GoingCount = goingCount
+		event.NotGoingCount = notGoingCount
 
 		optionRows, err := db.DBInstance.DB.Query(`
 			SELECT ero.id, ero.event_id, ero.option_text,

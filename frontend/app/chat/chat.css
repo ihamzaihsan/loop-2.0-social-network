@@ -196,6 +196,7 @@ word-wrap: break-word;
 
 .message.sent {
 align-self: flex-end;
+color: #000000;
 background-color: #dcf8c6;
 border-bottom-right-radius: 4px;
 }

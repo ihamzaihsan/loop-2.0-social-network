@@ -118,8 +118,16 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 
-			// Call the function to handle the private message
 			handlePrivateMessage(userID, contentMap)
+		case "group_message":
+			log.Printf("[INFO] Handling group message from user %d", userID)
+			contentMap, ok := msg.Content.(map[string]interface{})
+			if !ok {
+				log.Printf("[ERROR] Invalid message content format")
+				continue
+			}
+			handleGroupMessage(userID, contentMap)
+
 		case "typing_status":
 			log.Printf("[INFO] Handling typing status from user %d", userID)
 			// TODO: Implement typing status handling
@@ -276,4 +284,99 @@ func handlePrivateMessage(userID int, content map[string]interface{}) {
 		log.Printf("[INFO] User %d is offline, message will be delivered when they connect", receiverID)
 	}
 	clientsMutex.RUnlock()
+}
+
+// Add these functions to your existing websocket.go file
+
+// Handle group message
+func handleGroupMessage(userID int, content map[string]interface{}) {
+	// Extract group_id
+	groupIDFloat, ok := content["group_id"].(float64)
+	if !ok {
+		log.Printf("[ERROR] Invalid group_id format")
+		return
+	}
+	groupID := int(groupIDFloat)
+
+	// Extract message content
+	messageContent, ok := content["content"].(string)
+	if !ok {
+		log.Printf("[ERROR] Invalid content format")
+		return
+	}
+
+	log.Printf("[INFO] Processing group message from user %d to group %d: %s", userID, groupID, messageContent)
+
+	// Check if user is a member of the group
+	var isMember bool
+	err := db.DBInstance.DB.QueryRow(`
+		SELECT EXISTS(
+			SELECT 1 FROM group_members 
+			WHERE group_id = ? AND user_id = ?
+		)
+	`, groupID, userID).Scan(&isMember)
+
+	if err != nil {
+		log.Printf("[ERROR] Failed to check group membership: %v", err)
+		return
+	}
+
+	if !isMember {
+		log.Printf("[ERROR] User %d is not a member of group %d", userID, groupID)
+		return
+	}
+
+	// Insert the message
+	result, err := db.DBInstance.DB.Exec(
+		"INSERT INTO group_chat_messages (group_id, user_id, content, created_at) VALUES (?, ?, ?, ?)",
+		groupID, userID, messageContent, time.Now(),
+	)
+	if err != nil {
+		log.Printf("[ERROR] Failed to store group message: %v", err)
+		return
+	}
+
+	messageID, _ := result.LastInsertId()
+	log.Printf("[INFO] Stored group message with ID %d", messageID)
+
+	// Get sender info
+	var senderFirstName, senderLastName string
+	var senderAvatar sql.NullString
+	err = db.DBInstance.DB.QueryRow(`
+		SELECT first_name, last_name, avatar
+		FROM users
+		WHERE id = ?
+	`, userID).Scan(&senderFirstName, &senderLastName, &senderAvatar)
+
+	if err != nil {
+		log.Printf("[ERROR] Failed to get sender info: %v", err)
+		return
+	}
+
+	// Create message object
+	message := GroupMessageResponse{
+		ID:        int(messageID),
+		SenderID:  userID,
+		GroupID:   groupID,
+		Content:   messageContent,
+		CreatedAt: time.Now(),
+		Sender: struct {
+			ID        int     `json:"id"`
+			FirstName string  `json:"firstName"`
+			LastName  string  `json:"lastName"`
+			Avatar    *string `json:"avatar,omitempty"`
+		}{
+			ID:        userID,
+			FirstName: senderFirstName,
+			LastName:  senderLastName,
+		},
+	}
+
+	if senderAvatar.Valid {
+		avatarStr := senderAvatar.String
+		message.Sender.Avatar = &avatarStr
+	}
+
+	// Broadcast to group members
+	broadcastToGroupMembers(groupID, userID, message)
 }
