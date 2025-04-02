@@ -6,6 +6,7 @@ import './home.css'
 import Sidebar from '../../components/Sidebar'
 import Post from '../../components/Post'
 import { WebSocketClient } from '../webscoket/websocket'
+import { redirectBasedOnSession } from '../../utils/session'
 
 interface Author {
   firstName: string
@@ -75,40 +76,45 @@ export default function Home() {
   }, [userId]); // Only depend on userId
 
   useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        // Fetch user data from the backend
-        const response = await fetch('http://localhost:8080/profile', {
-          method: 'GET',
-          credentials: 'include'
-        })
-
-        if (!response.ok) {
-          if (response.status === 401) {
-            // Unauthorized, redirect to login
-            router.push('/')
-            return
-          }
-          throw new Error('Failed to fetch user data')
-        }
-
-        const data = await response.json()
-        
-        // Set the username based on the user's first name or nickname
-        if (data.user) {
-          setUsername(data.user.nickname || data.user.firstName)
-          setUserId(data.user.id)
-        }
-      } catch (error: any) {
-        console.error('Error fetching user data:', error)
-        setError(error.message)
-      } finally {
+    redirectBasedOnSession(router, true)
+      .then(() => fetchUserData())
+      .catch(() => {
+        // If there's an error, the redirect will handle it
         setLoading(false)
-      }
-    }
-
-    fetchUserData()
+      })
   }, [router])
+
+  const fetchUserData = async () => {
+    try {
+      // Fetch user data from the backend
+      const response = await fetch('http://localhost:8080/profile', {
+        method: 'GET',
+        credentials: 'include'
+      })
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          // Unauthorized, redirect to login
+          router.push('/')
+          return
+        }
+        throw new Error('Failed to fetch user data')
+      }
+
+      const data = await response.json()
+      
+      // Set the username based on the user's first name or nickname
+      if (data.user) {
+        setUsername(data.user.nickname || data.user.firstName)
+        setUserId(data.user.id)
+      }
+    } catch (error: any) {
+      console.error('Error fetching user data:', error)
+      setError(error.message)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
     // Only fetch posts if we have a user ID

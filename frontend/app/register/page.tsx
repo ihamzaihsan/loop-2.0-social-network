@@ -1,11 +1,13 @@
 'use client'
 import './register.css'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { redirectBasedOnSession } from '../../utils/session'
 
 export default function Register() {
   const router = useRouter()
+  const [loading, setLoading] = useState(true)
   const [formData, setFormData] = useState<{
     email: string;
     password: string;
@@ -28,6 +30,12 @@ export default function Register() {
     isPrivate: false
   });
   
+  // Check session on page load
+  useEffect(() => {
+    redirectBasedOnSession(router, false).finally(() => {
+      setLoading(false)
+    })
+  }, [router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -52,6 +60,10 @@ export default function Register() {
         console.log('Fetch error:', error)
   }
 }
+
+  if (loading) {
+    return <div>Loading...</div>
+  }
 
   return (
     <div className="register-container">

@@ -1,8 +1,9 @@
 'use client'
 import Link from 'next/link'
 import './login.css'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { redirectBasedOnSession } from '../../utils/session'
 
 export default function Login() {
   const router = useRouter()
@@ -10,29 +11,44 @@ export default function Login() {
     email: '',
     password: ''
   })
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    redirectBasedOnSession(router, false).finally(() => {
+      setLoading(false)
+    })
+  }, [router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    const response = await fetch('http://localhost:8080/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(formData),
-      credentials: 'include'
-    })
+    try {
+      const response = await fetch('http://localhost:8080/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData),
+        credentials: 'include'
+      })
 
-    if (response.ok) {
-      // Get the token from the response
-      const data = await response.json();
-      if (data.token) {
-        localStorage.setItem('sessionToken', data.token);
+      if (response.ok) {
+        // Get the token from the response
+        const data = await response.json();
+        if (data.token) {
+          localStorage.setItem('sessionToken', data.token);
+        }
+        router.push('/home')
+      } else {
+        console.log('Error logging in')
       }
-      router.push('/home')
-    }else{
-      console.log('Error logging in')
+    } catch (error) {
+      console.error('Login failed:', error)
     }
+  }
+
+  if (loading) {
+    return <div>Loading...</div>
   }
 
   return (
