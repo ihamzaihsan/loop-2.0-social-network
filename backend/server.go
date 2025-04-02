@@ -47,7 +47,7 @@ func main() {
 	http.HandleFunc("/groups/create", auth.CorsMiddleware(auth.AuthMiddleware(routes.CreateGroup))) //done
 	http.HandleFunc("/groups/user", auth.CorsMiddleware(auth.AuthMiddleware(routes.GetUserGroups))) //done
 	http.HandleFunc("/groups/messages", auth.CorsMiddleware(auth.AuthMiddleware(routes.GetGroupMessages)))
-
+	http.HandleFunc("/groups/join/request", auth.CorsMiddleware(auth.AuthMiddleware(routes.RequestToJoinGroup)))
 	http.HandleFunc("/groups/details", auth.CorsMiddleware(auth.AuthMiddleware(routes.GetGroupDetails)))
 	http.HandleFunc("/groups/invite", auth.CorsMiddleware(auth.AuthMiddleware(routes.InviteToGroup)))                           // 1/2 done
 	http.HandleFunc("/groups/invitations", auth.CorsMiddleware(auth.AuthMiddleware(routes.GetGroupInvitations)))                // 1/2 done

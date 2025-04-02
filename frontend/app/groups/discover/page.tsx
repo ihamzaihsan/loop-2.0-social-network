@@ -106,8 +106,21 @@ export default function DiscoverGroupsPage() {
                     )
                 )
             } else {
-                const errorData = await response.json()
-                setError(errorData.error || 'Failed to request joining the group')
+                try {
+                    // Check if the response is JSON
+                    const contentType = response.headers.get("content-type");
+                    if (contentType && contentType.includes("application/json")) {
+                        const errorData = await response.json();
+                        setError(errorData.error || 'Failed to request joining the group');
+                    } else {
+                        // Handle plain text or other non-JSON responses
+                        const errorText = await response.text();
+                        setError(errorText || 'Failed to request joining the group');
+                    }
+                } catch (parseError) {
+                    console.error('Error parsing error response:', parseError);
+                    setError('Failed to request joining the group');
+                }
             }
         } catch (err) {
             console.error('Error requesting to join group:', err)

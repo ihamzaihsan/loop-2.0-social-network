@@ -5,13 +5,14 @@ import Sidebar from '@/components/Sidebar'
 import { useRouter, useParams } from 'next/navigation'
 import './groupChat.css'
 import { WebSocketClient } from '../../webscoket/websocket'
-import { 
-    fetchGroupMessages, 
-    sendGroupMessage, 
-    createGroupPost, 
-    createGroupComment, 
-    createGroupEvent, 
-    respondToEvent 
+import {
+    fetchGroupMessages,
+    sendGroupMessage,
+    createGroupPost,
+    createGroupComment,
+    createGroupEvent,
+    respondToEvent,
+    fetchGroupPostComments
 } from '../../chat/messageHandlers'
 
 interface Group {
@@ -74,7 +75,7 @@ interface GroupEvent {
     going_count?: number
     not_going_count?: number
     user_response?: string
-    ResponseOptions?: EventResponseOption[] 
+    ResponseOptions?: EventResponseOption[]
 }
 
 
@@ -103,13 +104,13 @@ export default function GroupChatPage() {
     const [wsClient, setWsClient] = useState<WebSocketClient | null>(null)
     const [currentUser, setCurrentUser] = useState<User | null>(null)
     const messagesEndRef = useRef<HTMLDivElement>(null)
-    
+
     // For posts functionality
     const [newPostContent, setNewPostContent] = useState('')
     const [newPostImage, setNewPostImage] = useState<string | null>(null)
     const [selectedPost, setSelectedPost] = useState<number | null>(null)
     const [newComment, setNewComment] = useState('')
-    
+
     // For events functionality
     const [showEventForm, setShowEventForm] = useState(false)
     const [eventTitle, setEventTitle] = useState('')
@@ -118,7 +119,7 @@ export default function GroupChatPage() {
     const [eventTime, setEventTime] = useState('')
     const [eventError, setEventError] = useState<string>('');
     // Add this to your state variables
-const [userEventResponses, setUserEventResponses] = useState<{[eventId: number]: number}>({});
+    const [userEventResponses, setUserEventResponses] = useState<{ [eventId: number]: number }>({});
 
     // Invite users functionality
     const [showInviteModal, setShowInviteModal] = useState(false)
@@ -146,7 +147,7 @@ const [userEventResponses, setUserEventResponses] = useState<{[eventId: number]:
                 }
 
                 const data = await response.json();
-                
+
                 if (data.user) {
                     setCurrentUser({
                         id: data.user.id,
@@ -166,32 +167,32 @@ const [userEventResponses, setUserEventResponses] = useState<{[eventId: number]:
     // Fetch group details
     useEffect(() => {
         const fetchGroupDetails = async () => {
-    try {
-        // Fetch group details
-        const response = await fetch(`http://localhost:8080/groups/details?id=${groupId}`, {
-            method: 'GET',
-            credentials: 'include'
-        })
+            try {
+                // Fetch group details
+                const response = await fetch(`http://localhost:8080/groups/details?id=${groupId}`, {
+                    method: 'GET',
+                    credentials: 'include'
+                })
 
-        if (response.ok) {
-            const data = await response.json()
-            if (data.success && data.data) {
-                setGroup(data.data.group)
-                setMembers(data.data.members || [])
-            } else {
-                setError('Failed to load group details')
+                if (response.ok) {
+                    const data = await response.json()
+                    if (data.success && data.data) {
+                        setGroup(data.data.group)
+                        setMembers(data.data.members || [])
+                    } else {
+                        setError('Failed to load group details')
+                    }
+                } else {
+                    setError('Failed to load group')
+                    router.push('/groups')
+                }
+            } catch (error) {
+                console.error('Error fetching group details:', error)
+                setError('An error occurred while loading the group')
+            } finally {
+                setLoading(false)
             }
-        } else {
-            setError('Failed to load group')
-            router.push('/groups')
         }
-    } catch (error) {
-        console.error('Error fetching group details:', error)
-        setError('An error occurred while loading the group')
-    } finally {
-        setLoading(false)
-    }
-}
 
         if (groupId) {
             fetchGroupDetails()
@@ -202,40 +203,40 @@ const [userEventResponses, setUserEventResponses] = useState<{[eventId: number]:
     useEffect(() => {
         const fetchGroupData = async () => {
             if (!groupId) return;
-            
+
             try {
                 // Fetch group messages
                 const messagesResponse = await fetch(`http://localhost:8080/groups/messages?id=${groupId}`, {
                     method: 'GET',
                     credentials: 'include'
                 });
-                
+
                 if (messagesResponse.ok) {
                     const messagesData = await messagesResponse.json();
                     if (messagesData.success && messagesData.messages) {
                         setMessages(messagesData.messages);
                     }
                 }
-                
+
                 // Fetch group posts
                 const postsResponse = await fetch(`http://localhost:8080/groups/posts?group_id=${groupId}`, {
                     method: 'GET',
                     credentials: 'include'
                 });
-                
+
                 if (postsResponse.ok) {
                     const postsData = await postsResponse.json();
                     if (postsData.success && postsData.posts) {
                         setPosts(postsData.posts);
                     }
                 }
-                
+
                 // Fetch group events
                 const eventsResponse = await fetch(`http://localhost:8080/groups/events?group_id=${groupId}`, {
                     method: 'GET',
                     credentials: 'include'
                 });
-                
+
                 if (eventsResponse.ok) {
                     const eventsData = await eventsResponse.json();
                     if (eventsData.success && eventsData.events) {
@@ -246,7 +247,7 @@ const [userEventResponses, setUserEventResponses] = useState<{[eventId: number]:
                 console.error('Error fetching group data:', error);
             }
         };
-        
+
         if (groupId) {
             fetchGroupData();
         }
@@ -255,12 +256,12 @@ const [userEventResponses, setUserEventResponses] = useState<{[eventId: number]:
     // Setup WebSocket connection
     useEffect(() => {
         const client = WebSocketClient.getInstance();
-        
+
         if (client && currentUser) {
             // Add message handler for group messages
             client.addMessageHandler('group_message', (content) => {
                 console.log('Received group message:', content);
-                
+
                 // Only process messages for the current group
                 if (content.group_id === groupId) {
                     const newMessage: GroupMessage = {
@@ -276,21 +277,21 @@ const [userEventResponses, setUserEventResponses] = useState<{[eventId: number]:
                             avatar: content.sender?.avatar
                         }
                     };
-                    
+
                     // Don't add messages from the current user (they're added directly when sent)
                     if (newMessage.sender_id !== currentUser.id) {
                         setMessages(prev => [...prev, newMessage]);
                     }
                 }
             });
-            
+
             // Add message handler for group posts
             client.addMessageHandler('group_post', (content) => {
                 if (content.group_id === groupId && content.user_id !== currentUser.id) {
                     setPosts(prev => [content, ...prev]);
                 }
             });
-            
+
             // Add message handler for group events
             client.addMessageHandler('group_event', (content) => {
                 if (content.group_id === groupId && content.creator_id !== currentUser.id) {
@@ -300,25 +301,25 @@ const [userEventResponses, setUserEventResponses] = useState<{[eventId: number]:
 
             client.addMessageHandler('event_response', (content) => {
                 console.log('Received event response:', content);
-                
+
                 if (content.event_id) {
                     // Update the events array with new counts
-                    setEvents(prev => 
-                        prev.map(event => 
-                            event.id === content.event_id 
+                    setEvents(prev =>
+                        prev.map(event =>
+                            event.id === content.event_id
                                 ? {
                                     ...event,
                                     going_count: content.going_count,
                                     not_going_count: content.not_going_count,
                                     // Update user_response if this is the current user's response
-                                    user_response: content.user_id === currentUser.id 
-                                        ? content.response 
+                                    user_response: content.user_id === currentUser.id
+                                        ? content.response
                                         : event.user_response
-                                } 
+                                }
                                 : event
                         )
                     );
-                    
+
                     // Also update userEventResponses state if needed
                     if (content.user_id === currentUser.id) {
                         setUserEventResponses(prev => ({
@@ -329,11 +330,11 @@ const [userEventResponses, setUserEventResponses] = useState<{[eventId: number]:
                 }
             });
 
-            
-            
+
+
             setWsClient(client);
         }
-        
+
         // No cleanup needed as we want to keep the connection alive
     }, [currentUser, groupId]);
 
@@ -424,9 +425,9 @@ const [userEventResponses, setUserEventResponses] = useState<{[eventId: number]:
     // Handle sending a group message
     const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         if (!newMessage.trim() || !groupId || !currentUser) return;
-        
+
         try {
             // Try to send via WebSocket first
             let sentViaWebSocket = false;
@@ -437,13 +438,13 @@ const [userEventResponses, setUserEventResponses] = useState<{[eventId: number]:
             } else {
                 console.log('WebSocket not available, using HTTP');
             }
-            
+
             // If WebSocket failed or not available, use HTTP
             if (!sentViaWebSocket) {
                 console.log('Sending group message via HTTP');
                 await sendGroupMessage(groupId, newMessage);
             }
-            
+
             // Add the message to the UI regardless of how it was sent
             const newMessageObj: GroupMessage = {
                 id: Date.now(), // Temporary ID until we get the real one
@@ -458,10 +459,10 @@ const [userEventResponses, setUserEventResponses] = useState<{[eventId: number]:
                     avatar: currentUser.avatar
                 }
             };
-            
+
             // Add the new message to the messages list
             setMessages(prev => [...prev, newMessageObj]);
-            
+
             // Clear the input field
             setNewMessage('');
         } catch (error) {
@@ -472,52 +473,75 @@ const [userEventResponses, setUserEventResponses] = useState<{[eventId: number]:
     // Handle creating a post
     const handleCreatePost = async () => {
         if (!newPostContent.trim() || !groupId) return;
-        
-    try {
-        console.log(currentUser);
-        const newPost = await createGroupPost(groupId, newPostContent, newPostImage || undefined, currentUser);
-        if (newPost) {
-            // Only add to posts if it's not already there (might be added by WebSocket)
-            setPosts(prev => {
-                // Check if this post is already in the list (by content and timestamp)
-                const isDuplicate = prev.some(p => 
-                    p.content === newPostContent && 
-                    (new Date().getTime() - new Date(p.created_at).getTime()) < 5000
-                );
-                
-                if (!isDuplicate) {
-                    return [newPost, ...prev];
-                }
-                return prev;
-            });
-            
-            setNewPostContent('');
-            setNewPostImage(null);
+
+        try {
+            console.log(currentUser);
+            const newPost = await createGroupPost(groupId, newPostContent, newPostImage || undefined, currentUser);
+            if (newPost) {
+                // Only add to posts if it's not already there (might be added by WebSocket)
+                setPosts(prev => {
+                    // Check if this post is already in the list (by content and timestamp)
+                    const isDuplicate = prev.some(p =>
+                        p.content === newPostContent &&
+                        (new Date().getTime() - new Date(p.created_at).getTime()) < 5000
+                    );
+
+                    if (!isDuplicate) {
+                        return [newPost, ...prev];
+                    }
+                    return prev;
+                });
+
+                setNewPostContent('');
+                setNewPostImage(null);
+            }
+        } catch (error) {
+            console.error('Error creating post:', error);
         }
-    } catch (error) {
-        console.error('Error creating post:', error);
-    }
+    };
+
+    const [postComments, setPostComments] = useState<{ [postId: number]: any[] }>({});
+    const [loadingComments, setLoadingComments] = useState<{ [postId: number]: boolean }>({});
+
+    // Function to load comments for a post
+    const loadCommentsForPost = async (postId: number) => {
+        // Only load if not already loading
+        if (loadingComments[postId]) return;
+
+        setLoadingComments(prev => ({ ...prev, [postId]: true }));
+
+        try {
+            const comments = await fetchGroupPostComments(postId);
+            setPostComments(prev => ({ ...prev, [postId]: comments }));
+        } catch (error) {
+            console.error('Error loading comments:', error);
+        } finally {
+            setLoadingComments(prev => ({ ...prev, [postId]: false }));
+        }
     };
 
     // Handle creating a comment
     const handleCreateComment = async (postId: number) => {
         if (!newComment.trim()) return;
-        
+
         try {
             const newCommentObj = await createGroupComment(postId, newComment);
             if (newCommentObj) {
                 // Update the post's comment count
-                setPosts(prev => 
-                    prev.map(post => 
-                        post.id === postId 
-                            ? { ...post, comment_count: post.comment_count + 1 } 
+                setPosts(prev =>
+                    prev.map(post =>
+                        post.id === postId
+                            ? { ...post, comment_count: post.comment_count + 1 }
                             : post
                     )
                 );
-                
+
+                // Refresh comments for this post
+                await loadCommentsForPost(postId);
+
                 // Clear the comment input
                 setNewComment('');
-                
+
                 // Close the comment form
                 setSelectedPost(null);
             }
@@ -534,24 +558,24 @@ const [userEventResponses, setUserEventResponses] = useState<{[eventId: number]:
                 setEventError("Please select both date and time");
                 return;
             }
-    
+
             // Create a date string in the format that JavaScript can parse
             const dateTimeString = `${eventDate}T${eventTime}`;
-            
+
             // Validate the date before converting to ISO string
             const eventDateTime = new Date(dateTimeString);
-            
+
             if (isNaN(eventDateTime.getTime())) {
                 setEventError("Invalid date or time format");
                 return;
             }
-            
+
             // Now it's safe to convert to ISO string
             const isoDateTime = eventDateTime.toISOString();
-            
+
             // Define response options for the event
             const eventOptions = ["Going", "Maybe", "Not Going"];
-            
+
             // Create the event
             const createdEvent = await createGroupEvent(
                 groupId,
@@ -560,22 +584,22 @@ const [userEventResponses, setUserEventResponses] = useState<{[eventId: number]:
                 isoDateTime,
                 eventOptions
             );
-            
+
             if (createdEvent) {
                 // Only add to events if it's not already there (might be added by WebSocket)
                 setEvents(prev => {
                     // Check if this event is already in the list (by title and timestamp)
-                    const isDuplicate = prev.some(e => 
-                        e.title === eventTitle && 
+                    const isDuplicate = prev.some(e =>
+                        e.title === eventTitle &&
                         (new Date().getTime() - new Date(e.created_at).getTime()) < 5000
                     );
-                    
+
                     if (!isDuplicate) {
                         return [createdEvent, ...prev];
                     }
                     return prev;
                 });
-                
+
                 // Reset the form
                 setEventTitle('');
                 setEventDescription('');
@@ -597,14 +621,14 @@ const [userEventResponses, setUserEventResponses] = useState<{[eventId: number]:
                 method: 'GET',
                 credentials: 'include'
             });
-            
+
             if (response.ok) {
                 const data = await response.json();
                 if (data.success && data.events) {
                     setEvents(data.events);
-                    
+
                     // Initialize user responses from the fetched data
-                    const userResponses: {[eventId: number]: number} = {};
+                    const userResponses: { [eventId: number]: number } = {};
                     data.events.forEach((event: any) => {
                         if (event.user_response_id) {
                             userResponses[event.id] = event.user_response_id;
@@ -617,81 +641,81 @@ const [userEventResponses, setUserEventResponses] = useState<{[eventId: number]:
             console.error('Error fetching events:', error);
         }
     };
-    
+
     // Call this function when the tab changes to events
     useEffect(() => {
         if (groupId && activeTab === 'events') {
             fetchGroupEvents();
         }
     }, [groupId, activeTab]);
-    
-    
-    
+
+
+
 
     // Handle responding to an event
-        // Handle responding to an event
-        const handleEventResponse = async (eventId: number, optionId: number) => {
-            try {
-                console.log(`Responding to event ${eventId} with option ${optionId}`);
-                
-                // Optimistically update the UI
-                const optionText = optionId === 1 ? 'Going' : 'Not Going';
-                
-                setEvents(prev => 
-                    prev.map(event => {
-                        if (event.id === eventId) {
-                            // Calculate new counts
-                            let goingCount = event.going_count || 0;
-                            let notGoingCount = event.not_going_count || 0;
-                            
-                            // If user already responded, adjust the old count down
-                            if (event.user_response === 'Going') {
-                                goingCount--;
-                            } else if (event.user_response === 'Not Going') {
-                                notGoingCount--;
-                            }
-                            
-                            // Adjust the new count up
-                            if (optionText === 'Going') {
-                                goingCount++;
-                            } else if (optionText === 'Not Going') {
-                                notGoingCount++;
-                            }
-                            
-                            return {
-                                ...event,
-                                going_count: goingCount,
-                                not_going_count: notGoingCount,
-                                user_response: optionText
-                            };
+    // Handle responding to an event
+    const handleEventResponse = async (eventId: number, optionId: number) => {
+        try {
+            console.log(`Responding to event ${eventId} with option ${optionId}`);
+
+            // Optimistically update the UI
+            const optionText = optionId === 1 ? 'Going' : 'Not Going';
+
+            setEvents(prev =>
+                prev.map(event => {
+                    if (event.id === eventId) {
+                        // Calculate new counts
+                        let goingCount = event.going_count || 0;
+                        let notGoingCount = event.not_going_count || 0;
+
+                        // If user already responded, adjust the old count down
+                        if (event.user_response === 'Going') {
+                            goingCount--;
+                        } else if (event.user_response === 'Not Going') {
+                            notGoingCount--;
                         }
-                        return event;
-                    })
-                );
-                
-                // Update the user responses state
-                setUserEventResponses(prev => ({
-                    ...prev,
-                    [eventId]: optionId
-                }));
-                
-                // Send the response to the server
-                const success = await respondToEvent(eventId, optionId);
-                
-                if (!success) {
-                    console.error("Failed to record response");
-                    // Revert the optimistic update if the server request fails
-                    fetchGroupEvents();
-                }
-            } catch (error) {
-                console.error("Error responding to event:", error);
-                // Revert the optimistic update if there's an error
+
+                        // Adjust the new count up
+                        if (optionText === 'Going') {
+                            goingCount++;
+                        } else if (optionText === 'Not Going') {
+                            notGoingCount++;
+                        }
+
+                        return {
+                            ...event,
+                            going_count: goingCount,
+                            not_going_count: notGoingCount,
+                            user_response: optionText
+                        };
+                    }
+                    return event;
+                })
+            );
+
+            // Update the user responses state
+            setUserEventResponses(prev => ({
+                ...prev,
+                [eventId]: optionId
+            }));
+
+            // Send the response to the server
+            const success = await respondToEvent(eventId, optionId);
+
+            if (!success) {
+                console.error("Failed to record response");
+                // Revert the optimistic update if the server request fails
                 fetchGroupEvents();
             }
-        };
+        } catch (error) {
+            console.error("Error responding to event:", error);
+            // Revert the optimistic update if there's an error
+            fetchGroupEvents();
+        }
+    };
 
 
-    
+
 
     if (loading) {
         return (
@@ -892,14 +916,14 @@ const [userEventResponses, setUserEventResponses] = useState<{[eventId: number]:
                                     onChange={(e) => setNewPostContent(e.target.value)}
                                 ></textarea>
                                 <div className="post-image-upload">
-                                    <input 
-                                        type="text" 
-                                        placeholder="Image URL (optional)" 
+                                    <input
+                                        type="text"
+                                        placeholder="Image URL (optional)"
                                         value={newPostImage || ''}
                                         onChange={(e) => setNewPostImage(e.target.value || null)}
                                     />
                                 </div>
-                                <button 
+                                <button
                                     className="post-button"
                                     onClick={handleCreatePost}
                                     disabled={!newPostContent.trim()}
@@ -909,66 +933,99 @@ const [userEventResponses, setUserEventResponses] = useState<{[eventId: number]:
                             </div>
 
                             {posts.length > 0 ? (
-                        <div className="posts-list">
-                            {posts.map(post => (
-                                <div key={post.id} className="post-item">
-                                    <div className="post-header">
-                                        <div className="post-author">
-                                            <div className="author-avatar">
-                                                {post.avatar ? (
-                                                    <img src={post.avatar} alt={`${post.first_name}'s avatar`} />
-                                                ) : (
-                                                    <div className="avatar-placeholder">
-                                                        {post.first_name ? post.first_name.charAt(0) : 'U'}
+                                <div className="posts-list">
+                                    {posts.map(post => (
+                                        <div key={post.id} className="post-item">
+                                            <div className="post-header">
+                                                <div className="post-author">
+                                                    <div className="author-avatar">
+                                                        {post.avatar ? (
+                                                            <img src={post.avatar} alt={`${post.first_name}'s avatar`} />
+                                                        ) : (
+                                                            <div className="avatar-placeholder">
+                                                                {post.first_name ? post.first_name.charAt(0) : 'U'}
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                )}
+                                                    <div className="author-info">
+                                                        <span className="author-name">{post.first_name || 'Unknown'} {post.last_name || ''}</span>
+                                                        <span className="post-time">{post.created_at ? new Date(post.created_at).toLocaleString() : 'Unknown date'}</span>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div className="author-info">
-                                                <span className="author-name">{post.first_name || 'Unknown'} {post.last_name || ''}</span>
-                                                <span className="post-time">{post.created_at ? new Date(post.created_at).toLocaleString() : 'Unknown date'}</span>
+                                            <div className="post-content">{post.content || ''}</div>
+                                            {post.image && (
+                                                <div className="post-image">
+                                                    <img src={post.image} alt="Post attachment" />
+                                                </div>
+                                            )}
+                                            <div className="post-footer">
+                                                <button
+                                                    className="comment-button"
+                                                    onClick={() => setSelectedPost(selectedPost === post.id ? null : post.id)}
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                                    </svg>
+                                                    {post.comment_count || 0} Comments
+                                                </button>
                                             </div>
+
+                                            {/* Comment section */}
+                                            {selectedPost === post.id && (
+                                                <div className="comments-section">
+                                                    {/* Comment form */}
+                                                    <div className="comment-form">
+                                                        <textarea
+                                                            className="comment-input"
+                                                            placeholder="Write a comment..."
+                                                            value={newComment}
+                                                            onChange={(e) => setNewComment(e.target.value)}
+                                                        ></textarea>
+                                                        <button
+                                                            className="comment-submit-button"
+                                                            onClick={() => handleCreateComment(post.id)}
+                                                            disabled={!newComment.trim()}
+                                                        >
+                                                            Comment
+                                                        </button>
+                                                    </div>
+                                                    
+                                                    {/* Comments list */}
+                                                    <div className="comments-list">
+                                                        {loadingComments[post.id] ? (
+                                                            <div className="loading-comments">Loading comments...</div>
+                                                        ) : postComments[post.id]?.length > 0 ? (
+                                                            postComments[post.id].map(comment => (
+                                                                <div key={comment.id} className="comment-item">
+                                                                    <div className="comment-author">
+                                                                        <div className="author-avatar">
+                                                                            {comment.avatar ? (
+                                                                                <img src={comment.avatar} alt={`${comment.first_name}'s avatar`} />
+                                                                            ) : (
+                                                                                <div className="avatar-placeholder">
+                                                                                    {comment.first_name ? comment.first_name.charAt(0) : 'U'}
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                        <span className="author-name">{comment.first_name} {comment.last_name}</span>
+                                                                    </div>
+                                                                    <div className="comment-content">{comment.content}</div>
+                                                                    <div className="comment-time">
+                                                                        {new Date(comment.created_at).toLocaleString()}
+                                                                    </div>
+                                                                </div>
+                                                            ))
+                                                        ) : (
+                                                            <div className="no-comments">No comments yet. Be the first to comment!</div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
-                                    </div>
-                                    <div className="post-content">{post.content || ''}</div>
-                                    {post.image && (
-                                        <div className="post-image">
-                                            <img src={post.image} alt="Post attachment" />
-                                        </div>
-                                    )}
-                                    <div className="post-footer">
-                                        <button
-                                            className="comment-button"
-                                            onClick={() => setSelectedPost(selectedPost === post.id ? null : post.id)}
-                                        >
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                                            </svg>
-                                            {post.comment_count || 0} Comments
-                                        </button>
-                                    </div>
-                                    
-                                    {/* Comment form */}
-                                    {selectedPost === post.id && (
-                                        <div className="comment-form">
-                                            <textarea
-                                                className="comment-input"
-                                                placeholder="Write a comment..."
-                                                value={newComment}
-                                                onChange={(e) => setNewComment(e.target.value)}
-                                            ></textarea>
-                                            <button
-                                                className="comment-submit-button"
-                                                onClick={() => handleCreateComment(post.id)}
-                                                disabled={!newComment.trim()}
-                                            >
-                                                Comment
-                                            </button>
-                                        </div>
-                                    )}
+                                    ))}
                                 </div>
-                            ))}
-                        </div>
-                    ) : (
+                            ) : (
                                 <div className="empty-posts">
                                     <p>No posts in this group yet. Create the first post!</p>
                                 </div>
@@ -979,7 +1036,7 @@ const [userEventResponses, setUserEventResponses] = useState<{[eventId: number]:
                     {activeTab === 'events' && (
                         <div className="group-events">
                             <div className="create-event">
-                                <button 
+                                <button
                                     className="create-event-button"
                                     onClick={() => setShowEventForm(!showEventForm)}
                                 >
@@ -998,72 +1055,72 @@ const [userEventResponses, setUserEventResponses] = useState<{[eventId: number]:
                             {/* Event creation form */}
                             {showEventForm && (
                                 <div className="event-form">
-                                <h3>Create New Event</h3>
-                                
-                                {eventError && (
-                                    <div className="error-message">
-                                        {eventError}
+                                    <h3>Create New Event</h3>
+
+                                    {eventError && (
+                                        <div className="error-message">
+                                            {eventError}
+                                        </div>
+                                    )}
+
+                                    <div className="form-group">
+                                        <label>Event Title</label>
+                                        <input
+                                            type="text"
+                                            value={eventTitle}
+                                            onChange={(e) => setEventTitle(e.target.value)}
+                                            placeholder="Enter event title"
+                                        />
                                     </div>
-                                )}
-                                
-                                <div className="form-group">
-                                    <label>Event Title</label>
-                                    <input
-                                        type="text"
-                                        value={eventTitle}
-                                        onChange={(e) => setEventTitle(e.target.value)}
-                                        placeholder="Enter event title"
-                                    />
+
+                                    <div className="form-group">
+                                        <label>Description</label>
+                                        <textarea
+                                            value={eventDescription}
+                                            onChange={(e) => setEventDescription(e.target.value)}
+                                            placeholder="Describe your event"
+                                            rows={3}
+                                        ></textarea>
+                                    </div>
+
+                                    <div className="form-group">
+                                        <label>Date</label>
+                                        <input
+                                            type="date"
+                                            value={eventDate}
+                                            onChange={(e) => setEventDate(e.target.value)}
+                                        />
+                                    </div>
+
+                                    <div className="form-group">
+                                        <label>Time</label>
+                                        <input
+                                            type="time"
+                                            value={eventTime}
+                                            onChange={(e) => setEventTime(e.target.value)}
+                                        />
+                                    </div>
+
+                                    <div className="form-actions">
+                                        <button
+                                            className="cancel-button"
+                                            onClick={() => {
+                                                setShowEventForm(false);
+                                                setEventError(''); // Clear error when canceling
+                                            }}
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            className="create-button"
+                                            onClick={handleCreateEvent}
+                                            disabled={!eventTitle.trim() || !eventDescription.trim() || !eventDate || !eventTime}
+                                        >
+                                            Create Event
+                                        </button>
+                                    </div>
                                 </div>
-                                
-                                <div className="form-group">
-                                    <label>Description</label>
-                                    <textarea
-                                        value={eventDescription}
-                                        onChange={(e) => setEventDescription(e.target.value)}
-                                        placeholder="Describe your event"
-                                        rows={3}
-                                    ></textarea>
-                                </div>
-                                
-                                <div className="form-group">
-                                    <label>Date</label>
-                                    <input
-                                        type="date"
-                                        value={eventDate}
-                                        onChange={(e) => setEventDate(e.target.value)}
-                                    />
-                                </div>
-                                
-                                <div className="form-group">
-                                    <label>Time</label>
-                                    <input
-                                        type="time"
-                                        value={eventTime}
-                                        onChange={(e) => setEventTime(e.target.value)}
-                                    />
-                                </div>
-                                
-                                <div className="form-actions">
-                                    <button
-                                        className="cancel-button"
-                                        onClick={() => {
-                                            setShowEventForm(false);
-                                            setEventError(''); // Clear error when canceling
-                                        }}
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        className="create-button"
-                                        onClick={handleCreateEvent}
-                                        disabled={!eventTitle.trim() || !eventDescription.trim() || !eventDate || !eventTime}
-                                    >
-                                        Create Event
-                                    </button>
-                                </div>
-                            </div>
-                            
+
                             )}
 
                             {events.length > 0 ? (
@@ -1095,13 +1152,13 @@ const [userEventResponses, setUserEventResponses] = useState<{[eventId: number]:
 
                                             </div>
                                             <div className="event-actions">
-                                                <button 
+                                                <button
                                                     className={`event-action-button ${event.user_response === 'Going' ? 'active' : ''}`}
                                                     onClick={() => handleEventResponse(event.id, 1)}
                                                 >
                                                     Going
                                                 </button>
-                                                <button 
+                                                <button
                                                     className={`event-action-button ${event.user_response === 'Not Going' ? 'active' : ''}`}
                                                     onClick={() => handleEventResponse(event.id, 2)}
                                                 >
@@ -1131,7 +1188,7 @@ const [userEventResponses, setUserEventResponses] = useState<{[eventId: number]:
                                 className="close-button"
                                 onClick={() => setShowInviteModal(false)}
                             >
-                                &times;
+                                ×
                             </button>
                         </div>
 

@@ -475,7 +475,7 @@ export const sendMessage = async (
         content: string
         ): Promise<any | null> => {
         try {
-            const response = await fetch('http://localhost:8080/groups/comments', {
+            const response = await fetch('http://localhost:8080/groups/posts/comments/create', {
             method: 'POST',
             credentials: 'include',
             headers: {
@@ -633,6 +633,29 @@ export const sendMessage = async (
             } catch (error) {
                 console.error('Error responding to event:', error);
                 return false;
+            }
+        };
+
+        // Add this function to fetch comments for a group post
+        export const fetchGroupPostComments = async (postId: number): Promise<any[]> => {
+            try {
+                const response = await fetch(`http://localhost:8080/groups/posts/comments?post_id=${postId}`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch post comments');
+                }
+
+                const data = await response.json();
+                if (data.success && data.comments) {
+                    return data.comments;
+                }
+                return [];
+            } catch (error) {
+                console.error('Error fetching post comments:', error);
+                return [];
             }
         };
         
