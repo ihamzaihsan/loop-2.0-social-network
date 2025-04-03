@@ -134,3 +134,20 @@ A user should receive a notification when:
 │── /config             # Environment variables, config files
 │── /docker-compose.yml # Docker Compose for backend & frontend
 │── /README.md
+
+-----------------------------------------------------------------------------------
+
+remaining parts:
+1. Protected routes in frontend for users who don't have sessions or are forbidden to go to some url, like not part of some group.
+2. In the profile, make the user change from public to private and so on 
+3. Show the avatar of the user in the profile
+4. Show the count of all posts and the posts of the user in the profile
+5. Handel the cases of creating posts 3 cases 
+6. Handel the post comments, and to be able to have emoji , images, and gif
+7. Check if the user account is private and the user follows him, he should receive a follow request, not directly follow him
+8. For the group posts and comments, it will be able to the user to put images and gif's, and for the comments, they will only be able to send emoji
+9. Implement a real-time websocket for comments 
+10. Notification for all the required parts put it the sidebar
+11. Docker for both front and back end
+
+after this, the project will be done and the reaming part will be  modifying the design and the styling
