@@ -119,7 +119,7 @@ export default function Profile() {
             
             <div className="card posts-card">
               <h2 className="card-title">Posts</h2>
-              {profile.posts.length > 0 ? (
+              {profile.posts && profile.posts.length > 0 ? (
                 <div className="posts-grid">
                   {profile.posts.map(post => (
                     <div key={post.id} className="post-item">
