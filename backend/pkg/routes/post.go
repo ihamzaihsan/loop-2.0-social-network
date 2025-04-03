@@ -74,6 +74,18 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 
 // update the post
 func UpdatePost(w http.ResponseWriter, r *http.Request) {
+	// Set CORS headers
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	w.Header().Set("Access-Control-Allow-Credentials", "true")
+
+	if r.Method == "OPTIONS" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
 	userID, err := auth.GetUserID(r)
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -86,19 +98,43 @@ func UpdatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var request models.PostRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	// First, check if the post exists and belongs to the user
+	post, err := query.GetPostByIDQuery(postID)
+	if err != nil {
+		http.Error(w, "Post not found", http.StatusNotFound)
 		return
 	}
 
-	if err := query.UpdatePostQuery(postID, userID, request); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	// Verify ownership
+	if post.UserID != userID {
+		http.Error(w, "You don't have permission to edit this post", http.StatusForbidden)
+		return
+	}
+
+	// Parse request body
+	var request models.PostRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, "Invalid request body: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Update only the fields that are allowed to be updated
+	// In this case, content and privacy
+	updateData := models.PostRequest{
+		Content: request.Content,
+		Privacy: request.Privacy,
+		// Don't allow image to be updated
+		Image: post.Image,
+	}
+
+	if err := query.UpdatePostQuery(postID, userID, updateData); err != nil {
+		http.Error(w, "Failed to update post: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
+		"message": "Post updated successfully",
 	})
 }
 
@@ -128,25 +164,56 @@ func DeletePost(w http.ResponseWriter, r *http.Request) {
 
 // fetch the posts
 func GetPosts(w http.ResponseWriter, r *http.Request) {
-    userID, _ := auth.GetUserID(r)
+	userID, _ := auth.GetUserID(r)
 
-    page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-    if page < 1 {
-        page = 1
-    }
-    limit := 10
-    offset := (page - 1) * limit
+	// Check if a specific post ID is requested
+	postIDStr := r.URL.Query().Get("id")
+	if postIDStr != "" {
+		// Handle single post request
+		postID, err := strconv.Atoi(postIDStr)
+		if err != nil {
+			http.Error(w, "Invalid post ID", http.StatusBadRequest)
+			return
+		}
+		
+		post, err := query.GetPostByIDQuery(postID)
+		if err != nil {
+			http.Error(w, "Post not found", http.StatusNotFound)
+			return
+		}
+		
+		// Check if the user has permission to view this post
+		// You might need more complex permission logic depending on your requirements
+		if post.UserID != userID && post.Privacy != "public" {
+			http.Error(w, "Unauthorized to view this post", http.StatusForbidden)
+			return
+		}
+		
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"post":    post,
+		})
+		return
+	}
 
-    posts, total, err := query.GetVisiblePosts(userID, limit, offset)
-    if err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
-        return
-    }
+	// Original code for fetching multiple posts
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	if page < 1 {
+		page = 1
+	}
+	limit := 10
+	offset := (page - 1) * limit
 
-    json.NewEncoder(w).Encode(map[string]interface{}{
-        "success": true,
-        "posts":   posts,
-        "total":   total,
-        "page":    page,
-    })
+	posts, total, err := query.GetVisiblePosts(userID, limit, offset)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"posts":   posts,
+		"total":   total,
+		"page":    page,
+	})
 }

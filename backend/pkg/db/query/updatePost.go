@@ -2,51 +2,37 @@ package query
 
 import (
 	"fmt"
+	"log"
 	"socialNetwork/pkg/db"
 	"socialNetwork/pkg/models"
 )
 
-func UpdatePostQuery(postID int, userID int, request models.PostRequest) error {
-	tx, err := db.DBInstance.DB.Begin()
+func UpdatePostQuery(postID, userID int, request models.PostRequest) error {
+	// First verify the post exists and belongs to the user
+	var count int
+	err := db.DBInstance.DB.QueryRow("SELECT COUNT(*) FROM posts WHERE id = ? AND user_id = ?",
+		postID, userID).Scan(&count)
+
 	if err != nil {
+		log.Printf("[ERROR] Error checking post ownership: %v", err)
 		return err
 	}
 
-	query := `UPDATE posts SET content =?,image=? privacy=?
-	WHERE id = ? AND user_id = ?`
-	result, err := tx.Exec(query, request.Content, request.Image, request.Privacy, postID, userID)
+	if count == 0 {
+		return fmt.Errorf("post not found or you don't have permission to edit it")
+	}
+
+	// Update the post
+	_, err = db.DBInstance.DB.Exec(`
+		UPDATE posts 
+		SET content = ?, privacy = ?
+		WHERE id = ? AND user_id = ?
+	`, request.Content, request.Privacy, postID, userID)
+
 	if err != nil {
-		tx.Rollback()
+		log.Printf("[ERROR] Error updating post: %v", err)
 		return err
 	}
 
-	rows, err := result.RowsAffected()
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	if rows == 0 {
-		tx.Rollback()
-		return fmt.Errorf("post not found or unauthorized")
-	}
-
-	if request.Privacy == "private" {
-		_, err := tx.Exec(`DELETE FROM post_viewers WHERE post_id = ?)`, postID)
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-
-	for _, viewerID := range request.ViewerIDs {
-		_, err = tx.Exec(`INSERT INTO post_viewers (post_id, viewer_id) VALUES (?, ?)`,
-			postID, viewerID)
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-	
-	return tx.Commit()
+	return nil
 }

@@ -15,6 +15,21 @@ interface Author {
   avatar: string
 }
 
+interface Comment {
+  id: number
+  postId: number
+  userId: number
+  content: string
+  image?: string
+  createdAt: string
+  author: {
+    firstName: string
+    lastName: string
+    nickname?: string
+    avatar?: string
+  }
+}
+
 interface Post {
   id: number
   userId: number
@@ -25,6 +40,8 @@ interface Post {
   author: Author
   likeCount: number
   isLiked: boolean
+  comments?: Comment[]
+  showComments?: boolean
 }
 
 interface User {
@@ -44,6 +61,9 @@ export default function Home() {
   const [posts, setPosts] = useState<Post[]>([])
   const [postsLoading, setPostsLoading] = useState(false)
   const [wsClient, setWsClient] = useState<WebSocketClient | null>(null)
+  const [commentInputs, setCommentInputs] = useState<{[key: number]: string}>({})
+  const [submittingComment, setSubmittingComment] = useState<{[key: number]: boolean}>({})
+  const [newComments, setNewComments] = useState<{[postId: number]: string}>({})
 
   // Initialize WebSocket connection
   useEffect(() => {
@@ -137,7 +157,13 @@ export default function Home() {
 
       const data = await response.json()
       if (data.success && data.posts) {
-        setPosts(data.posts)
+        // Initialize posts with showComments property set to false
+        const postsWithCommentState = data.posts.map((post: Post) => ({
+          ...post,
+          showComments: false,
+          comments: []
+        }))
+        setPosts(postsWithCommentState)
       }
     } catch (error: any) {
       console.error('Error fetching posts:', error)
@@ -145,6 +171,114 @@ export default function Home() {
       setPostsLoading(false)
     }
   }
+
+  const fetchComments = async (postId: number) => {
+    try {
+      console.log(`Fetching comments for post ${postId}`);
+      const response = await fetch(`http://localhost:8080/comments?postId=${postId}`, {
+        method: 'GET',
+        credentials: 'include'
+      });
+      
+      if (response.status === 404) {
+        console.warn(`Post ${postId} not found`);
+        return;
+      }
+      
+      if (!response.ok) {
+        console.error(`Error response: ${response.status} ${response.statusText}`);
+        throw new Error('Failed to fetch comments');
+      }
+      
+      const data = await response.json();
+      console.log(`Received comments for post ${postId}:`, data);
+      
+      if (data.success) {
+        setPosts(prevPosts => 
+          prevPosts.map(post => 
+            post.id === postId ? { ...post, comments: data.comments || [] } : post
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+    }
+  };
+
+  const toggleComments = (postId: number) => {
+    setPosts(prevPosts => 
+      prevPosts.map(post => {
+        if (post.id === postId) {
+          const newShowComments = !post.showComments;
+          
+          // If we're showing comments and haven't loaded them yet, fetch them
+          if (newShowComments && (!post.comments || post.comments.length === 0)) {
+            fetchComments(postId);
+          }
+          
+          return { ...post, showComments: newShowComments };
+        }
+        return post;
+      })
+    );
+  };
+
+  const handleCommentChange = (postId: number, value: string) => {
+    setCommentInputs(prev => ({ ...prev, [postId]: value }))
+  }
+
+  const handleAddComment = async (postId: number) => {
+    if (!newComments[postId] || newComments[postId].trim() === '') {
+      return; // Don't submit empty comments
+    }
+
+    try {
+      console.log(`Adding comment to post ${postId}: ${newComments[postId]}`);
+      
+      // Create FormData for the request
+      const formData = new FormData();
+      formData.append('content', newComments[postId]);
+      
+      const response = await fetch(`http://localhost:8080/comments?postId=${postId}`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Error response: ${response.status} ${response.statusText}`, errorText);
+        throw new Error('Failed to add comment');
+      }
+      
+      const data = await response.json();
+      console.log('Comment submission response:', data);
+      
+      if (data.success && data.comment) {
+        // Update the comments for this post
+        setPosts(prevPosts => 
+          prevPosts.map(post => {
+            if (post.id === postId) {
+              const currentComments = post.comments || [];
+              return { 
+                ...post, 
+                comments: [...currentComments, data.comment] 
+              };
+            }
+            return post;
+          })
+        );
+        
+        // Clear the new comment input
+        setNewComments(prev => ({
+          ...prev,
+          [postId]: ''
+        }));
+      }
+    } catch (error) {
+      console.error('Error adding comment:', error);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -199,6 +333,15 @@ export default function Home() {
     }
   }
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
+  }
+
   if (loading) return <div className="home-page">Loading...</div>
   if (error) return <div className="home-page">Error: {error}</div>
 
@@ -240,11 +383,7 @@ export default function Home() {
                             {post.author.nickname || `${post.author.firstName} ${post.author.lastName}`}
                           </h3>
                           <span className="post-date">
-                            {new Date(post.createdAt).toLocaleDateString('en-US', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric'
-                            })}
+                            {formatDate(post.createdAt)}
                           </span>
                         </div>
                       </div>
@@ -252,7 +391,7 @@ export default function Home() {
                       {post.userId === userId && (
                         <div className="post-actions">
                           <button 
-                            onClick={() => router.push(`/edit-post/${post.id}`)}
+                            onClick={() => router.push(`/edit-post?id=${post.id}`)}
                             className="edit-post-btn"
                           >
                             Edit
@@ -271,15 +410,62 @@ export default function Home() {
                       {post.content && <p className="post-text">{post.content}</p>}
                       {post.image && (
                         <div className="post-image-container">
-                          <img src={post.image} alt="Post image" className="post-image" />
+                          <img 
+                            src={post.image.startsWith('http') ? post.image : `http://localhost:8080${post.image}`} 
+                            alt="Post image" 
+                            className="post-image" 
+                          />
                         </div>
                       )}
                     </div>
                     
                     <div className="post-footer">
                       <div className="post-stats">
-                        <span className="like-count">{post.likeCount} likes</span>
+                        <span className="like-count">{post.likeCount} likes              </span>
+                        <button 
+                          className="comments-toggle-btn"
+                          onClick={() => toggleComments(post.id)}
+                        >
+                          {post.showComments ? 'Hide Comments' : 'Show Comments'}
+                        </button>
                       </div>
+                      
+                      {post.showComments && (
+                        <div className="comments-section">
+                          <h4>Comments</h4>
+                          {post.comments && post.comments.length > 0 ? (
+                            <div className="comments-list">
+                              {post.comments.map((comment, index) => (
+                                <div key={comment.id || index} className="comment">
+                                  <div className="comment-author">
+                                    {comment.author?.firstName || 'Anonymous'} {comment.author?.lastName || ''}
+                                  </div>
+                                  <div className="comment-content">{comment.content}</div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p>No comments yet.</p>
+                          )}
+                          
+                          <form onSubmit={(e) => {
+                            e.preventDefault();
+                            handleAddComment(post.id);
+                          }} className="comment-form">
+                            <input
+                              type="text"
+                              value={newComments[post.id] || ''}
+                              onChange={(e) => setNewComments(prev => ({
+                                ...prev,
+                                [post.id]: e.target.value
+                              }))}
+                              placeholder="Write a comment..."
+                              className="comment-input"
+                            />
+                            <button type="submit" className="comment-submit">Post</button>
+                          </form>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))
