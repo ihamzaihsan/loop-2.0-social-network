@@ -35,7 +35,7 @@ func RequestFollow(followerID, followedID uint) (string, error) {
 
 			// Set initial status based on account privacy
 			initialStatus := "accept"
-			if isPrivate { // If private, set to pending
+			if isPrivate {
 				initialStatus = "pending"
 			}
 
@@ -54,31 +54,32 @@ func RequestFollow(followerID, followedID uint) (string, error) {
 
 			// Get the ID of the inserted row
 			_, _ = res.LastInsertId()
-			
-			/*Added basic notification functionality to the follow request for mohaabdulla
-			For notifications, get follower's username
-			var followerUsername string
-			err = db.DBInstance.DB.QueryRow(`SELECT username FROM users WHERE id = ?`, followerID).Scan(&followerUsername)
-			if err != nil {
-				log.Printf("Error getting follower username: %v", err)
-			}
 
 			// Create notification if the request is pending
-			if !isPrivate {
+			if isPrivate {
+				// Get follower's name for notification
+				var firstName, lastName string
+				err = db.DBInstance.DB.QueryRow(`
+					SELECT first_name, last_name FROM users WHERE id = ?
+				`, followerID).Scan(&firstName, &lastName)
+				if err != nil {
+					log.Printf("Error getting follower name: %v", err)
+				}
+
 				// Create notification
 				_, err = db.DBInstance.DB.Exec(`
 					INSERT INTO notifications (to_user_id, from_user_id, content, type, read, created_at)
 					VALUES (?, ?, ?, ?, ?, ?)
-				`, followedID, followerID, followerUsername+" wants to follow you", "follow_request", false, time.Now())
+				`, followedID, followerID, firstName+" "+lastName+" wants to follow you", "follow_request", false, time.Now())
 
 				if err != nil {
 					log.Printf("Error creating notification: %v", err)
 				}
 
 				return "pending", nil
-			}*/
+			}
 
-			return "accept", nil
+			return initialStatus, nil
 		}
 		return "", err
 	}
@@ -95,19 +96,20 @@ func RequestFollow(followerID, followedID uint) (string, error) {
 			return "", err
 		}
 
-		/*Added basic notification functionality to the follow request for mohaabdulla
-		// Get follower's username for notification
-		var followerUsername string
-		err = db.DBInstance.DB.QueryRow(`SELECT username FROM users WHERE id = ?`, followerID).Scan(&followerUsername)
+		// Get follower's name for notification
+		var firstName, lastName string
+		err = db.DBInstance.DB.QueryRow(`
+			SELECT first_name, last_name FROM users WHERE id = ?
+		`, followerID).Scan(&firstName, &lastName)
 		if err != nil {
-			log.Printf("Error getting follower username: %v", err)
+			log.Printf("Error getting follower name: %v", err)
 		}
 
-		Create notification
+		// Create notification
 		_, err = db.DBInstance.DB.Exec(`
 			INSERT INTO notifications (to_user_id, from_user_id, content, type, read, created_at)
 			VALUES (?, ?, ?, ?, ?, ?)
-		`, followedID, followerID, followerUsername+" wants to follow you", "follow_request", false, time.Now())*/
+		`, followedID, followerID, firstName+" "+lastName+" wants to follow you", "follow_request", false, time.Now())
 
 		if err != nil {
 			log.Printf("Error creating notification: %v", err)
@@ -326,15 +328,33 @@ func GetFollowing(userID uint) ([]models.Follow, int, error) {
 
 // GetFollowRequests returns pending follow requests for a user
 func GetFollowRequests(userID uint) ([]models.Follow, error) {
-	rows, err := db.DBInstance.DB.Query(`
-		SELECT f.id, f.follower_id, f.following_id, f.status,
-			u.username, u.avatar
-		FROM followers f
-		JOIN users u ON f.follower_id = u.id
-		WHERE f.following_id = ? AND f.status = 'pending'
-	`, userID)
+	log.Printf("Repository: Fetching follow requests for user ID: %d", userID)
+
+	// First, check if there are any pending requests
+	var count int
+	err := db.DBInstance.DB.QueryRow(`
+        SELECT COUNT(*) FROM followers 
+        WHERE following_id = ? AND status = 'pending'
+    `, userID).Scan(&count)
 
 	if err != nil {
+		log.Printf("Error counting pending requests: %v", err)
+		return nil, err
+	}
+
+	log.Printf("Repository: Found %d pending follow requests in database", count)
+
+	// Try with first_name and last_name instead of username
+	rows, err := db.DBInstance.DB.Query(`
+        SELECT f.id, f.follower_id, f.following_id, f.status,
+            u.first_name, u.last_name, u.avatar
+        FROM followers f
+        JOIN users u ON f.follower_id = u.id
+        WHERE f.following_id = ? AND f.status = 'pending'
+    `, userID)
+
+	if err != nil {
+		log.Printf("Error querying follow requests: %v", err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -342,14 +362,16 @@ func GetFollowRequests(userID uint) ([]models.Follow, error) {
 	var requests []models.Follow
 	for rows.Next() {
 		var request models.Follow
-		var username, avatar sql.NullString
+		var firstName, lastName sql.NullString
+		var avatar sql.NullString
 
 		err := rows.Scan(
 			&request.ID,
 			&request.FollowerID,
 			&request.FollowedID,
 			&request.Status,
-			&username,
+			&firstName,
+			&lastName,
 			&avatar,
 		)
 
@@ -358,8 +380,15 @@ func GetFollowRequests(userID uint) ([]models.Follow, error) {
 			continue
 		}
 
-		if username.Valid {
-			request.Username = username.String
+		// Combine first and last name for username
+		if firstName.Valid && lastName.Valid {
+			request.Username = firstName.String + " " + lastName.String
+		} else if firstName.Valid {
+			request.Username = firstName.String
+		} else if lastName.Valid {
+			request.Username = lastName.String
+		} else {
+			request.Username = "Unknown User"
 		}
 
 		if avatar.Valid {
@@ -367,6 +396,11 @@ func GetFollowRequests(userID uint) ([]models.Follow, error) {
 		}
 
 		requests = append(requests, request)
+		log.Printf("Repository: Found request ID=%d from follower ID=%d", request.ID, request.FollowerID)
+	}
+
+	if len(requests) == 0 {
+		log.Printf("Repository: No follow requests found after scanning rows")
 	}
 
 	return requests, nil

@@ -1,14 +1,17 @@
 package routes
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"strconv"
 
 	"socialNetwork/pkg/auth"
 	"socialNetwork/pkg/db/query"
+	"socialNetwork/pkg/models"
 )
 
 // FollowUser handles the HTTP request to follow another user
@@ -118,11 +121,38 @@ func UnfollowUser(w http.ResponseWriter, r *http.Request) {
 // HandleFollowRequest processes accepting or rejecting a follow request
 func HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
 	// Set headers for CORS
+	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	w.Header().Set("Access-Control-Allow-Credentials", "true")
 	w.Header().Set("Content-Type", "application/json")
 
-	if r.Method != http.MethodPatch {
+	// Handle preflight requests
+	if r.Method == "OPTIONS" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	if r.Method != http.MethodPost && r.Method != http.MethodPatch {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
+	}
+
+	// If it's a POST request with _method=PATCH, treat it as a PATCH
+	if r.Method == http.MethodPost {
+		bodyBytes, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "Error reading request body", http.StatusBadRequest)
+			return
+		}
+
+		var methodOverride struct {
+			Method string `json:"_method"`
+		}
+		if err := json.NewDecoder(bytes.NewReader(bodyBytes)).Decode(&methodOverride); err == nil && methodOverride.Method == "PATCH" {
+			r.Method = http.MethodPatch
+		}
+		r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 	}
 
 	// Get the user ID from session
@@ -169,8 +199,6 @@ func HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Failed to accept follow request", http.StatusInternalServerError)
 			return
 		}
-
-		// Could emit a WebSocket notification here
 	} else {
 		err = query.RejectFollowRequest(requestID, uint(userID))
 		if err != nil {
@@ -275,6 +303,8 @@ func GetFollowRequests(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Printf("Fetching follow requests for user ID: %d", userID)
+
 	// Get follow requests from repository
 	requests, err := query.GetFollowRequests(uint(userID))
 	if err != nil {
@@ -283,8 +313,18 @@ func GetFollowRequests(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Return requests as JSON
-	if err := json.NewEncoder(w).Encode(requests); err != nil {
+	log.Printf("Found %d follow requests", len(requests))
+
+	// Return requests as JSON with a success flag
+	response := struct {
+		Success  bool            `json:"success"`
+		Requests []models.Follow `json:"requests"`
+	}{
+		Success:  true,
+		Requests: requests,
+	}
+
+	if err := json.NewEncoder(w).Encode(response); err != nil {
 		log.Printf("Error encoding response: %v", err)
 	}
 }

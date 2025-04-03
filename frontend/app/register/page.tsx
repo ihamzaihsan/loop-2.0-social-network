@@ -118,6 +118,19 @@ export default function Register() {
             <input type="file" accept="image/*" className="file-input" onChange={(e) => setFormData({...formData, avatar: e.target.files ? e.target.files[0] : null})} />
           </div>
 
+          <div className="form-group">
+            <label className="form-checkbox-label">
+              <input 
+                type="checkbox" 
+                className="form-checkbox" 
+                checked={formData.isPrivate} 
+                onChange={(e) => setFormData({...formData, isPrivate: e.target.checked})} 
+              />
+              Make my account private
+            </label>
+            <p className="form-help-text">Private accounts limit who can see your posts and profile information</p>
+          </div>
+
           <button type="submit" className="submit-button">
             Create An Account
           </button>
