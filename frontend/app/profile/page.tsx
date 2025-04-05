@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import '../home/home.css'
+import './profile.css' 
 import Sidebar from '../../components/Sidebar'
 
 interface User {
@@ -49,12 +50,10 @@ export default function Profile() {
 
         if (!response.ok) {
           if (response.status === 401) {
-       
             router.push('/')
             return
           }
           throw new Error('Failed to fetch profile data')
-      
         }
 
         const data = await response.json()
@@ -84,21 +83,40 @@ export default function Profile() {
         {profile && (
           <div className="profile-container">
             <div className="card profile-card">
-              <h2 className="card-title">
-                {profile.user.firstName} {profile.user.lastName}
-              </h2>
-              <p className="profile-nickname">@{profile.user.nickname || profile.user.firstName.toLowerCase()}</p>
+              <div className="profile-header">
+                <div className="profile-avatar">
+                  {profile.user.avatar ? (
+                    <img 
+                      src={`http://localhost:8080${profile.user.avatar}`} 
+                      alt={`${profile.user.firstName}'s avatar`} 
+                      className="avatar-image"
+                    />
+                  ) : (
+                    <div className="avatar-placeholder">
+                      {profile.user.firstName.charAt(0)}
+                    </div>
+                  )}
+                </div>
+                
+                <div className="profile-info">
+                  <h2 className="profile-name">
+                    {profile.user.firstName} {profile.user.lastName}
+                  </h2>
+                  <p className="profile-nickname">@{profile.user.nickname || profile.user.firstName.toLowerCase()}</p>
+                  
+                  {profile.user.isprivate ? (
+                    <span className="privacy-badge private">Private Account</span>
+                  ) : (
+                    <span className="privacy-badge public">Public Account</span>
+                  )}
+                </div>
+              </div>
               
               {profile.user.aboutMe && (
                 <div className="profile-about">
                   <h3>About Me</h3>
                   <p>{profile.user.aboutMe}</p>
                 </div>
-              )}
-              {profile.user.isprivate ? (
-                <span className="privacy-badge">Private Account</span>
-              ) : (
-              <span className="privacy-badge">Public Account</span>
               )}
               
               <div className="profile-stats">
