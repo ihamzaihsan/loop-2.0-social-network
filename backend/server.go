@@ -67,6 +67,8 @@ func main() {
 	http.HandleFunc("/groups/events/details", auth.CorsMiddleware(auth.AuthMiddleware(routes.GetGroupEvent)))
 	http.HandleFunc("/groups/events/respond", auth.CorsMiddleware(auth.AuthMiddleware(routes.RespondToEvent)))
 	http.HandleFunc("/groups/all", auth.CorsMiddleware(auth.AuthMiddleware(services.GetAllGroups)))
+	// Add this to your existing routes
+	http.HandleFunc("/profile/privacy", auth.CorsMiddleware(auth.AuthMiddleware(routes.UpdatePrivacy)))
 
 	fmt.Println("Server is running on http://localhost:8080")
 	err = http.ListenAndServe(":8080", nil)

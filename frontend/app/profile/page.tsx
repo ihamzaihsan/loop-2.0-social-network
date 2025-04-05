@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import '../home/home.css'
-import './profile.css' 
+import './profile.css'
 import Sidebar from '../../components/Sidebar'
 
 interface User {
@@ -39,34 +39,77 @@ export default function Profile() {
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isUpdating, setIsUpdating] = useState(false)
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const response = await fetch('http://localhost:8080/profile', {
-          method: 'GET',
-          credentials: 'include'
-        })
-
-        if (!response.ok) {
-          if (response.status === 401) {
-            router.push('/')
-            return
-          }
-          throw new Error('Failed to fetch profile data')
-        }
-
-        const data = await response.json()
-        setProfile(data)
-      } catch (err: any) {
-        setError(err.message)
-      } finally {
-        setLoading(false)
-      }
-    }
-
     fetchProfile()
   }, [router])
+
+  const fetchProfile = async () => {
+    try {
+      const response = await fetch('http://localhost:8080/profile', {
+        method: 'GET',
+        credentials: 'include'
+      })
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          router.push('/')
+          return
+        }
+        throw new Error('Failed to fetch profile data')
+      }
+
+      const data = await response.json()
+      setProfile(data)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const togglePrivacy = async () => {
+    if (!profile) return
+    
+    setIsUpdating(true)
+    
+    try {
+      const response = await fetch('http://localhost:8080/profile/privacy', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          isPrivate: !profile.user.isprivate
+        }),
+        credentials: 'include'
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to update privacy setting')
+      }
+      
+      // Update the local state to reflect the change
+      setProfile(prevProfile => {
+        if (!prevProfile) return null
+        
+        return {
+          ...prevProfile,
+          user: {
+            ...prevProfile.user,
+            isprivate: !prevProfile.user.isprivate
+          }
+        }
+      })
+      
+    } catch (err: any) {
+      console.error('Error updating privacy:', err)
+      setError(err.message)
+    } finally {
+      setIsUpdating(false)
+    }
+  }
 
   const handleBack = () => {
     router.push('/home')
@@ -104,11 +147,21 @@ export default function Profile() {
                   </h2>
                   <p className="profile-nickname">@{profile.user.nickname || profile.user.firstName.toLowerCase()}</p>
                   
-                  {profile.user.isprivate ? (
-                    <span className="privacy-badge private">Private Account</span>
-                  ) : (
-                    <span className="privacy-badge public">Public Account</span>
-                  )}
+                  <div className="privacy-controls">
+                    {profile.user.isprivate ? (
+                      <span className="privacy-badge private">Private Account</span>
+                    ) : (
+                      <span className="privacy-badge public">Public Account</span>
+                    )}
+                    
+                    <button 
+                      className={`privacy-toggle-btn ${isUpdating ? 'updating' : ''}`}
+                      onClick={togglePrivacy}
+                      disabled={isUpdating}
+                    >
+                      {isUpdating ? 'Updating...' : profile.user.isprivate ? 'Make Public' : 'Make Private'}
+                    </button>
+                  </div>
                 </div>
               </div>
               
