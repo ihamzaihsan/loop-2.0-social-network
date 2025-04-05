@@ -25,5 +25,8 @@ func HandleImageUpload(file multipart.File, header *multipart.FileHeader) (strin
 		return "", err
 	}
 
-	return filename, nil
+	// For new uploads, return a web-friendly path
+	// This will store "/uploads/filename.jpg" in the database
+	webPath := "/uploads/" + header.Filename
+	return webPath, nil
 }

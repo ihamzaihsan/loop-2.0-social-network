@@ -107,41 +107,39 @@ export default function Post({
       
       <div className="post-content">
         {content && <p className="post-text">{content}</p>}
-        
-        {image && (
-          <>
-            <div 
-              className={`post-image-container ${isImageLoaded ? 'loaded' : 'loading'}`}
-              onClick={() => setShowFullImage(true)}
-            >
-              {!isImageLoaded && <div className="image-loading-spinner"></div>}
-              <img 
-                src={`http://localhost:8080/${image}`} 
-                alt="Post content" 
-                className={`post-image ${isLandscape ? 'landscape' : ''}`}
-                onLoad={handleImageLoad}
-              />
-            </div>
+                  {image && (
+                    <>
+                      <div 
+                        className={`post-image-container ${isImageLoaded ? 'loaded' : 'loading'}`}
+                        onClick={() => setShowFullImage(true)}
+                      >
+                        {!isImageLoaded && <div className="image-loading-spinner"></div>}
+                        <img 
+                          src={`http://localhost:8080${image}`} 
+                          alt="Post content" 
+                          className={`post-image ${isLandscape ? 'landscape' : ''}`}
+                          onLoad={handleImageLoad}
+                        />
+                      </div>
             
-            {showFullImage && (
-              <div className="image-modal" onClick={() => setShowFullImage(false)}>
-                <div className="modal-content">
-                  <img 
-                    src={`http://localhost:8080/${image}`} 
-                    alt="Full size post content" 
-                    className="full-size-image"
-                  />
-                  <button className="close-modal-btn" onClick={() => setShowFullImage(false)}>
-                    ×
-                  </button>
+                      {showFullImage && (
+                        <div className="image-modal" onClick={() => setShowFullImage(false)}>
+                          <div className="modal-content">
+                            <img 
+                              src={`http://localhost:8080${image}`} 
+                              alt="Full size post content" 
+                              className="full-size-image"
+                            />
+                            <button className="close-modal-btn" onClick={() => setShowFullImage(false)}>
+                              ×
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
-              </div>
-            )}
-          </>
-        )}
-      </div>
-      
-      <div className="post-footer">
+            <div className="post-footer">
         <div className="post-stats">
           <span className="like-count">{likeCount} likes</span>
         </div>

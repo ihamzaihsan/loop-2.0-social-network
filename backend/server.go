@@ -27,6 +27,9 @@ func main() {
 		}
 	}()
 
+	// IMPORTANT: Add this line to serve static files from the uploads directory
+	http.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir("./uploads"))))
+
 	//routes
 	http.HandleFunc("/", routes.ServeMain)
 	http.HandleFunc("/register", auth.CorsMiddleware(auth.Register))

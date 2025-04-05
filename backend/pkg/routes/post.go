@@ -8,6 +8,7 @@ import (
 	"socialNetwork/pkg/models"
 	"socialNetwork/pkg/utils"
 	"strconv"
+	"strings"
 )
 
 func HandlePosts(w http.ResponseWriter, r *http.Request) {
@@ -162,58 +163,68 @@ func DeletePost(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// fetch the posts
-func GetPosts(w http.ResponseWriter, r *http.Request) {
-	userID, _ := auth.GetUserID(r)
-
-	// Check if a specific post ID is requested
-	postIDStr := r.URL.Query().Get("id")
-	if postIDStr != "" {
-		// Handle single post request
-		postID, err := strconv.Atoi(postIDStr)
-		if err != nil {
-			http.Error(w, "Invalid post ID", http.StatusBadRequest)
-			return
+// Add this helper function at the top of the file (outside any other function)
+func fixImagePath(image string) string {
+	if image != "" {
+		// If the image path starts with "./uploads", convert it to "/uploads"
+		if strings.HasPrefix(image, "./uploads") {
+			return strings.Replace(image, "./uploads", "/uploads", 1)
 		}
-		
-		post, err := query.GetPostByIDQuery(postID)
-		if err != nil {
-			http.Error(w, "Post not found", http.StatusNotFound)
-			return
-		}
-		
-		// Check if the user has permission to view this post
-		// You might need more complex permission logic depending on your requirements
-		if post.UserID != userID && post.Privacy != "public" {
-			http.Error(w, "Unauthorized to view this post", http.StatusForbidden)
-			return
-		}
-		
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": true,
-			"post":    post,
-		})
-		return
 	}
-
-	// Original code for fetching multiple posts
-	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	if page < 1 {
-		page = 1
-	}
-	limit := 10
-	offset := (page - 1) * limit
-
-	posts, total, err := query.GetVisiblePosts(userID, limit, offset)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success": true,
-		"posts":   posts,
-		"total":   total,
-		"page":    page,
-	})
+	return image
 }
+		func GetPosts(w http.ResponseWriter, r *http.Request) {
+			userID, _ := auth.GetUserID(r)
+
+			postIDStr := r.URL.Query().Get("id")
+			if postIDStr != "" {
+				postID, err := strconv.Atoi(postIDStr)
+				if err != nil {
+					http.Error(w, "Invalid post ID", http.StatusBadRequest)
+					return
+				}
+
+				post, err := query.GetPostByIDQuery(postID)
+				if err != nil {
+					http.Error(w, "Post not found", http.StatusNotFound)
+					return
+				}
+
+				if post.UserID != userID && post.Privacy != "public" {
+					http.Error(w, "Unauthorized to view this post", http.StatusForbidden)
+					return
+				}
+
+				post.Image = fixImagePath(post.Image)
+
+				json.NewEncoder(w).Encode(map[string]interface{}{
+					"success": true,
+					"post":    post,
+				})
+				return
+			}
+
+			page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+			if page < 1 {
+				page = 1
+			}
+			limit := 10
+			offset := (page - 1) * limit
+
+			posts, total, err := query.GetVisiblePosts(userID, limit, offset)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			for i := range posts {
+				posts[i].Image = fixImagePath(posts[i].Image)
+			}
+
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": true,
+				"posts":   posts,
+				"total":   total,
+				"page":    page,
+			})
+		}

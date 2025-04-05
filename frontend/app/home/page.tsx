@@ -411,7 +411,7 @@ export default function Home() {
                       {post.image && (
                         <div className="post-image-container">
                           <img 
-                            src={post.image.startsWith('http') ? post.image : `http://localhost:8080${post.image}`} 
+                            src={post.image.startsWith('http') ? post.image : `http://localhost:8080/${post.image}`} 
                             alt="Post image" 
                             className="post-image" 
                           />

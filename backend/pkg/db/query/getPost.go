@@ -5,7 +5,18 @@ import (
 	"log"
 	"socialNetwork/pkg/db"
 	"socialNetwork/pkg/models"
+	"strings"
 )
+
+func fixImagePath(image string) string {
+	if image != "" {
+		// If the image path starts with "./uploads", convert it to "/uploads"
+		if strings.HasPrefix(image, "./uploads") {
+			return strings.Replace(image, "./uploads", "/uploads", 1)
+		}
+	}
+	return image
+}
 
 func GetPostByIDQuery(postID int) (*models.Post, error) {
 	query := `SELECT id, user_id,content,image,privacy,created_at FROM posts WHERE id = ?`
@@ -18,6 +29,10 @@ func GetPostByIDQuery(postID int) (*models.Post, error) {
 		&post.Privacy,
 		&post.CreatedAt,
 	)
+	
+	// Fix the image path
+	post.Image = fixImagePath(post.Image)
+	
 	return &post, err
 }
 
@@ -77,6 +92,9 @@ func GetPostsByUserID(userID int) ([]models.PostResponse, error) {
 		post.LikeCount = 0
 		post.IsLiked = false
 		
+		// Fix the image path
+		post.Image = fixImagePath(post.Image)
+		
 		post.Author = author
 		posts = append(posts, post)
 	}
@@ -84,6 +102,7 @@ func GetPostsByUserID(userID int) ([]models.PostResponse, error) {
 	log.Printf("Found %d posts for user ID: %d", len(posts), userID)
 	return posts, nil
 }
+
 func GetUserPostsCount(userID int) (int, error) {
 	var count int
 	err := db.DBInstance.DB.QueryRow("SELECT COUNT(*) FROM posts WHERE user_id = ?", userID).Scan(&count)
