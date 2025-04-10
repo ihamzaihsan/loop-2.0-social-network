@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"socialNetwork/pkg/auth"
 	"socialNetwork/pkg/db"
+	"socialNetwork/pkg/utils"
 )
 
 type ChatContact struct {
@@ -67,16 +68,14 @@ func ServeFollowedUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var count int
+	err = db.DBInstance.DB.QueryRow("SELECT COUNT(*) FROM followers WHERE follower_id = ?", userID).Scan(&count)
+	if err != nil {
+		log.Printf("[ERROR] Failed to count followed users: %v", err)
+	}
 
-			var count int
-			err = db.DBInstance.DB.QueryRow("SELECT COUNT(*) FROM followers WHERE follower_id = ?", userID).Scan(&count)
-			if err != nil {
-				log.Printf("[ERROR] Failed to count followed users: %v", err)
-			}
-	
-
-			// Query to get all users that the current user is following with complete information
-				query := `
+	// Query to get all users that the current user is following with complete information
+	query := `
 						SELECT 
 							u.id,
 							u.first_name,
@@ -89,50 +88,44 @@ func ServeFollowedUsers(w http.ResponseWriter, r *http.Request) {
 						ORDER BY u.first_name, u.last_name
 					`
 
+	rows, err := db.DBInstance.DB.Query(query, userID)
+	if err != nil {
+		log.Printf("[ERROR] Failed to query followed users: %v", err)
+		http.Error(w, "Failed to get followed users", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
 
+	var followedUsers []map[string]interface{}
 
-			rows, err := db.DBInstance.DB.Query(query, userID)
-			if err != nil {
-				log.Printf("[ERROR] Failed to query followed users: %v", err)
-				http.Error(w, "Failed to get followed users", http.StatusInternalServerError)
-				return
-			}
-			defer rows.Close()
+	for rows.Next() {
+		var id int
+		var firstName, lastName string
+		var nickname, avatar *string
 
-			var followedUsers []map[string]interface{}
+		err := rows.Scan(&id, &firstName, &lastName, &nickname, &avatar)
+		if err != nil {
+			log.Printf("[ERROR] Failed to scan followed user row: %v", err)
+			continue
+		}
 
-			for rows.Next() {
-				var id int
-				var firstName, lastName string
-				var nickname, avatar *string
+		user := map[string]interface{}{
+			"id":        id,
+			"firstName": firstName,
+			"lastName":  lastName,
+		}
 
-				err := rows.Scan(&id, &firstName, &lastName, &nickname, &avatar)
-				if err != nil {
-					log.Printf("[ERROR] Failed to scan followed user row: %v", err)
-					continue
-				}
+		if nickname != nil {
+			user["nickname"] = *nickname
+		}
 
-				user := map[string]interface{}{
-					"id":        id,
-					"firstName": firstName,
-					"lastName":  lastName,
-				}
+		if avatar != nil {
+			user["avatar"] = *avatar
+		}
 
-				if nickname != nil {
-					user["nickname"] = *nickname
-				}
+		followedUsers = append(followedUsers, user)
+	}
 
-				if avatar != nil {
-					user["avatar"] = *avatar
-				}
-
-				followedUsers = append(followedUsers, user)
-			}
-
-	
-
-			
-	
 	// Return the followed users as JSON
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
@@ -228,4 +221,27 @@ func GetChatContacts(userID int) ([]ChatContact, error) {
 	}
 
 	return contacts, nil
+}
+
+func UploadChatImage(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		http.Error(w, "File too large", http.StatusBadRequest)
+		return
+	}
+
+	file, header, err := r.FormFile("image")
+	if err != nil {
+		http.Error(w, "Failed to get file", http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	imagePath, err := utils.HandleImageUpload(file, header)
+	if err != nil {
+		http.Error(w, "Failed to upload image", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(`{"success": true, "imageUrl": "` + imagePath + `"}`))
 }

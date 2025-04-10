@@ -67,6 +67,8 @@ func main() {
 	http.HandleFunc("/groups/events/details", auth.CorsMiddleware(auth.AuthMiddleware(routes.GetGroupEvent)))
 	http.HandleFunc("/groups/events/respond", auth.CorsMiddleware(auth.AuthMiddleware(routes.RespondToEvent)))
 	http.HandleFunc("/groups/all", auth.CorsMiddleware(auth.AuthMiddleware(services.GetAllGroups)))
+	http.HandleFunc("/chat/upload-image", auth.CorsMiddleware(auth.AuthMiddleware(routes.UploadChatImage)))
+
 	// Add this to your existing routes
 	http.HandleFunc("/profile/privacy", auth.CorsMiddleware(auth.AuthMiddleware(routes.UpdatePrivacy)))
 

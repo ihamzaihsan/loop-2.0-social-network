@@ -13,6 +13,7 @@ CREATE TABLE messages (
     sender_id INTEGER NOT NULL,
     content TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    type TEXT DEFAULT 'text',
     FOREIGN KEY (chat_id) REFERENCES chats(id),
     FOREIGN KEY (sender_id) REFERENCES users(id)
 );

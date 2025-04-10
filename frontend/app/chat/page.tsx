@@ -21,6 +21,7 @@ interface Message {
   content: string
   created_at: string
   is_read: boolean
+  type?: string
   sender: {
     id: number
     first_name: string
@@ -53,6 +54,7 @@ export default function Chat() {
   const [followedUsers, setFollowedUsers] = useState<User[]>([])
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const [wsClient, setWsClient] = useState<WebSocketClient | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
       useEffect(() => {
         const client = WebSocketClient.getInstance();
@@ -68,6 +70,7 @@ export default function Chat() {
                 sender_id: content.sender_id || 0,
                 receiver_id: currentUser.id,
                 content: content.content || "",
+                type: content.type || "text",
                 created_at: content.created_at || new Date().toISOString(),
                 is_read: false,
                 sender: {
@@ -89,7 +92,7 @@ export default function Chat() {
               if (contactIndex >= 0) {
                 updatedContacts[contactIndex] = {
                   ...updatedContacts[contactIndex],
-                  lastMessage: content.content || "",
+                  lastMessage: content.type === 'image' ? '📷 Image' : content.content || "",
                   lastMessageTime: content.created_at || new Date().toISOString(),
                   unreadCount: (updatedContacts[contactIndex].unreadCount || 0) + 1
                 };
@@ -107,7 +110,7 @@ export default function Chat() {
                       lastName: data.user.lastName || data.user.last_name,
                       nickname: data.user.nickname,
                       avatar: data.user.avatar,
-                      lastMessage: content.content || "",
+                      lastMessage: content.type === 'image' ? '📷 Image' : content.content || "",
                       lastMessageTime: content.created_at || new Date().toISOString(),
                       unreadCount: 1
                     };
@@ -214,7 +217,8 @@ export default function Chat() {
             },
             body: JSON.stringify({
               receiver_id: selectedContact.id,
-              content: newMessage
+              content: newMessage,
+              type: 'text'
             }),
           });
 
@@ -232,6 +236,7 @@ export default function Chat() {
           sender_id: currentUser.id,
           receiver_id: selectedContact.id,
           content: newMessage,
+          type: 'text',
           created_at: new Date().toISOString(),
           is_read: false,
           sender: {
@@ -308,6 +313,86 @@ export default function Chat() {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const formData = new FormData();
+      formData.append('image', file);
+  
+      try {
+        const response = await fetch('http://localhost:8080/chat/upload-image', {
+          method: 'POST',
+          credentials: 'include',
+          body: formData,
+        });
+  
+        const data = await response.json();
+        if (data.success && data.imageUrl) {
+          // Send the image URL as a message with type 'image'
+          if (selectedContact && currentUser) {
+            if (wsClient && wsClient.socket && wsClient.socket.readyState === WebSocket.OPEN) {
+              wsClient.sendMessage(selectedContact.id, data.imageUrl);
+            } else {
+              // Fallback to HTTP
+              await fetch('http://localhost:8080/messages', {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  receiver_id: selectedContact.id,
+                  content: data.imageUrl,
+                  type: 'image'
+                }),
+              });
+            }
+            
+            // Add the message to the UI
+            const newMessageObj = {
+              id: Date.now(),
+              sender_id: currentUser.id,
+              receiver_id: selectedContact.id,
+              content: data.imageUrl,
+              created_at: new Date().toISOString(),
+              is_read: false,
+              type: 'image',
+              sender: {
+                id : currentUser.id,
+                first_name: currentUser.firstName,
+                last_name: currentUser.lastName,
+                avatar: currentUser.avatar
+              }
+            };
+            
+            setMessages(prev => [...prev, newMessageObj]);
+            
+            // Update the contact's last message
+            setContacts(prev => {
+              const updatedContacts = [...prev];
+              const contactIndex = updatedContacts.findIndex(c => c.id === selectedContact.id);
+            
+              if (contactIndex >= 0) {
+                updatedContacts[contactIndex] = {
+                  ...updatedContacts[contactIndex],
+                  lastMessage: '📷 Image',
+                  lastMessageTime: new Date().toISOString()
+                };
+              }
+            
+              return updatedContacts;
+            });
+          }
+        } else {
+          console.error('Failed to upload image');
+        }
+      } catch (error) {
+        console.error('Error uploading image:', error);
+      }
+    }
+  };
+  
 
   if (loading) return <div className="chat-page">Loading...</div>;
   if (error) return <div className="chat-page">Error: {error}</div>;
@@ -416,17 +501,32 @@ export default function Chat() {
               <div className="messages-container">
                 {messages.length > 0 ? (
                   <div className="messages-list">
-                    {messages.map(message => (
-                      <div 
-                        key={message.id} 
-                        className={`message ${message.sender_id === currentUser?.id ? 'sent' : 'received'}`}
-                      >
-                        <div className="message-content">{message.content}</div>
-                        <div className="message-time">
-                          {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </div>
-                      </div>
-                    ))}
+                   {messages.map(message => (
+  <div 
+    key={message.id} 
+    className={`message ${message.sender_id === currentUser?.id ? 'sent' : 'received'}`}
+  >
+    <div className="message-content">
+      {typeof message.content === 'string' && message.content.match(/\.(jpeg|jpg|gif|png)$/i) ? (
+        // If the content is an image URL
+        <img src={`http://localhost:8080/${message.content}`} alt="User uploaded content" />
+      ) : typeof message.content === 'number' ? (
+        // If the content is a number
+        <span>{message.content}</span>
+      ) : typeof message.content === 'string' ? (
+        // If the content is a word or text
+        <span>{message.content}</span>
+      ) : (
+        // Fallback for unsupported content types
+        <span>Unsupported content</span>
+      )}
+    </div>
+    <div className="message-time">
+      {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+    </div>
+  </div>
+))}
+
                     <div ref={messagesEndRef} />
                   </div>
                 ) : (
@@ -452,6 +552,16 @@ export default function Chat() {
                 >
                   Send
                 </button>
+                <div className="chat-input">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    ref={fileInputRef}
+                    onChange={handleImageUpload}
+                  />
+                  <button onClick={() => fileInputRef.current?.click()}>Send Image</button>
+                </div>
               </div>
             </>
           ) : (
@@ -469,4 +579,4 @@ export default function Chat() {
       </div>
     </div>
   );
-}
+};
