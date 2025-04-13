@@ -129,6 +129,60 @@ export default function GroupChatPage() {
     const [inviteSuccess, setInviteSuccess] = useState('')
     const [inviteError, setInviteError] = useState('')
 
+    // Add these to your existing state variables
+const fileInputRef = useRef<HTMLInputElement>(null);
+
+// Add this function to handle image uploads
+const handleGroupImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const formData = new FormData();
+      formData.append('image', file);
+  
+      try {
+        const response = await fetch('http://localhost:8080/chat/upload-image', {
+          method: 'POST',
+          credentials: 'include',
+          body: formData,
+        });
+  
+        const data = await response.json();
+        if (data.success && data.imageUrl) {
+          // Send the image URL as a message
+          if (groupId && currentUser) {
+            if (wsClient && wsClient.socket && wsClient.socket.readyState === WebSocket.OPEN) {
+              wsClient.sendGroupMessage(groupId, data.imageUrl);
+            } else {
+              // Fallback to HTTP
+              await sendGroupMessage(groupId, data.imageUrl);
+            }
+            
+            // Add the message to the UI
+            const newMessageObj: GroupMessage = {
+              id: Date.now(),
+              sender_id: currentUser.id,
+              group_id: groupId,
+              content: data.imageUrl,
+              created_at: new Date().toISOString(),
+              sender: {
+                id: currentUser.id,
+                firstName: currentUser.firstName,
+                lastName: currentUser.lastName,
+                avatar: currentUser.avatar
+              }
+            };
+            
+            setMessages(prev => [...prev, newMessageObj]);
+          }
+        } else {
+          console.error('Failed to upload image');
+        }
+      } catch (error) {
+        console.error('Error uploading image:', error);
+      }
+    }
+  };
+  
     // Fetch current user data
     useEffect(() => {
         const fetchUserData = async () => {
@@ -871,7 +925,17 @@ export default function GroupChatPage() {
                                                         <span className="sender-name">{message.sender.firstName} {message.sender.lastName}</span>
                                                     </div>
                                                 )}
-                                                <div className="message-content">{message.content}</div>
+
+                                        <div className="message-content">
+                                                 {message.content.match(/\.(jpeg|jpg|gif|png)$/i) ? (
+                                                  // If the content is an image URL
+                                             <img src={`http://localhost:8080/${message.content}`} alt="User uploaded content" />
+                                             ) : (
+  
+                                                      message.content
+                                                                )}
+                                                </div>
+
                                                 <div className="message-time">
                                                     {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </div>
@@ -887,21 +951,40 @@ export default function GroupChatPage() {
                             </div>
 
                             <form className="group-message-input-container" onSubmit={handleSendMessage}>
-                                <input
-                                    type="text"
-                                    className="message-input"
-                                    placeholder="Type a message..."
-                                    value={newMessage}
-                                    onChange={(e) => setNewMessage(e.target.value)}
-                                />
-                                <button
-                                    type="submit"
-                                    className="send-button"
-                                    disabled={!newMessage.trim()}
-                                >
-                                    Send
-                                </button>
-                            </form>
+  <input
+    type="text"
+    className="message-input"
+    placeholder="Type a message..."
+    value={newMessage}
+    onChange={(e) => setNewMessage(e.target.value)}
+  />
+  <button
+    type="submit"
+    className="send-button"
+    disabled={!newMessage.trim()}
+  >
+    Send
+  </button>
+  <input
+    type="file"
+    accept="image/*"
+    style={{ display: 'none' }}
+    ref={fileInputRef}
+    onChange={handleGroupImageUpload}
+  />
+  <button 
+    type="button"
+    className="image-button"
+    onClick={() => fileInputRef.current?.click()}
+  >
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+      <circle cx="8.5" cy="8.5" r="1.5"></circle>
+      <polyline points="21 15 16 10 5 21"></polyline>
+    </svg>
+  </button>
+</form>
+
                         </>
                     )}
 

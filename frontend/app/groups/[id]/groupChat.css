@@ -1215,3 +1215,23 @@
     margin-top: 16px;
   }
 }
+
+
+.image-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #4a76a8;
+  padding: 0 10px;
+}
+
+.image-button:hover {
+  color: #2c5282;
+}
+
+.message-content img {
+  max-width: 300px;
+  max-height: 300px;
+  border-radius: 8px;
+  margin-top: 5px;
+}
