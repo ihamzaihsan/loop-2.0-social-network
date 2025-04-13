@@ -64,6 +64,8 @@ export default function Home() {
   const [commentInputs, setCommentInputs] = useState<{[key: number]: string}>({})
   const [submittingComment, setSubmittingComment] = useState<{[key: number]: boolean}>({})
   const [newComments, setNewComments] = useState<{[postId: number]: string}>({})
+  const [commentFileInputs, setCommentFileInputs] = useState<{[postId: number]: HTMLInputElement | null}>({});
+  const [commentImageFiles, setCommentImageFiles] = useState<{[key: number]: File | null}>({});
 
   // Initialize WebSocket connection
   useEffect(() => {
@@ -227,21 +229,44 @@ export default function Home() {
     setCommentInputs(prev => ({ ...prev, [postId]: value }))
   }
 
+  const handleCommentFileChange = (postId: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      console.log('File selected:', e.target.files[0].name);
+      setCommentImageFiles(prev => ({
+        ...prev,
+        [postId]: e.target.files![0]
+      }));
+    }
+  };
+
   const handleAddComment = async (postId: number) => {
-    if (!newComments[postId] || newComments[postId].trim() === '') {
-      return; // Don't submit empty comments
+    if ((!newComments[postId] || newComments[postId].trim() === '') && !commentImageFiles[postId]) {
+      return; // Don't submit empty comments without images
     }
 
     try {
       console.log(`Adding comment to post ${postId}: ${newComments[postId]}`);
+      console.log('With image file:', commentImageFiles[postId]?.name);
       
       // Create FormData for the request
       const formData = new FormData();
-      formData.append('content', newComments[postId]);
+      formData.append('content', newComments[postId] || '');
+      
+      // Add image if available
+      if (commentImageFiles[postId]) {
+        formData.append('image', commentImageFiles[postId]);
+      }
+      
+      // Log the form data to verify it's correctly formed
+      console.log('Form data entries:');
+      for (let [key, value] of formData.entries()) {
+        console.log(`${key}: ${value instanceof File ? value.name : value}`);
+      }
       
       const response = await fetch(`http://localhost:8080/comments?postId=${postId}`, {
         method: 'POST',
         credentials: 'include',
+        // Don't set Content-Type header manually - let the browser set it with the boundary
         body: formData,
       });
       
@@ -269,10 +294,14 @@ export default function Home() {
           })
         );
         
-        // Clear the new comment input
+        // Clear the new comment input and image
         setNewComments(prev => ({
           ...prev,
           [postId]: ''
+        }));
+        setCommentImageFiles(prev => ({
+          ...prev,
+          [postId]: null
         }));
       }
     } catch (error) {
@@ -433,20 +462,25 @@ export default function Home() {
                       {post.showComments && (
                         <div className="comments-section">
                           <h4>Comments</h4>
-                          {post.comments && post.comments.length > 0 ? (
-                            <div className="comments-list">
-                              {post.comments.map((comment, index) => (
-                                <div key={comment.id || index} className="comment">
-                                  <div className="comment-author">
-                                    {comment.author?.firstName || 'Anonymous'} {comment.author?.lastName || ''}
+                          {post.comments && post.comments.map((comment, index) => (
+                            <div key={comment.id || index} className="comment">
+                              <div className="comment-author">
+                                {comment.author?.firstName || 'Anonymous'} {comment.author?.lastName || ''}
+                              </div>
+                              <div className="comment-content">
+                                {comment.content}
+                                {comment.image && (
+                                  <div className="comment-image-container">
+                                    <img 
+                                      src={comment.image.startsWith('http') ? comment.image : `http://localhost:8080/${comment.image}`} 
+                                      alt="Comment image" 
+                                      className="comment-image" 
+                                    />
                                   </div>
-                                  <div className="comment-content">{comment.content}</div>
-                                </div>
-                              ))}
+                                )}
+                              </div>
                             </div>
-                          ) : (
-                            <p>No comments yet.</p>
-                          )}
+                          ))}
                           
                           <form onSubmit={(e) => {
                             e.preventDefault();
@@ -462,7 +496,42 @@ export default function Home() {
                               placeholder="Write a comment..."
                               className="comment-input"
                             />
-                            <button type="submit" className="comment-submit">Post</button>
+                            <div className="comment-form-actions">
+                              <input
+                                type="file"
+                                accept="image/*"
+                                style={{ display: 'none' }}
+                                id={`comment-file-${post.id}`}
+                                onChange={(e) => handleCommentFileChange(post.id, e)}
+                              />
+                              <label htmlFor={`comment-file-${post.id}`} className="comment-image-button">
+                                📷
+                              </label>
+                              <button type="submit" className="comment-submit">Post</button>
+                            </div>
+                            
+                            {/* Add a visual preview of the selected image */}
+                            {commentImageFiles[post.id] && (
+                              <div className="comment-image-preview">
+                                <div className="preview-image-container">
+                                  <img 
+                                    src={URL.createObjectURL(commentImageFiles[post.id]!)} 
+                                    alt="Preview" 
+                                    className="preview-image" 
+                                  />
+                                </div>
+                                <div className="preview-details">
+                                  <span className="preview-filename">{commentImageFiles[post.id]?.name}</span>
+                                  <button 
+                                    type="button" 
+                                    className="remove-image-button"
+                                    onClick={() => setCommentImageFiles(prev => ({...prev, [post.id]: null}))}
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              </div>
+                            )}
                           </form>
                         </div>
                       )}
@@ -490,3 +559,4 @@ export default function Home() {
     </div>
   )
 }
+

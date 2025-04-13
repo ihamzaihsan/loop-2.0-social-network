@@ -33,6 +33,26 @@ func InitDB() error {
 		return fmt.Errorf("error enabling foreign keys: %v", err)
 	}
 
+	// Check if comments table has image column
+	var hasImageColumn bool
+	err = DBInstance.DB.QueryRow(`
+		SELECT COUNT(*) > 0 
+		FROM pragma_table_info('comments') 
+		WHERE name = 'image'
+	`).Scan(&hasImageColumn)
+	
+	if err == nil && !hasImageColumn {
+		// Add image column if it doesn't exist
+		fmt.Println("Adding image column to comments table...")
+		_, err = DBInstance.DB.Exec(`ALTER TABLE comments ADD COLUMN image TEXT`)
+		if err != nil {
+			fmt.Printf("Error adding image column: %v\n", err)
+			// Continue anyway, as migrations might handle this
+		} else {
+			fmt.Println("Image column added successfully")
+		}
+	}
+
 	// Run migrations
 	err = RunMigrations(DBInstance.DB)
 	if err != nil {

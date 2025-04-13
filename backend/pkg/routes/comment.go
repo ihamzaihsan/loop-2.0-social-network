@@ -57,54 +57,59 @@ func CreateComment(w http.ResponseWriter, r *http.Request) {
 
 	var request models.CommentRequest
 
-	// Check content type to determine how to parse the request
-	contentType := r.Header.Get("Content-Type")
-	log.Printf("Content-Type: %s", contentType)
-
-	if strings.Contains(contentType, "application/json") {
-		// Parse JSON request
-		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-			log.Printf("Error parsing JSON: %v", err)
-			http.Error(w, "Error parsing JSON request", http.StatusBadRequest)
-			return
+	// Parse multipart form for all requests that might contain files
+	err = r.ParseMultipartForm(10 << 20) // 10 MB max
+	if err != nil {
+		log.Printf("Error parsing multipart form (might not be multipart): %v", err)
+		// If it's not a multipart form, try to parse as JSON or regular form
+		contentType := r.Header.Get("Content-Type")
+		if strings.Contains(contentType, "application/json") {
+			if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+				log.Printf("Error parsing JSON: %v", err)
+				http.Error(w, "Error parsing request", http.StatusBadRequest)
+				return
+			}
+		} else {
+			// Try to parse regular form
+			if err := r.ParseForm(); err != nil {
+				log.Printf("Error parsing form: %v", err)
+				http.Error(w, "Error parsing form", http.StatusBadRequest)
+				return
+			}
+			request.Content = r.FormValue("content")
 		}
-	} else if strings.Contains(contentType, "multipart/form-data") {
-		// Parse multipart form
-		if err := r.ParseMultipartForm(10 << 20); err != nil {
-			log.Printf("Error parsing multipart form: %v", err)
-			http.Error(w, "Error parsing form", http.StatusBadRequest)
-			return
-		}
-
+	} else {
+		// Successfully parsed multipart form
 		request.Content = r.FormValue("content")
+		log.Printf("Parsed content from form: %s", request.Content)
 
-		// Try to get image if present
+		// Try to get image file
 		file, header, err := r.FormFile("image")
 		if err == nil {
 			defer file.Close()
+			log.Printf("Found image file in request: %s (%d bytes)", 
+				header.Filename, header.Size)
+			
+			// Use the utils function to handle the image upload
 			imagePath, err := utils.HandleImageUpload(file, header)
 			if err != nil {
 				log.Printf("Error uploading image: %v", err)
 				http.Error(w, "Failed to upload image", http.StatusInternalServerError)
 				return
 			}
+			log.Printf("Image uploaded successfully to: %s", imagePath)
 			request.Image = imagePath
-		} else if err != http.ErrMissingFile {
-			// Only log if it's not just a missing file
-			log.Printf("Error getting form file: %v", err)
+		} else {
+			if err != http.ErrMissingFile {
+				log.Printf("Error getting form file: %v", err)
+			} else {
+				log.Printf("No image file found in request")
+			}
 		}
-	} else {
-		// Try to parse regular form
-		if err := r.ParseForm(); err != nil {
-			log.Printf("Error parsing form: %v", err)
-			http.Error(w, "Error parsing form", http.StatusBadRequest)
-			return
-		}
-
-		request.Content = r.FormValue("content")
 	}
 
-	log.Printf("Creating comment for post %d with content: %s", postID, request.Content)
+	log.Printf("Creating comment for post %d with content: %s and image: %s", 
+		postID, request.Content, request.Image)
 
 	comment, err := query.CreateComment(userID, postID, request)
 	if err != nil {
@@ -112,6 +117,8 @@ func CreateComment(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to create comment", http.StatusInternalServerError)
 		return
 	}
+
+	log.Printf("Comment created successfully with ID: %d", comment.ID)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
