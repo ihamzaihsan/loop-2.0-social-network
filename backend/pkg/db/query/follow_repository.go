@@ -4,12 +4,11 @@ import (
 	"database/sql"
 	"errors"
 	"log"
+	"strings"
 	"time"
 
 	"socialNetwork/pkg/db"
 	"socialNetwork/pkg/models"
-
-	"github.com/mattn/go-sqlite3"
 )
 
 // RequestFollow handles the database operations for a follow request
@@ -45,8 +44,7 @@ func RequestFollow(followerID, followedID uint) (string, error) {
 				VALUES (?, ?, ?, ?)
 			`, followerID, followedID, initialStatus, time.Now())
 			if err != nil {
-				sqliteErr, ok := err.(sqlite3.Error)
-				if ok && sqliteErr.ExtendedCode == sqlite3.ErrConstraintUnique {
+				if strings.Contains(err.Error(), "UNIQUE constraint failed") {
 					return "", errors.New("follow relationship already exists")
 				}
 				return "", err
