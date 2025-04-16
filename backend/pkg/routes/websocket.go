@@ -136,6 +136,15 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 			handleGroupPost(userID, contentMap)
+
+		case "group_comment":
+			log.Printf("[INFO] Handling group comment from user %d", userID)
+			contentMap, ok := msg.Content.(map[string]interface{})
+			if !ok {
+				log.Printf("[ERROR] Invalid message content format")
+				continue
+			}
+			handleGroupComment(userID, contentMap)	
 			
 		case "group_event":
 			log.Printf("[INFO] Handling group event from user %d", userID)
@@ -500,6 +509,104 @@ func handleGroupPost(userID int, content map[string]interface{}) {
         Content: post,
     })
 }
+func handleGroupComment(userID int, content map[string]interface{}) {
+    // Extract post_id and content
+    postIDFloat, ok := content["post_id"].(float64)
+    if !ok {
+        log.Printf("[ERROR] Invalid post_id format")
+        return
+    }
+    postID := int(postIDFloat)
+    
+    commentContent, ok := content["content"].(string)
+    if !ok {
+        log.Printf("[ERROR] Invalid comment content format")
+        return
+    }
+    
+    log.Printf("[INFO] Processing group comment from user %d on post %d", userID, postID)
+    
+    // Get the post to find the group ID
+    var groupID int
+    err := db.DBInstance.DB.QueryRow(`
+        SELECT group_id FROM group_posts WHERE id = ?
+    `, postID).Scan(&groupID)
+    
+    if err != nil {
+        log.Printf("[ERROR] Failed to get group ID for post: %v", err)
+        return
+    }
+    
+    // Check if user is a member of the group
+    var isMember bool
+    err = db.DBInstance.DB.QueryRow(`
+        SELECT EXISTS(
+            SELECT 1 FROM group_members 
+            WHERE group_id = ? AND user_id = ?
+        )
+    `, groupID, userID).Scan(&isMember)
+    
+    if err != nil {
+        log.Printf("[ERROR] Failed to check group membership: %v", err)
+        return
+    }
+    
+    if !isMember {
+        log.Printf("[ERROR] User %d is not a member of group %d", userID, groupID)
+        return
+    }
+    
+    // Insert the comment
+    result, err := db.DBInstance.DB.Exec(`
+    INSERT INTO group_comments (post_id, user_id, content, created_at)
+    VALUES (?, ?, ?, ?)
+	`, postID, userID, commentContent, time.Now())
+    
+    if err != nil {
+        log.Printf("[ERROR] Failed to store group comment: %v", err)
+        return
+    }
+    
+    commentID, _ := result.LastInsertId()
+    log.Printf("[INFO] Stored group comment with ID %d", commentID)
+    
+    // Get user info for the comment
+    var firstName, lastName string
+    var avatar sql.NullString
+    err = db.DBInstance.DB.QueryRow(`
+        SELECT first_name, last_name, avatar
+        FROM users
+        WHERE id = ?
+    `, userID).Scan(&firstName, &lastName, &avatar)
+    
+    if err != nil {
+        log.Printf("[ERROR] Failed to get user info: %v", err)
+        return
+    }
+    
+    // Create comment object for broadcasting
+    comment := map[string]interface{}{
+        "id":         commentID,
+        "post_id":    postID,
+        "group_id":   groupID,
+        "user_id":    userID,
+        "content":    commentContent,
+        "created_at": time.Now(),
+        "first_name": firstName,
+        "last_name":  lastName,
+    }
+    
+    if avatar.Valid {
+        comment["avatar"] = avatar.String
+    }
+    
+    // Broadcast to all group members
+    broadcastToGroupMembers(groupID, userID, Message{
+        Type:    "group_comment",
+        Content: comment,
+    })
+}
+
 
 func handleGroupEvent(userID int, content map[string]interface{}) {
     // Extract event details
