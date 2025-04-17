@@ -37,4 +37,5 @@ export interface WebSocketClientInterface {
     sendGroupEvent(groupId: number, title: string, description: string, eventTime: string, options?: string[]): boolean;
     sendEventResponse(eventId: number, optionId: number): boolean;
     setTypingStatus(receiverId: number, isTyping: boolean): void;
+    sendGroupComment(postId: number, content: string): boolean;
 }

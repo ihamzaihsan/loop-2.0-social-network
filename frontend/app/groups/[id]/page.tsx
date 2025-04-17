@@ -346,6 +346,41 @@ const handleGroupImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) =>
                 }
             });
 
+            client.addMessageHandler('group_comment', (content) => {
+                console.log('Received group comment:', content);
+                
+                // Update the post's comment count
+                setPosts(prev =>
+                    prev.map(post =>
+                        post.id === content.post_id
+                            ? { ...post, comment_count: (post.comment_count || 0) + 1 }
+                            : post
+                    )
+                );
+                
+                // Add the comment to the comments list if we're viewing that post
+                if (content.post_id) {
+                    setPostComments(prev => {
+                        // If we already have comments for this post, add the new one
+                        if (prev[content.post_id]) {
+                            // Check if this comment is already in the list to avoid duplicates
+                            const isDuplicate = prev[content.post_id].some(comment => 
+                                comment.id === content.id
+                            );
+                            
+                            if (!isDuplicate) {
+                                return {
+                                    ...prev,
+                                    [content.post_id]: [...prev[content.post_id], content]
+                                };
+                            }
+                        }
+                        return prev;
+                    });
+                }
+            });
+            
+
             // Add message handler for group events
             client.addMessageHandler('group_event', (content) => {
                 if (content.group_id === groupId && content.creator_id !== currentUser.id) {
@@ -424,6 +459,15 @@ const handleGroupImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) =>
             console.error('Error fetching users:', error)
         }
     }
+
+    
+    // Add this useEffect to load comments when a post is selected
+    useEffect(() => {
+        if (selectedPost) {
+            loadCommentsForPost(selectedPost);
+        }
+    }, [selectedPost]);
+
 
     // Handle inviting users
     const handleInviteUsers = async () => {
@@ -574,35 +618,63 @@ const handleGroupImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) =>
         }
     };
 
-    // Handle creating a comment
-    const handleCreateComment = async (postId: number) => {
-        if (!newComment.trim()) return;
+// Handle creating a comment
+const handleCreateComment = async (postId: number) => {
+    if (!newComment.trim()) return;
 
-        try {
-            const newCommentObj = await createGroupComment(postId, newComment);
-            if (newCommentObj) {
-                // Update the post's comment count
+    try {
+        // Try to send via WebSocket first
+        let sentViaWebSocket = false;
+        if (wsClient && wsClient.socket && wsClient.socket.readyState === WebSocket.OPEN) {
+            console.log('Attempting to send group comment via WebSocket');
+            sentViaWebSocket = wsClient.sendGroupComment(postId, newComment);
+            console.log('WebSocket send result:', sentViaWebSocket);
+            
+            // If sent via WebSocket, update the local state immediately
+            if (sentViaWebSocket && currentUser) {
+                // Create a temporary comment object
+                const tempComment = {
+                    id: Date.now(), // Temporary ID
+                    post_id: postId,
+                    user_id: currentUser.id,
+                    content: newComment,
+                    created_at: new Date().toISOString(),
+                    first_name: currentUser.firstName,
+                    last_name: currentUser.lastName,
+                    avatar: currentUser.avatar
+                };
+                
+                // Update posts comment count
                 setPosts(prev =>
                     prev.map(post =>
                         post.id === postId
-                            ? { ...post, comment_count: post.comment_count + 1 }
+                            ? { ...post, comment_count: (post.comment_count || 0) + 1 }
                             : post
                     )
                 );
-
-                // Refresh comments for this post
-                await loadCommentsForPost(postId);
-
-                // Clear the comment input
-                setNewComment('');
-
-                // Close the comment form
-                setSelectedPost(null);
+                
+                // Add to comments
+                setPostComments(prev => ({
+                    ...prev,
+                    [postId]: [...(prev[postId] || []), tempComment]
+                }));
             }
-        } catch (error) {
-            console.error('Error creating comment:', error);
+        } else {
+            // If WebSocket failed or not available, use HTTP
+            console.log('Sending group comment via HTTP');
+            await createGroupComment(postId, newComment);
+            
+            // Refresh comments for this post if using HTTP
+            await loadCommentsForPost(postId);
         }
-    };
+
+        // Clear the comment input
+        setNewComment('');
+    } catch (error) {
+        console.error('Error creating comment:', error);
+    }
+};
+
 
     // Handle creating an event
     const handleCreateEvent = async () => {

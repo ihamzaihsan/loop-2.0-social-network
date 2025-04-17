@@ -313,4 +313,30 @@ export class WebSocketClient implements WebSocketClientInterface {
             return false;
         }
     }
+    sendGroupComment(postId: number, content: string): boolean {
+        if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+            console.error('WebSocket is not connected, readyState:', this.socket?.readyState);
+            return false;
+        }
+    
+        try {
+            const message = {
+                type: 'group_comment',
+                content: {
+                    post_id: postId,
+                    content: content
+                }
+            };
+            
+            console.log('Sending group comment via WebSocket:', JSON.stringify(message));
+            this.socket.send(JSON.stringify(message));
+            
+            console.log('Group comment sent successfully via WebSocket');
+            return true;
+        } catch (error) {
+            console.error('Error sending group comment via WebSocket:', error);
+            return false;
+        }
+    }
+    
 }
