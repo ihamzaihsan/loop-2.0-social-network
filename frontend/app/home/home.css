@@ -64,14 +64,16 @@
 
 .dashboard {
   display: grid;
-  grid-template-columns: 3fr 2fr;
+  grid-template-columns: 1fr;
   gap: 1.5rem;
+  max-width: 800px;
+  margin: 0 auto;
 }
 
 .feed-card {
   grid-column: 1;
-  grid-row: span 2;
   min-height: 500px;
+  width: 100%;
 }
 
 .friends-card {
@@ -160,10 +162,10 @@
 
 @media (max-width: 768px) {
   .dashboard {
-    grid-template-columns: 1fr;
+    max-width: 800px;
   }
   
-  .feed-card, .friends-card {
+  .feed-card {
     grid-column: 1;
   }
   
@@ -173,6 +175,11 @@
     font-size: 20px;
     bottom: 16px;
     right: 16px;
+  }
+}
+@media (min-width: 1200px) {
+  .dashboard {
+    max-width: 900px;
   }
 }
 

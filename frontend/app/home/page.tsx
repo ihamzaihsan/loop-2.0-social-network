@@ -544,16 +544,6 @@ export default function Home() {
             </div>
           </div>
           
-          <div className="card friends-card">
-            <h2 className="card-title">Friends</h2>
-            <p className="empty-friends">Connect with new friends to see them here.</p>
-            <button 
-              className="secondary-button find-friends-btn" 
-              onClick={() => router.push('/find-friends')}
-            >
-              Find Friends
-            </button>
-          </div>
         </div>
       </main>
     </div>
