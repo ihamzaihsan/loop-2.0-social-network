@@ -360,6 +360,47 @@ func GetFollowStatuses(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// GetFriends returns users who have a mutual follow relationship with the authenticated user
+func GetFriends(w http.ResponseWriter, r *http.Request) {
+	// Set headers for CORS
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Get user ID from session
+	userID, err := auth.GetUserID(r)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Get friends from repository
+	friends, count, err := query.GetFriends(uint(userID))
+	if err != nil {
+		log.Printf("Error getting friends: %v", err)
+		http.Error(w, "Error retrieving friends", http.StatusInternalServerError)
+		return
+	}
+
+	// Return friends as JSON with count
+	response := struct {
+		Success bool            `json:"success"`
+		Count   int             `json:"count"`
+		Friends []models.Follow `json:"friends"`
+	}{
+		Success: true,
+		Count:   count,
+		Friends: friends,
+	}
+
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Error encoding response: %v", err)
+	}
+}
+
 // Helper function to get a user-friendly message for a follow status
 func getStatusMessage(status string) string {
 	switch status {

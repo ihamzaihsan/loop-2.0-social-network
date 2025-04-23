@@ -25,20 +25,29 @@ interface FollowRequest {
   avatar?: string
 }
 
+interface Friend {
+  id: number
+  followerID: number
+  followedID: number
+  status: string
+  username: string
+  avatar?: string
+}
+
 export default function FindFriends() {
   const router = useRouter()
   const [users, setUsers] = useState<User[]>([])
   const [followRequests, setFollowRequests] = useState<FollowRequest[]>([])
+  const [friends, setFriends] = useState<Friend[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [currentUserId, setCurrentUserId] = useState<number | null>(null)
-  const [activeTab, setActiveTab] = useState<'users' | 'requests'>('users')
+  const [activeTab, setActiveTab] = useState<'users' | 'requests' | 'friends'>('users')
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         // First, get the current user profile to know who we are
-        console.log("Fetching profile...");
         const profileResponse = await fetch('http://localhost:8080/profile', {
           method: 'GET',
           credentials: 'include',
@@ -59,17 +68,21 @@ export default function FindFriends() {
         setCurrentUserId(profileData.user.id)
 
         // Fetch users
-        console.log("Fetching users...");
+
         await fetchUsers(profileData.user.id)
 
-        // Skip fetching follow requests for now
-        // await fetchFollowRequests()
-        console.log("About to fetch follow requests...");
+        // Fetch follow requests
         try {
           await fetchFollowRequests();
-          console.log("Follow requests fetched successfully");
         } catch (fetchError) {
           console.error("Error in fetchFollowRequests:", fetchError);
+        }
+        
+        // Fetch friends (mutual connections)
+        try {
+          await fetchFriends();
+        } catch (fetchError) {
+          console.error("Error in fetchFriends:", fetchError);
         }
       } catch (err: any) {
         console.error('Error fetching data:', err)
@@ -117,10 +130,43 @@ export default function FindFriends() {
   }
 
   const fetchFollowRequests = async () => {
-    console.log("Inside fetchFollowRequests function");
     try {
-      console.log('Making fetch request to /follow-requests...');
       const response = await fetch('http://localhost:8080/follow-requests', {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        throw new Error(`Failed to fetch follow requests: ${response.status} ${errorText}`);
+      }
+
+      const data = await response.json();
+
+      // Handle both array and object with requests property
+      if (Array.isArray(data)) {
+        console.log('Setting follow requests from array');
+        setFollowRequests(data);
+      } else if (data && data.requests) {
+        console.log('Setting follow requests from data.requests');
+        setFollowRequests(data.requests);
+      } else {
+        setFollowRequests([]);
+      }
+    } catch (err: any) {
+      console.error('Error in fetchFollowRequests:', err);
+      // Don't break the whole page, just set empty requests
+      setFollowRequests([]);
+    }
+  };
+
+  const fetchFriends = async () => {
+    try {
+      const response = await fetch('http://localhost:8080/api/friends', {
         method: 'GET',
         credentials: 'include',
         headers: {
@@ -133,30 +179,28 @@ export default function FindFriends() {
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Error response:', errorText);
-        throw new Error(`Failed to fetch follow requests: ${response.status} ${errorText}`);
+        throw new Error(`Failed to fetch friends: ${response.status} ${errorText}`);
       }
 
       const data = await response.json();
-      console.log('Parsed response data:', data);
 
-      // Handle both array and object with requests property
-      if (Array.isArray(data)) {
-        console.log('Setting follow requests from array');
-        setFollowRequests(data);
-      } else if (data && data.requests) {
-        console.log('Setting follow requests from data.requests');
-        setFollowRequests(data.requests);
+      // Check the structure of the data
+      if (data && data.friends) {
+        setFriends(data.friends);
+      } else if (Array.isArray(data)) {
+        setFriends(data);
       } else {
-        console.log('No valid follow requests data found, setting empty array');
-        setFollowRequests([]);
+        setFriends([]);
       }
+
+      // Note: This will show the previous state due to React's asynchronous state updates
+      // You'll need to check the next render to see the updated state
     } catch (err: any) {
-      console.error('Error in fetchFollowRequests:', err);
-      // Don't break the whole page, just set empty requests
-      setFollowRequests([]);
+      console.error('Error in fetchFriends:', err);
+      // Don't break the whole page, just set empty friends
+      setFriends([]);
     }
   };
-
 
   const handleFollowToggle = async (userId: number) => {
     try {
@@ -186,6 +230,11 @@ export default function FindFriends() {
               : user
           )
         )
+        
+        // If this was a friend, refresh the friends list
+        if (friends.some(friend => friend.followedID === userId)) {
+          fetchFriends();
+        }
       } else {
         // Follow logic
         const response = await fetch('http://localhost:8080/follow', {
@@ -220,6 +269,9 @@ export default function FindFriends() {
         // Show appropriate message for pending requests
         if (data.status === 'pending') {
           alert('Follow request sent. Waiting for user approval.')
+        } else if (data.status === 'accept') {
+          // Check if this created a new friendship (mutual follow)
+          fetchFriends();
         }
       }
     } catch (err: any) {
@@ -268,6 +320,9 @@ export default function FindFriends() {
                 : user
             )
           )
+          
+          // Refresh the friends list as this might have created a new friendship
+          fetchFriends();
         }
       }
 
@@ -291,6 +346,13 @@ export default function FindFriends() {
 
       <main className="users-container">
         <div className="tabs">
+        <button
+            className={`tab-button ${activeTab === 'friends' ? 'active' : ''}`}
+            onClick={() => setActiveTab('friends')}
+          >
+            Friends {friends.length > 0 && <span className="friends-badge">{friends.length}</span>}
+          </button>
+
           <button
             className={`tab-button ${activeTab === 'users' ? 'active' : ''}`}
             onClick={() => setActiveTab('users')}
@@ -305,7 +367,7 @@ export default function FindFriends() {
           </button>
         </div>
 
-        {activeTab === 'users' ? (
+        {activeTab === 'users' && (
           <>
             <h1 className="page-title">Find Friends</h1>
 
@@ -339,7 +401,9 @@ export default function FindFriends() {
               </ul>
             )}
           </>
-        ) : (
+        )}
+
+        {activeTab === 'requests' && (
           <>
             <h1 className="page-title">Follow Requests</h1>
 
@@ -378,6 +442,47 @@ export default function FindFriends() {
                     </div>
                   </li>
                 ))}
+              </ul>
+            )}
+          </>
+        )}
+
+        {activeTab === 'friends' && (
+          <>
+            <h1 className="page-title">Friends</h1>
+
+            {friends.length === 0 ? (
+              <p className="no-friends-message">You don't have any friends yet. When you and another user follow each other, they'll appear here.</p>
+            ) : (
+              <ul className="friends-list">
+                {friends.map(friend => {
+                  return (
+                    <li key={friend.id} className="friend-card">
+                      <div
+                        className="user-info"
+                        onClick={() => navigateToProfile(friend.followedID)}
+                      >
+                        <div className="user-avatar">
+                          {friend.avatar ? (
+                            <img src={friend.avatar} alt={friend.username} />
+                          ) : (
+                            friend.username.charAt(0).toUpperCase()
+                          )}
+                        </div>
+                        <div className="user-details">
+                          <h3 className="user-name">{friend.username}</h3>
+                          <p className="friend-status">Friend</p>
+                        </div>
+                      </div>
+                      <button
+                        className="follow-button following"
+                        onClick={() => handleFollowToggle(friend.followedID)}
+                      >
+                        Unfollow
+                      </button>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </>

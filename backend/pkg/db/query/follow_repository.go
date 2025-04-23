@@ -438,3 +438,72 @@ func GetFollowStatuses(userID uint) ([]models.Follow, error) {
 
 	return statuses, nil
 }
+
+// GetFriends returns users who have a mutual follow relationship with the given user
+func GetFriends(userID uint) ([]models.Follow, int, error) {
+	// First get the count
+	var count int
+	countErr := db.DBInstance.DB.QueryRow(`
+		SELECT COUNT(*) FROM followers f1
+		JOIN followers f2 ON f1.follower_id = f2.following_id AND f1.following_id = f2.follower_id
+		WHERE f1.follower_id = ? AND f1.status = 'accept' AND f2.status = 'accept'
+	`, userID).Scan(&count)
+
+	if countErr != nil {
+		return nil, 0, countErr
+	}
+
+	// Query to get mutual followers (friends)
+	rows, err := db.DBInstance.DB.Query(`
+		SELECT f1.id, f1.follower_id, f1.following_id, f1.status,
+			u.first_name, u.last_name, u.avatar
+		FROM followers f1
+		JOIN followers f2 ON f1.following_id = f2.follower_id AND f1.follower_id = f2.following_id
+		JOIN users u ON f1.following_id = u.id
+		WHERE f1.follower_id = ? AND f1.status = 'accept' AND f2.status = 'accept'
+	`, userID)
+
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var friends []models.Follow
+	for rows.Next() {
+		var friend models.Follow
+		var firstName, lastName sql.NullString
+		var avatar sql.NullString
+
+		err := rows.Scan(
+			&friend.ID,
+			&friend.FollowerID,
+			&friend.FollowedID,
+			&friend.Status,
+			&firstName,
+			&lastName,
+			&avatar,
+		)
+
+		if err != nil {
+			log.Printf("Error scanning friend: %v", err)
+			continue
+		}
+
+		// Combine first and last name to create a username
+		if firstName.Valid && lastName.Valid {
+			friend.Username = firstName.String + " " + lastName.String
+		} else if firstName.Valid {
+			friend.Username = firstName.String
+		} else if lastName.Valid {
+			friend.Username = lastName.String
+		}
+
+		if avatar.Valid {
+			friend.Avatar = avatar.String
+		}
+
+		friends = append(friends, friend)
+	}
+
+	return friends, count, nil
+}
