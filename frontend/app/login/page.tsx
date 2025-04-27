@@ -12,6 +12,7 @@ export default function Login() {
     password: ''
   })
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     redirectBasedOnSession(router, false).finally(() => {
@@ -21,6 +22,7 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError('')
     
     try {
       const response = await fetch('http://localhost:8080/login', {
@@ -32,18 +34,21 @@ export default function Login() {
         credentials: 'include'
       })
 
+      const data = await response.json();
+      
       if (response.ok) {
         // Get the token from the response
-        const data = await response.json();
         if (data.token) {
           localStorage.setItem('sessionToken', data.token);
         }
         router.push('/home')
       } else {
-        console.log('Error logging in')
+        // Display the error message from the server
+        setError(data.error || 'Login failed. Please try again.');
       }
     } catch (error) {
       console.error('Login failed:', error)
+      setError('An unexpected error occurred. Please try again.');
     }
   }
 
@@ -61,6 +66,9 @@ export default function Login() {
         </div>
 
         <h2 className="form-title">Login</h2>
+        
+        {/* Display error message if there is one */}
+        {error && <div className="error-message">{error}</div>}
         
         <form onSubmit={handleSubmit}>
           <div className="form-group">
