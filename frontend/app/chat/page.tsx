@@ -92,7 +92,9 @@ export default function Chat() {
               if (contactIndex >= 0) {
                 updatedContacts[contactIndex] = {
                   ...updatedContacts[contactIndex],
-                  lastMessage: content.type === 'image' ? '📷 Image' : content.content || "",
+                  lastMessage: content.type === 'image' || content.content.match(/\.(jpeg|jpg|gif|png)$/i) 
+                    ? '📷 Image' 
+                    : content.content || "",
                   lastMessageTime: content.created_at || new Date().toISOString(),
                   unreadCount: (updatedContacts[contactIndex].unreadCount || 0) + 1
                 };
@@ -258,7 +260,7 @@ export default function Chat() {
           if (contactIndex >= 0) {
             updatedContacts[contactIndex] = {
               ...updatedContacts[contactIndex],
-              lastMessage: newMessage,
+              lastMessage: newMessage.match(/\.(jpeg|jpg|gif|png)$/i) ? '📷 Image' : newMessage,
               lastMessageTime: new Date().toISOString()
             };
           } else {
@@ -462,7 +464,11 @@ export default function Chat() {
                           {contact.nickname || `${contact.firstName} ${contact.lastName}`}
                         </span>
                         {contact.lastMessage && (
-                          <p className="last-message">{contact.lastMessage}</p>
+                          <p className="last-message">
+                            {contact.lastMessage.match(/\.(jpeg|jpg|gif|png)$/i) 
+                              ? '📷 Image' 
+                              : contact.lastMessage}
+                          </p>
                         )}
                       </div>
                       {contact.unreadCount && contact.unreadCount > 0 && (
@@ -537,6 +543,17 @@ export default function Chat() {
               </div>
               
               <div className="message-input-container">
+                <button
+                  type="button"
+                  className="image-button"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                  </svg>
+                </button>
                 <input
                   type="text"
                   className="message-input"
@@ -552,16 +569,13 @@ export default function Chat() {
                 >
                   Send
                 </button>
-                <div className="chat-input">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    style={{ display: 'none' }}
-                    ref={fileInputRef}
-                    onChange={handleImageUpload}
-                  />
-                  <button onClick={() => fileInputRef.current?.click()}>Send Image</button>
-                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  ref={fileInputRef}
+                  onChange={handleImageUpload}
+                />
               </div>
             </>
           ) : (
