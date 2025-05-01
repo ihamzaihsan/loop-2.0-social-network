@@ -26,7 +26,7 @@ func RequestFollow(followerID, followedID uint) (string, error) {
 			// Need to determine if the followed user has a private account
 			var isPrivate bool
 			err := db.DBInstance.DB.QueryRow(`
-				SELECT is_private FROM users WHERE id = ?
+				SELECT isprivate FROM users WHERE id = ?
 			`, followedID).Scan(&isPrivate)
 			if err != nil {
 				return "", err
@@ -51,24 +51,15 @@ func RequestFollow(followerID, followedID uint) (string, error) {
 			}
 
 			// Get the ID of the inserted row
-			_, _ = res.LastInsertId()
+			followID, _ := res.LastInsertId()
 
 			// Create notification if the request is pending
 			if isPrivate {
-				// Get follower's name for notification
-				var firstName, lastName string
-				err = db.DBInstance.DB.QueryRow(`
-					SELECT first_name, last_name FROM users WHERE id = ?
-				`, followerID).Scan(&firstName, &lastName)
-				if err != nil {
-					log.Printf("Error getting follower name: %v", err)
-				}
-
 				// Create notification
 				_, err = db.DBInstance.DB.Exec(`
-					INSERT INTO notifications (to_user_id, from_user_id, content, type, read, created_at)
-					VALUES (?, ?, ?, ?, ?, ?)
-				`, followedID, followerID, firstName+" "+lastName+" wants to follow you", "follow_request", false, time.Now())
+					INSERT INTO notifications (user_id, type, related_id, status, created_at)
+					VALUES (?, ?, ?, ?, ?)
+				`, followedID, "follow_request", followID, "unread", time.Now())
 
 				if err != nil {
 					log.Printf("Error creating notification: %v", err)
@@ -94,20 +85,11 @@ func RequestFollow(followerID, followedID uint) (string, error) {
 			return "", err
 		}
 
-		// Get follower's name for notification
-		var firstName, lastName string
-		err = db.DBInstance.DB.QueryRow(`
-			SELECT first_name, last_name FROM users WHERE id = ?
-		`, followerID).Scan(&firstName, &lastName)
-		if err != nil {
-			log.Printf("Error getting follower name: %v", err)
-		}
-
 		// Create notification
 		_, err = db.DBInstance.DB.Exec(`
-			INSERT INTO notifications (to_user_id, from_user_id, content, type, read, created_at)
-			VALUES (?, ?, ?, ?, ?, ?)
-		`, followedID, followerID, firstName+" "+lastName+" wants to follow you", "follow_request", false, time.Now())
+			INSERT INTO notifications (user_id, type, related_id, status, created_at)
+			VALUES (?, ?, ?, ?, ?)
+		`, followedID, "follow_request", id, "unread", time.Now())
 
 		if err != nil {
 			log.Printf("Error creating notification: %v", err)
@@ -154,21 +136,11 @@ func AcceptFollowRequest(requestID int, followedID uint) (uint, error) {
 		return 0, err
 	}
 
-	// Get usernames for notification
-	var followedUsername string
-	err = db.DBInstance.DB.QueryRow(`
-		SELECT username FROM users WHERE id = ?
-	`, followedID).Scan(&followedUsername)
-
-	if err != nil {
-		log.Printf("Error getting followed username: %v", err)
-	}
-
 	// Create notification for follower
 	_, err = db.DBInstance.DB.Exec(`
-		INSERT INTO notifications (to_user_id, from_user_id, content, type, read, created_at)
-		VALUES (?, ?, ?, ?, ?, ?)
-	`, followerID, followedID, followedUsername+" accepted your follow request", "follow_accept", false, time.Now())
+		INSERT INTO notifications (user_id, type, related_id, status, created_at)
+		VALUES (?, ?, ?, ?, ?)
+	`, followerID, "follow_accept", requestID, "unread", time.Now())
 
 	if err != nil {
 		log.Printf("Error creating notification: %v", err)
