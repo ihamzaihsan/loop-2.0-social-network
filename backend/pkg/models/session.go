@@ -14,4 +14,5 @@ type Session struct {
 
 type SessionStore struct {
 	Sessions sync.Map
+	UserSessions sync.Map
 }

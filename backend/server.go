@@ -7,7 +7,7 @@ import (
 	auth "socialNetwork/pkg/auth"
 	db "socialNetwork/pkg/db"
 	routes "socialNetwork/pkg/routes"
-	"socialNetwork/pkg/services"
+	services "socialNetwork/pkg/services"
 )
 
 func main() {

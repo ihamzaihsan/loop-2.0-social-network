@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"socialNetwork/pkg/db"
+	"socialNetwork/pkg/events"
 	"socialNetwork/pkg/models"
 
 	"golang.org/x/crypto/bcrypt"
@@ -70,6 +71,15 @@ func Login(w http.ResponseWriter, r *http.Request) {
 			"error":   "Invalid email or password",
 		})
 		return
+	}
+
+	// Check if user already has an active session
+	if _, exists := SessionStore.UserSessions.Load(user.ID); exists {
+		// Publish a session invalidation event
+		events.Publish(events.Event{
+			Type:   events.SessionInvalidated,
+			UserID: user.ID,
+		})
 	}
 
 	session, err := CreateSession(user.ID)
