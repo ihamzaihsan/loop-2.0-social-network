@@ -85,6 +85,26 @@ export class WebSocketClient implements WebSocketClientInterface {
                 const message = JSON.parse(event.data);
                 console.log('Received WebSocket message:', message);
             
+                // Handle session invalidation message
+                if (message.type === 'session_invalidated') {
+                    console.log('Session invalidated from another device');
+                    
+                    // Clear local storage and cookies
+                    localStorage.removeItem('sessionToken');
+                    
+                    // Close the WebSocket connection
+                    if (this.socket) {
+                        this.socket.close(1000, "Session invalidated");
+                    }
+                    
+                    // Reset the WebSocket instance
+                    WebSocketClient.resetInstance();
+                    
+                    // Redirect to login page with reason parameter
+                    window.location.href = '/login?reason=session_expired';
+                    return;
+                }
+            
                 if (message.type === 'pong') {
                     console.log('Ping-pong successful, connection is working properly');
                 }

@@ -2,11 +2,12 @@
 import Link from 'next/link'
 import './login.css'
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { redirectBasedOnSession } from '../../utils/session'
 
 export default function Login() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -15,10 +16,16 @@ export default function Login() {
   const [error, setError] = useState('')
 
   useEffect(() => {
+    // Check if redirected due to session invalidation
+    const reason = searchParams.get('reason')
+    if (reason === 'session_expired') {
+      setError('Your session was ended because you logged in on another device')
+    }
+    
     redirectBasedOnSession(router, false).finally(() => {
       setLoading(false)
     })
-  }, [router])
+  }, [router, searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
