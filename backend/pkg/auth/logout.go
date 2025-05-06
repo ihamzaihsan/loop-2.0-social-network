@@ -34,7 +34,7 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if session != nil {
-		SessionStore.Sessions.Delete(session.ID)
+		InvalidateSession(session.ID)
 	}
 
 	http.SetCookie(w, &http.Cookie{
