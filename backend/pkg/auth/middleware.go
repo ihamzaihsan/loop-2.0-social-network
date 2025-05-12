@@ -3,6 +3,7 @@ package auth
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 )
 
 func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
@@ -41,6 +42,37 @@ func CorsMiddleware(next http.HandlerFunc) http.HandlerFunc {
 
 		if r.Method == "OPTIONS" {
 			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	}
+}
+
+func ProtectUsersEndpoint(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		session, err := GetSessionFromCookie(r)
+		if err != nil || session == nil || !session.IsActive {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnauthorized)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": false,
+				"error":   "Unauthorized - Please login",
+			})
+			return
+		}
+
+		accept := r.Header.Get("Accept")
+		isAPIRequest := strings.Contains(accept, "application/json")
+
+		if !isAPIRequest {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusNotFound)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": false,
+				"error":   "Page not found",
+			})
 			return
 		}
 

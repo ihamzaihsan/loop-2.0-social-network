@@ -48,7 +48,7 @@ func main() {
 	http.HandleFunc("/unfollow", auth.CorsMiddleware(auth.AuthMiddleware(routes.UnfollowUser)))
 	http.HandleFunc("/follow-requests", auth.CorsMiddleware(auth.AuthMiddleware(routes.GetFollowRequests)))
 	http.HandleFunc("/follow-request", auth.CorsMiddleware(auth.AuthMiddleware(routes.HandleFollowRequest)))
-	http.HandleFunc("/users", auth.CorsMiddleware(auth.AuthMiddleware(routes.GetAllUsers)))
+	http.HandleFunc("/users", auth.CorsMiddleware(auth.ProtectUsersEndpoint(routes.GetAllUsers)))
 	http.HandleFunc("/groups/create", auth.CorsMiddleware(auth.AuthMiddleware(routes.CreateGroup)))
 	http.HandleFunc("/groups/user", auth.CorsMiddleware(auth.AuthMiddleware(routes.GetUserGroups)))
 	http.HandleFunc("/groups/messages", auth.CorsMiddleware(auth.AuthMiddleware(routes.GetGroupMessages)))
