@@ -8,6 +8,7 @@ import { redirectBasedOnSession } from '../../utils/session'
 export default function Register() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [formData, setFormData] = useState<{
     email: string;
     password: string;
@@ -39,6 +40,9 @@ export default function Register() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Clear any previous error messages
+    setErrorMessage(null);
     
     try {
       // Check if we're sending a file
@@ -77,6 +81,13 @@ export default function Register() {
         } else {
           const errorText = await response.text()
           console.log('Server response:', errorText)
+          
+          // Check if it's a duplicate email error
+          if (response.status === 409) {
+            setErrorMessage('This email is already registered. Please use a different email or login.')
+          } else {
+            setErrorMessage(`Registration failed: ${errorText}`)
+          }
         }
       } else {
         // No file, use JSON
@@ -103,10 +114,18 @@ export default function Register() {
         } else {
           const errorText = await response.text()
           console.log('Server response:', errorText)
+          
+          // Check if it's a duplicate email error
+          if (response.status === 409) {
+            setErrorMessage('This email is already registered. Please use a different email or login.')
+          } else {
+            setErrorMessage(`Registration failed: ${errorText}`)
+          }
         }
       }
     } catch (error) {
       console.log('Fetch error:', error)
+      setErrorMessage('An unexpected error occurred. Please try again.')
     }
   }
   
@@ -230,6 +249,12 @@ export default function Register() {
             </label>
             <p className="form-help-text">Private accounts limit who can see your posts and profile information</p>
           </div>
+
+          {errorMessage && (
+            <div className="error-message">
+              {errorMessage}
+            </div>
+          )}
 
           <button type="submit" className="submit-button">
             Create An Account
