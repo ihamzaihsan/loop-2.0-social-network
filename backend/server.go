@@ -69,9 +69,12 @@ func main() {
 	http.HandleFunc("/groups/all", auth.CorsMiddleware(auth.AuthMiddleware(services.GetAllGroups)))
 	http.HandleFunc("/chat/upload-image", auth.CorsMiddleware(auth.AuthMiddleware(routes.UploadChatImage)))
 	http.HandleFunc("/api/friends", auth.CorsMiddleware(auth.AuthMiddleware(routes.GetFriends)))
+	http.HandleFunc("/profile/", auth.CorsMiddleware(auth.AuthMiddleware(routes.GetUserProfile)))
+	http.HandleFunc("/user/", auth.CorsMiddleware(auth.AuthMiddleware(routes.GetUserConnections)))
+	// http.HandleFunc("/api/following", auth.CorsMiddleware(auth.AuthMiddleware(routes.GetUserFollowing)))
+	http.HandleFunc("/api/following", auth.CorsMiddleware(auth.AuthMiddleware(routes.ServeFollowingUsers)))
 
 
-	// Add this to your existing routes
 	http.HandleFunc("/profile/privacy", auth.CorsMiddleware(auth.AuthMiddleware(routes.UpdatePrivacy)))
 
 	fmt.Println("Server is running on http://localhost:8080")

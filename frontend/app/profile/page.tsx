@@ -8,14 +8,14 @@ import Sidebar from '../../components/Sidebar'
 
 interface User {
   id: number
-  firstName: string
-  lastName: string
-  nickname: string
-  aboutMe: string
-  email: string
-  avatar: string
-  isprivate: boolean 
-  createdAt: string
+  firstName?: string
+  lastName?: string
+  nickname?: string
+  aboutMe?: string
+  email?: string
+  avatar?: string
+  isprivate?: boolean 
+  createdAt?: string
 }
 
 interface Post {
@@ -51,10 +51,21 @@ export default function Profile() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isUpdating, setIsUpdating] = useState(false)
+  const [activeModal, setActiveModal] = useState<'followers' | 'following' | null>(null)
+  const [userCache, setUserCache] = useState<Map<number, User>>(new Map())
+  const [loadingUserDetails, setLoadingUserDetails] = useState(false)
 
   useEffect(() => {
     fetchProfile()
   }, [router])
+
+  // When a modal is opened, fetch user details for that list
+  useEffect(() => {
+    if (profile && activeModal) {
+      const userList = activeModal === 'followers' ? profile.followers : profile.following
+      fetchUserDetails(userList)
+    }
+  }, [profile, activeModal])
 
   const fetchProfile = async () => {
     try {
@@ -72,12 +83,72 @@ export default function Profile() {
       }
 
       const data = await response.json()
+      console.log('Profile data:', data)
       setProfile(data)
     } catch (err: any) {
       setError(err.message)
     } finally {
       setLoading(false)
     }
+  }
+
+  // Fetch user details for a list of users
+  const fetchUserDetails = async (users: User[]) => {
+    if (!users || users.length === 0) return
+    
+    setLoadingUserDetails(true)
+    
+    try {
+      // Create a new cache with existing entries
+      const newCache = new Map(userCache)
+      
+      // For each user in the list
+      for (const user of users) {
+        // Skip if we already have this user in cache
+        if (newCache.has(user.id)) continue
+        
+        try {
+          // Fetch user profile from the profile endpoint
+          const response = await fetch(`http://localhost:8080/profile/${user.id}`, {
+            method: 'GET',
+            credentials: 'include'
+          })
+          
+          if (response.ok) {
+            const userData = await response.json()
+            if (userData && userData.user) {
+              newCache.set(user.id, userData.user)
+            }
+          } else {
+            // If we can't get the profile, at least store what we have
+            newCache.set(user.id, { id: user.id, avatar: user.avatar })
+          }
+        } catch (error) {
+          console.error(`Error fetching details for user ${user.id}:`, error)
+        }
+      }
+      
+      // Update the cache with new entries
+      setUserCache(newCache)
+    } catch (err) {
+      console.error('Error fetching user details:', err)
+    } finally {
+      setLoadingUserDetails(false)
+    }
+  }
+
+  // Get user display name from cache
+  const getUserDisplayName = (userId: number) => {
+    const user = userCache.get(userId)
+    
+    if (user) {
+      if (user.nickname) return user.nickname
+      if (user.firstName && user.lastName) return `${user.firstName} ${user.lastName}`
+      if (user.firstName) return user.firstName
+      if (user.email) return user.email
+    }
+    
+    return `User ${userId}`
   }
 
   const togglePrivacy = async () => {
@@ -122,10 +193,6 @@ export default function Profile() {
     }
   }
 
-  const handleBack = () => {
-    router.push('/home')
-  }
-
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
     return date.toLocaleDateString('en-US', {
@@ -166,6 +233,61 @@ export default function Profile() {
     router.push('/create-post')
   }
 
+  const openFollowersModal = () => {
+    setActiveModal('followers')
+  }
+
+  const openFollowingModal = () => {
+    setActiveModal('following')
+  }
+
+  const closeModal = () => {
+    setActiveModal(null)
+  }
+
+  const navigateToProfile = (userId: number) => {
+    router.push(`/profile/${userId}`)
+    closeModal()
+  }
+
+  const fetchFollowers = async (userId: number) => {
+    try {
+      const response = await fetch(`http://localhost:8080/user/${userId}/connections/followers`, {
+        method: 'GET',
+        credentials: 'include'
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch followers')
+      }
+
+      const data = await response.json()
+      return data.connections
+    } catch (err: any) {
+      console.error('Error fetching followers:', err)
+      return []
+    }
+  }
+
+  const fetchFollowing = async (userId: number) => {
+    try {
+      const response = await fetch(`http://localhost:8080/user/${userId}/connections/following`, {
+        method: 'GET',
+        credentials: 'include'
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch following')
+      }
+
+      const data = await response.json()
+      return data.connections
+    } catch (err: any) {
+      console.error('Error fetching following:', err)
+      return []
+    }
+  }
+
   if (loading) return <div className="profile-page">Loading profile...</div>
   if (error) return <div className="profile-page">Error: {error}</div>
 
@@ -187,7 +309,7 @@ export default function Profile() {
                     />
                   ) : (
                     <div className="avatar-placeholder">
-                      {profile.user.firstName.charAt(0)}
+                      {profile.user.firstName?.charAt(0) || '?'}
                     </div>
                   )}
                 </div>
@@ -196,7 +318,7 @@ export default function Profile() {
                   <h2 className="profile-name">
                     {profile.user.firstName} {profile.user.lastName}
                   </h2>
-                  <p className="profile-nickname">@{profile.user.nickname || profile.user.firstName.toLowerCase()}</p>
+                  <p className="profile-nickname">@{profile.user.nickname || profile.user.firstName?.toLowerCase()}</p>
                   
                   <div className="privacy-controls">
                     {profile.user.isprivate ? (
@@ -228,11 +350,11 @@ export default function Profile() {
                   <span className="stat-count">{profile.postsCount}</span>
                   <span className="stat-label">Posts</span>
                 </div>
-                <div className="stat">
+                <div className="stat clickable" onClick={openFollowersModal}>
                   <span className="stat-count">{profile.followersCount}</span>
                   <span className="stat-label">Followers</span>
                 </div>
-                <div className="stat">
+                <div className="stat clickable" onClick={openFollowingModal}>
                   <span className="stat-count">{profile.followingCount}</span>
                   <span className="stat-label">Following</span>
                 </div>
@@ -317,7 +439,91 @@ export default function Profile() {
             </div>
           </div>
         )}
+
+        {/* Followers Modal */}
+        {activeModal === 'followers' && profile && (
+          <div className="modal-overlay" onClick={closeModal}>
+            <div className="modal-content" onClick={e => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3>Followers</h3>
+                <button className="modal-close" onClick={closeModal}>×</button>
+              </div>
+              
+              <div className="modal-body">
+                {loadingUserDetails ? (
+                  <p className="loading-text">Loading followers...</p>
+                ) : profile.followers.length === 0 ? (
+                  <p className="empty-list">No followers yet.</p>
+                ) : (
+                  <ul className="follow-list">
+                    {profile.followers.map((follower, index) => (
+                      <li key={follower.id || index} className="follow-item" onClick={() => navigateToProfile(follower.id)}>
+                        <div className="follow-avatar">
+                          {follower.avatar ? (
+                            <img 
+                              src={follower.avatar.startsWith('http') ? follower.avatar : `http://localhost:8080${follower.avatar}`} 
+                              alt="Follower avatar" 
+                            />
+                          ) : (
+                            <div className="avatar-placeholder">
+                              {getUserDisplayName(follower.id).charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                        </div>
+                        <div className="follow-info">
+                          <p className="follow-name">{getUserDisplayName(follower.id)}</p>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+{activeModal === 'following' && profile && (
+  <div className="modal-overlay" onClick={closeModal}>
+    <div className="modal-content" onClick={e => e.stopPropagation()}>
+      <div className="modal-header">
+        <h3>Following</h3>
+        <button className="modal-close" onClick={closeModal}>×</button>
+      </div>
+
+      <div className="modal-body">
+        {loadingUserDetails ? (
+          <p className="loading-text">Loading following...</p>
+        ) : profile.following.length === 0 ? (
+          <p className="empty-list">You're not following anyone yet.</p>
+        ) : (
+          <ul className="follow-list">
+            {profile.following.map((followedUser, index) => (
+              <li key={followedUser.id || index} className="follow-item" onClick={() => navigateToProfile(followedUser.id)}>
+                <div className="follow-avatar">
+                  {followedUser.avatar ? (
+                    <img
+                      src={followedUser.avatar.startsWith('http') ? followedUser.avatar : `http://localhost:8080${followedUser.avatar}`}
+                      alt="User avatar"
+                    />
+                  ) : (
+                    <div className="avatar-placeholder">
+                      {getUserDisplayName(followedUser.id).charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                </div>
+                <div className="follow-info">
+                  <p className="follow-name">{getUserDisplayName(followedUser.id)}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  </div>
+)}
+
       </main>
     </div>
-  )
+  )      
 }

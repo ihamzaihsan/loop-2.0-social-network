@@ -53,9 +53,7 @@ func ServeChatContacts(w http.ResponseWriter, r *http.Request) {
 
 // ServeFollowedUsers handles the request to get all users that the current user is following
 func ServeFollowedUsers(w http.ResponseWriter, r *http.Request) {
-
 	if r.Method != http.MethodGet {
-		log.Printf("[ERROR] Method not allowed: %s", r.Method)
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
@@ -63,76 +61,77 @@ func ServeFollowedUsers(w http.ResponseWriter, r *http.Request) {
 	// Get the current user ID from the session
 	userID, err := auth.GetUserID(r)
 	if err != nil || userID == 0 {
-		log.Printf("[ERROR] Unauthorized access attempt: %v", err)
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	var count int
-	err = db.DBInstance.DB.QueryRow("SELECT COUNT(*) FROM followers WHERE follower_id = ?", userID).Scan(&count)
-	if err != nil {
-		log.Printf("[ERROR] Failed to count followed users: %v", err)
-	}
+	// Query the database directly to get following users with their details
+	rows, err := db.DBInstance.DB.Query(`
+		SELECT f.id, f.follower_id, f.following_id, f.status, 
+			   u.first_name, u.last_name, u.nickname, u.avatar
+		FROM followers f
+		JOIN users u ON f.following_id = u.id
+		WHERE f.follower_id = ? AND f.status = 'accept'
+	`, userID)
 
-	// Query to get all users that the current user is following with complete information
-	query := `
-						SELECT 
-							u.id,
-							u.first_name,
-							u.last_name,
-							u.nickname,
-							u.avatar
-						FROM users u
-						JOIN followers f ON u.id = f.following_id
-						WHERE f.follower_id = ?
-						ORDER BY u.first_name, u.last_name
-					`
-
-	rows, err := db.DBInstance.DB.Query(query, userID)
 	if err != nil {
-		log.Printf("[ERROR] Failed to query followed users: %v", err)
-		http.Error(w, "Failed to get followed users", http.StatusInternalServerError)
+		log.Printf("[ERROR] Failed to get following users: %v", err)
+		http.Error(w, "Failed to get following users", http.StatusInternalServerError)
 		return
 	}
 	defer rows.Close()
 
-	var followedUsers []map[string]interface{}
-
+	var following []map[string]interface{}
 	for rows.Next() {
-		var id int
-		var firstName, lastName string
-		var nickname, avatar *string
+		var id, followerID, followingID int
+		var status, firstName, lastName string
+		var nickname, avatar sql.NullString
 
-		err := rows.Scan(&id, &firstName, &lastName, &nickname, &avatar)
-		if err != nil {
-			log.Printf("[ERROR] Failed to scan followed user row: %v", err)
+		if err := rows.Scan(&id, &followerID, &followingID, &status, &firstName, &lastName, &nickname, &avatar); err != nil {
+			log.Printf("[ERROR] Error scanning following row: %v", err)
 			continue
 		}
 
+		// Create a user object with the retrieved data
 		user := map[string]interface{}{
-			"id":        id,
-			"firstName": firstName,
-			"lastName":  lastName,
+			"id":         id,
+			"followerID": followerID,
+			"followedID": followingID,
+			"status":     status,
+			"firstName":  firstName,
+			"lastName":   lastName,
 		}
 
-		if nickname != nil {
-			user["nickname"] = *nickname
+		// Add nickname if available
+		if nickname.Valid {
+			user["nickname"] = nickname.String
 		}
 
-		if avatar != nil {
-			user["avatar"] = *avatar
+		// Add avatar if available
+		if avatar.Valid {
+			user["avatar"] = avatar.String
 		}
 
-		followedUsers = append(followedUsers, user)
+		// Set display name (nickname or first+last name)
+		if nickname.Valid {
+			user["username"] = nickname.String
+		} else {
+			user["username"] = firstName + " " + lastName
+		}
+
+		following = append(following, user)
 	}
 
-	// Return the followed users as JSON
+	// Log the results for debugging
+	log.Printf("[INFO] Found %d following users for user ID %d", len(following), userID)
+
+	// Return the following users as JSON
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success": true,
-		"users":   followedUsers,
+		"success":   true,
+		"following": following,
+		"count":     len(following),
 	})
-
 }
 
 func GetChatContacts(userID int) ([]ChatContact, error) {

@@ -479,3 +479,18 @@ func GetFriends(userID uint) ([]models.Follow, int, error) {
 
 	return friends, count, nil
 }
+
+// CheckIfFollowing checks if userID follows targetUserID
+func CheckIfFollowing(userID, targetUserID uint) (bool, error) {
+	var count int
+	err := db.DBInstance.DB.QueryRow(`
+		SELECT COUNT(*) FROM followers 
+		WHERE follower_id = ? AND following_id = ? AND status = 'accept'
+	`, userID, targetUserID).Scan(&count)
+	
+	if err != nil {
+		return false, err
+	}
+	
+	return count > 0, nil
+}
