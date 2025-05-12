@@ -20,8 +20,19 @@ interface User {
 
 interface Post {
   id: number
+  userId: number
   content: string
+  image: string
+  privacy: string
   createdAt: string
+  author: {
+    firstName: string
+    lastName: string
+    nickname?: string
+    avatar?: string
+  }
+  likeCount: number
+  isLiked: boolean
 }
 
 interface ProfileData {
@@ -115,6 +126,46 @@ export default function Profile() {
     router.push('/home')
   }
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
+  }
+
+  const handleDeletePost = async (postId: number) => {
+    if (confirm('Are you sure you want to delete this post?')) {
+      try {
+        const response = await fetch(`http://localhost:8080/posts?id=${postId}`, {
+          method: 'DELETE',
+          credentials: 'include',
+        })
+        
+        if (!response.ok) {
+          throw new Error('Failed to delete post')
+        }
+        
+        // Remove the deleted post from state
+        setProfile(prevProfile => {
+          if (!prevProfile) return null
+          return {
+            ...prevProfile,
+            posts: prevProfile.posts.filter(post => post.id !== postId),
+            postsCount: prevProfile.postsCount - 1
+          }
+        })
+      } catch (err: any) {
+        console.error('Error deleting post:', err)
+      }
+    }
+  }
+
+  const navigateToCreatePost = () => {
+    router.push('/create-post')
+  }
+
   if (loading) return <div className="profile-page">Loading profile...</div>
   if (error) return <div className="profile-page">Error: {error}</div>
 
@@ -189,18 +240,79 @@ export default function Profile() {
             </div>
             
             <div className="card posts-card">
-              <h2 className="card-title">Posts</h2>
+              <h2 className="card-title">My Posts</h2>
+              
+              <button 
+                className="primary-button create-post-btn" 
+                onClick={navigateToCreatePost}
+              >
+                Create New Post
+              </button>
+              
               {profile.posts && profile.posts.length > 0 ? (
-                <div className="posts-grid">
+                <div className="posts-container">
                   {profile.posts.map(post => (
-                    <div key={post.id} className="post-item">
-                      {/* Display post content */}
-                      <p>{post.content}</p>
+                    <div key={post.id} className="post-card">
+                      <div className="post-header">
+                        <div className="post-author">
+                          <div className="author-avatar">
+                            {post.author.avatar ? (
+                              <img src={post.author.avatar} alt={`${post.author.firstName}'s avatar`} />
+                            ) : (
+                              <div className="avatar-placeholder">
+                                {post.author.firstName.charAt(0)}
+                              </div>
+                            )}
+                          </div>
+                          <div className="author-info">
+                            <h3 className="author-name">
+                              {post.author.nickname || `${post.author.firstName} ${post.author.lastName}`}
+                            </h3>
+                            <span className="post-date">
+                              {formatDate(post.createdAt)}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="post-actions">
+                          <button 
+                            onClick={() => router.push(`/edit-post?id=${post.id}`)}
+                            className="edit-post-btn"
+                          >
+                            Edit
+                          </button>
+                          <button 
+                            onClick={() => handleDeletePost(post.id)}
+                            className="delete-post-btn"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div className="post-content">
+                        {post.content && <p className="post-text">{post.content}</p>}
+                        {post.image && (
+                          <div className="post-image-container">
+                            <img 
+                              src={post.image.startsWith('http') ? post.image : `http://localhost:8080/${post.image}`} 
+                              alt="Post image" 
+                              className="post-image" 
+                            />
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="post-footer">
+                        <div className="post-stats">
+                          <span className="like-count">{post.likeCount || 0} likes</span>
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="empty-posts">No posts yet.</p>
+                <p className="empty-posts">No posts yet. Create your first post!</p>
               )}
             </div>
           </div>
