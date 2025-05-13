@@ -1,9 +1,20 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import './createpost.css'
 import Sidebar from '../../components/Sidebar'
+
+// Define the follower interface
+interface Follower {
+  id: number
+  followerId: number
+  followedId: number
+  status: string
+  username: string
+  avatar?: string
+  selected?: boolean
+}
 
 export default function CreatePost() {
   const router = useRouter()
@@ -13,7 +24,71 @@ export default function CreatePost() {
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [followers, setFollowers] = useState<Follower[]>([])
+  const [showFollowerSelector, setShowFollowerSelector] = useState(false)
+  const [selectedFollowers, setSelectedFollowers] = useState<number[]>([])
+  const [isLoadingFollowers, setIsLoadingFollowers] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Effect to fetch followers when privacy is set to private
+  useEffect(() => {
+    if (privacy === 'private') {
+      setShowFollowerSelector(true)
+      fetchFollowers()
+    } else {
+      setShowFollowerSelector(false)
+      setSelectedFollowers([])
+    }
+  }, [privacy])
+
+  // Function to fetch followers
+  const fetchFollowers = async () => {
+    setIsLoadingFollowers(true)
+    try {
+      const response = await fetch('http://localhost:8080/api/following', {
+        method: 'GET',
+        credentials: 'include',
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch followers')
+      }
+      
+      const data = await response.json()
+      console.log('Followers data:', data); // Debug log
+      
+      // Process the response data based on its format
+      // The ServeFollowingUsers endpoint returns an object with following array
+      const followingUsers = data.following || [];
+      
+      // Map the response to our Follower interface
+      const mappedFollowers = followingUsers.map((user: any) => ({
+        id: user.id,
+        followerId: user.followerID,
+        followedId: user.followedID,
+        status: user.status,
+        username: user.username || `${user.firstName} ${user.lastName}`,
+        avatar: user.avatar,
+        selected: false
+      }));
+      
+      setFollowers(mappedFollowers)
+    } catch (err: any) {
+      console.error('Error fetching followers:', err)
+      setError('Failed to load followers. Please try again.')
+    } finally {
+      setIsLoadingFollowers(false)
+    }
+  }
+  
+  // Toggle selection of a follower
+  const toggleFollowerSelection = (followerId: number) => {
+    if (selectedFollowers.includes(followerId)) {
+      setSelectedFollowers(selectedFollowers.filter(id => id !== followerId))
+    } else {
+      setSelectedFollowers([...selectedFollowers, followerId])
+    }
+  }
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -45,28 +120,78 @@ export default function CreatePost() {
       return
     }
     
+    // Validate viewer selection for private posts
+    if (privacy === 'private' && selectedFollowers.length === 0) {
+      setError('Please select at least one follower who can view this post')
+      return
+    }
+    
     setIsSubmitting(true)
     setError(null)
     
     try {
-      const formData = new FormData()
-      formData.append('content', content)
-      formData.append('privacy', privacy)
-      if (image) {
-        formData.append('image', image)
+      // For private posts with selected viewers, we need to send JSON
+      if (privacy === 'private' && selectedFollowers.length > 0) {
+        const postData = {
+          content: content,
+          privacy: privacy,
+          viewerIds: selectedFollowers
+        }
+        
+        if (image) {
+          // We need to use FormData for images
+          const formData = new FormData()
+          formData.append('content', content)
+          formData.append('privacy', privacy)
+          formData.append('image', image)
+          
+          // Add viewer IDs as JSON string
+          formData.append('viewerIds', JSON.stringify(selectedFollowers))
+          
+          const response = await fetch('http://localhost:8080/posts', {
+            method: 'POST',
+            credentials: 'include',
+            body: formData,
+          })
+          
+          if (!response.ok) {
+            throw new Error('Failed to create post')
+          }
+        } else {
+          // If no image, we can use JSON directly
+          const response = await fetch('http://localhost:8080/posts', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(postData),
+          })
+          
+          if (!response.ok) {
+            throw new Error('Failed to create post')
+          }
+        }
+      } else {
+        // For public or followers-only posts, use the original FormData approach
+        const formData = new FormData()
+        formData.append('content', content)
+        formData.append('privacy', privacy)
+        if (image) {
+          formData.append('image', image)
+        }
+        
+        const response = await fetch('http://localhost:8080/posts', {
+          method: 'POST',
+          credentials: 'include',
+          body: formData,
+        })
+        
+        if (!response.ok) {
+          throw new Error('Failed to create post')
+        }
       }
       
-      const response = await fetch('http://localhost:8080/posts', {
-        method: 'POST',
-        credentials: 'include',
-        body: formData,
-      })
-      
-      if (!response.ok) {
-        throw new Error('Failed to create post')
-      }
-      
-    
       router.push('/home');
     } catch (err: any) {
       setError(err.message || 'Something went wrong')
@@ -136,6 +261,46 @@ export default function CreatePost() {
                 <option value="private">Private</option>
               </select>
             </div>
+            
+            {showFollowerSelector && (
+              <div className="form-group follower-selector">
+                <label>Select followers who can see this post:</label>
+                {isLoadingFollowers ? (
+                  <div className="loading-followers">Loading followers...</div>
+                ) : followers.length > 0 ? (
+                  <div className="followers-list">
+                    {followers.map(follower => (
+                      <div 
+                        key={follower.id} 
+                        className={`follower-item ${selectedFollowers.includes(follower.followedId) ? 'selected' : ''}`}
+                        onClick={() => toggleFollowerSelection(follower.followedId)}
+                      >
+                        <div className="follower-avatar">
+                          {follower.avatar ? (
+                            <img src={follower.avatar} alt={follower.username} />
+                          ) : (
+                            <div className="avatar-placeholder">{follower.username.charAt(0)}</div>
+                          )}
+                        </div>
+                        <div className="follower-name">{follower.username}</div>
+                        <div className="follower-checkbox">
+                          <input 
+                            type="checkbox" 
+                            checked={selectedFollowers.includes(follower.followedId)}
+                            onChange={() => {}} // Handled by the div click
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="no-followers">
+                    You don't have any followers yet. 
+                    {privacy === 'private' && 'Your post will only be visible to you.'}
+                  </div>
+                )}
+              </div>
+            )}
             
             <div className="form-actions">
               <button 

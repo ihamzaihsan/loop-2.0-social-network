@@ -1,4 +1,3 @@
-
 .create-post-page {
   min-height: 100vh;
   background-color: var(--background-light);
@@ -162,5 +161,89 @@
   
   .remove-image-btn:hover {
     background-color: rgba(0, 0, 0, 0.8);
+  }
+  
+  /* Follower selector styles */
+  .follower-selector {
+    margin-top: 16px;
+  }
+  
+  .followers-list {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    margin-top: 8px;
+  }
+  
+  .follower-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  
+  .follower-item:last-child {
+    border-bottom: none;
+  }
+  
+  .follower-item:hover {
+    background-color: #f5f7fb;
+  }
+  
+  .follower-item.selected {
+    background-color: rgba(74, 144, 226, 0.1);
+  }
+  
+  .follower-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    overflow: hidden;
+    margin-right: 12px;
+    background-color: #ddd;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .follower-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  
+  .avatar-placeholder {
+    font-weight: 600;
+    color: #666;
+    text-transform: uppercase;
+  }
+  
+  .follower-name {
+    flex: 1;
+    font-size: 14px;
+    color: #333;
+  }
+  
+  .follower-checkbox {
+    margin-left: 12px;
+  }
+  
+  .loading-followers {
+    padding: 12px;
+    text-align: center;
+    color: #777;
+    font-size: 14px;
+  }
+  
+  .no-followers {
+    padding: 15px;
+    text-align: center;
+    color: #777;
+    font-size: 14px;
+    background-color: #f5f7fb;
+    border-radius: 8px;
   }
   

@@ -42,13 +42,46 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 	userID, _ := auth.GetUserID(r)
 
 	if err := r.ParseMultipartForm(10 << 20); err != nil {
-		http.Error(w, "File too large", http.StatusBadRequest)
+		// If parsing multipart form fails, try to parse as JSON
+		if strings.Contains(r.Header.Get("Content-Type"), "application/json") {
+			var jsonRequest models.PostRequest
+			if err := json.NewDecoder(r.Body).Decode(&jsonRequest); err != nil {
+				http.Error(w, "Invalid request format", http.StatusBadRequest)
+				return
+			}
+
+			// Create post using the JSON data
+			post, err := query.CreatePostQuery(userID, jsonRequest)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": true,
+				"post":    post,
+			})
+			return
+		}
+
+		http.Error(w, "Invalid request format or file too large", http.StatusBadRequest)
 		return
 	}
 
 	var request models.PostRequest
 	request.Content = r.FormValue("content")
 	request.Privacy = r.FormValue("privacy")
+
+	// Parse viewer IDs for private posts
+	if request.Privacy == "private" {
+		viewerIdsStr := r.FormValue("viewerIds")
+		if viewerIdsStr != "" {
+			var viewerIds []int
+			if err := json.Unmarshal([]byte(viewerIdsStr), &viewerIds); err == nil {
+				request.ViewerIDs = viewerIds
+			}
+		}
+	}
 
 	file, header, err := r.FormFile("image")
 	if err == nil {
@@ -173,58 +206,58 @@ func fixImagePath(image string) string {
 	}
 	return image
 }
-		func GetPosts(w http.ResponseWriter, r *http.Request) {
-			userID, _ := auth.GetUserID(r)
+func GetPosts(w http.ResponseWriter, r *http.Request) {
+	userID, _ := auth.GetUserID(r)
 
-			postIDStr := r.URL.Query().Get("id")
-			if postIDStr != "" {
-				postID, err := strconv.Atoi(postIDStr)
-				if err != nil {
-					http.Error(w, "Invalid post ID", http.StatusBadRequest)
-					return
-				}
-
-				post, err := query.GetPostByIDQuery(postID)
-				if err != nil {
-					http.Error(w, "Post not found", http.StatusNotFound)
-					return
-				}
-
-				if post.UserID != userID && post.Privacy != "public" {
-					http.Error(w, "Unauthorized to view this post", http.StatusForbidden)
-					return
-				}
-
-				post.Image = fixImagePath(post.Image)
-
-				json.NewEncoder(w).Encode(map[string]interface{}{
-					"success": true,
-					"post":    post,
-				})
-				return
-			}
-
-			page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-			if page < 1 {
-				page = 1
-			}
-			limit := 10
-			offset := (page - 1) * limit
-
-			posts, total, err := query.GetVisiblePosts(userID, limit, offset)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-
-			for i := range posts {
-				posts[i].Image = fixImagePath(posts[i].Image)
-			}
-
-			json.NewEncoder(w).Encode(map[string]interface{}{
-				"success": true,
-				"posts":   posts,
-				"total":   total,
-				"page":    page,
-			})
+	postIDStr := r.URL.Query().Get("id")
+	if postIDStr != "" {
+		postID, err := strconv.Atoi(postIDStr)
+		if err != nil {
+			http.Error(w, "Invalid post ID", http.StatusBadRequest)
+			return
 		}
+
+		post, err := query.GetPostByIDQuery(postID)
+		if err != nil {
+			http.Error(w, "Post not found", http.StatusNotFound)
+			return
+		}
+
+		if post.UserID != userID && post.Privacy != "public" {
+			http.Error(w, "Unauthorized to view this post", http.StatusForbidden)
+			return
+		}
+
+		post.Image = fixImagePath(post.Image)
+
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"post":    post,
+		})
+		return
+	}
+
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	if page < 1 {
+		page = 1
+	}
+	limit := 10
+	offset := (page - 1) * limit
+
+	posts, total, err := query.GetVisiblePosts(userID, limit, offset)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	for i := range posts {
+		posts[i].Image = fixImagePath(posts[i].Image)
+	}
+
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"posts":   posts,
+		"total":   total,
+		"page":    page,
+	})
+}
