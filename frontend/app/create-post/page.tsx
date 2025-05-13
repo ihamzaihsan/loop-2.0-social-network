@@ -45,7 +45,21 @@ export default function CreatePost() {
   const fetchFollowers = async () => {
     setIsLoadingFollowers(true)
     try {
-      const response = await fetch('http://localhost:8080/api/following', {
+      // Get the current user ID first (this should be available from the session)
+      const userProfileResponse = await fetch('http://localhost:8080/profile', {
+        method: 'GET',
+        credentials: 'include',
+      });
+      
+      if (!userProfileResponse.ok) {
+        throw new Error('Failed to fetch user profile');
+      }
+      
+      const userProfileData = await userProfileResponse.json();
+      const userId = userProfileData.user.id;
+      
+      // Now fetch followers using the user connections endpoint
+      const response = await fetch(`http://localhost:8080/user/${userId}/connections/followers`, {
         method: 'GET',
         credentials: 'include',
       })
@@ -58,17 +72,17 @@ export default function CreatePost() {
       console.log('Followers data:', data); // Debug log
       
       // Process the response data based on its format
-      // The ServeFollowingUsers endpoint returns an object with following array
-      const followingUsers = data.following || [];
+      // The user connections endpoint returns connections array
+      const followersData = data.connections || [];
       
       // Map the response to our Follower interface
-      const mappedFollowers = followingUsers.map((user: any) => ({
-        id: user.id,
-        followerId: user.followerID,
-        followedId: user.followedID,
-        status: user.status,
-        username: user.username || `${user.firstName} ${user.lastName}`,
-        avatar: user.avatar,
+      const mappedFollowers = followersData.map((follower: any) => ({
+        id: follower.id,
+        followerId: follower.followerId, // Person who follows the user
+        followedId: follower.followedId, // User being followed
+        status: follower.status,
+        username: follower.username || '',
+        avatar: follower.avatar,
         selected: false
       }));
       
@@ -272,8 +286,8 @@ export default function CreatePost() {
                     {followers.map(follower => (
                       <div 
                         key={follower.id} 
-                        className={`follower-item ${selectedFollowers.includes(follower.followedId) ? 'selected' : ''}`}
-                        onClick={() => toggleFollowerSelection(follower.followedId)}
+                        className={`follower-item ${selectedFollowers.includes(follower.followerId) ? 'selected' : ''}`}
+                        onClick={() => toggleFollowerSelection(follower.followerId)}
                       >
                         <div className="follower-avatar">
                           {follower.avatar ? (
@@ -286,7 +300,7 @@ export default function CreatePost() {
                         <div className="follower-checkbox">
                           <input 
                             type="checkbox" 
-                            checked={selectedFollowers.includes(follower.followedId)}
+                            checked={selectedFollowers.includes(follower.followerId)}
                             onChange={() => {}} // Handled by the div click
                           />
                         </div>
@@ -296,7 +310,7 @@ export default function CreatePost() {
                 ) : (
                   <div className="no-followers">
                     You don't have any followers yet. 
-                    {privacy === 'private' && 'Your post will only be visible to you.'}
+                    {privacy === 'private' && ' Your post will only be visible to you.'}
                   </div>
                 )}
               </div>
