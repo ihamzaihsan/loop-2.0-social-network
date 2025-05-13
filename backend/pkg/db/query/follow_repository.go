@@ -26,7 +26,7 @@ func RequestFollow(followerID, followedID uint) (string, error) {
 			// Need to determine if the followed user has a private account
 			var isPrivate bool
 			err := db.DBInstance.DB.QueryRow(`
-				SELECT isprivate FROM users WHERE id = ?
+				SELECT is_private FROM users WHERE id = ?
 			`, followedID).Scan(&isPrivate)
 			if err != nil {
 				return "", err

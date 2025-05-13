@@ -205,11 +205,14 @@ export default function FindFriends() {
 
   const handleFollowToggle = async (userId: number) => {
     try {
-      const user = users.find(u => u.id === userId)
-      const isFollowing = user?.following
+      const user = users.find(u => u.id === userId);
+      const isFollowing = user?.following;
+
+      console.log('Toggling follow for user:', userId, 'Currently following:', isFollowing);
 
       if (isFollowing) {
         // Unfollow logic
+        console.log('Sending unfollow request for user:', userId);
         const response = await fetch('http://localhost:8080/unfollow', {
           method: 'POST',
           credentials: 'include',
@@ -217,10 +220,13 @@ export default function FindFriends() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ followed_id: userId })
-        })
+        });
+
+        const responseText = await response.text();
+        console.log('Unfollow response:', response.status, responseText);
 
         if (!response.ok) {
-          throw new Error('Failed to unfollow user')
+          throw new Error(`Failed to unfollow user: ${response.status} ${responseText}`);
         }
 
         // Update the users list to reflect the change
@@ -230,7 +236,7 @@ export default function FindFriends() {
               ? { ...user, following: false }
               : user
           )
-        )
+        );
         
         // If this was a friend, refresh the friends list
         if (friends.some(friend => friend.followedID === userId)) {
@@ -238,21 +244,34 @@ export default function FindFriends() {
         }
       } else {
         // Follow logic
+        console.log('Sending follow request for user:', userId);
+        const requestBody = JSON.stringify({ followed_id: userId });
+        console.log('Request body:', requestBody);
+        
         const response = await fetch('http://localhost:8080/follow', {
           method: 'POST',
           credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ followed_id: userId })
-        })
+          body: requestBody
+        });
+
+        const responseText = await response.text();
+        console.log('Follow response:', response.status, responseText);
 
         if (!response.ok) {
-          throw new Error('Failed to follow user')
+          throw new Error(`Failed to follow user: ${response.status} ${responseText}`);
         }
 
-        // Get the response data to check the status
-        const data = await response.json()
+        // Try to parse the response as JSON
+        let data;
+        try {
+          data = JSON.parse(responseText);
+        } catch (e) {
+          console.error('Failed to parse response as JSON:', e);
+          throw new Error('Invalid response format from server');
+        }
 
         // Update the users list based on the follow status
         setUsers(prevUsers =>
@@ -265,19 +284,19 @@ export default function FindFriends() {
               }
               : user
           )
-        )
+        );
 
         // Show appropriate message for pending requests
         if (data.status === 'pending') {
-          alert('Follow request sent. Waiting for user approval.')
+          alert('Follow request sent. Waiting for user approval.');
         } else if (data.status === 'accept') {
           // Check if this created a new friendship (mutual follow)
           fetchFriends();
         }
       }
     } catch (err: any) {
-      console.error('Error toggling follow status:', err)
-      setError(err.message)
+      console.error('Error toggling follow status:', err);
+      setError(err.message);
     }
   }
 

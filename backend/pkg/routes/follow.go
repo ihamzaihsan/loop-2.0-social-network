@@ -27,14 +27,20 @@ func FollowUser(w http.ResponseWriter, r *http.Request) {
 	// Get the current user ID from session
 	userID, err := auth.GetUserID(r)
 	if err != nil {
+		log.Printf("Error getting user ID: %v", err)
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
-
+    log.Printf("[DEBUG] FollowUser: Current user ID: %d", userID)
 	// Parse the request body
 	var req struct {
 		FollowedID uint `json:"followed_id"`
 	}
+
+	// Read and log the raw request body for debugging
+    bodyBytes, _ := io.ReadAll(r.Body)
+    r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes)) // Replace the body for later use
+    log.Printf("[DEBUG] Request body: %s", string(bodyBytes))
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
