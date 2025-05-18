@@ -9,6 +9,7 @@ import (
 
 	"socialNetwork/pkg/db"
 	"socialNetwork/pkg/models"
+	"socialNetwork/pkg/websocket"
 )
 
 // RequestFollow handles the database operations for a follow request
@@ -55,14 +56,43 @@ func RequestFollow(followerID, followedID uint) (string, error) {
 
 			// Create notification if the request is pending
 			if isPrivate {
-				// Create notification
-				_, err = db.DBInstance.DB.Exec(`
-					INSERT INTO notifications (user_id, type, related_id, status, created_at)
-					VALUES (?, ?, ?, ?, ?)
-				`, followedID, "follow_request", followID, "unread", time.Now())
+				var firstName, lastName string
+				err = db.DBInstance.DB.QueryRow(`
+					SELECT first_name, last_name FROM users WHERE id = ?
+				`, followerID).Scan(&firstName, &lastName)
 
-				if err != nil {
-					log.Printf("Error creating notification: %v", err)
+				if err == nil {
+					notificationContent := firstName + " " + lastName + " wants to follow you"
+
+					// Create the notification in database
+					notificationID, err := db.DBInstance.DB.Exec(`
+						INSERT INTO notifications (user_id, from_user_id, type, related_id, content, status, created_at)
+						VALUES (?, ?, ?, ?, ?, ?, ?)
+					`, followedID, followerID, "follow_request", followID, notificationContent, "unread", time.Now())
+
+					if err != nil {
+						log.Printf("Error creating notification: %v", err)
+					} else {
+						// Send immediate WebSocket notification
+						id, _ := notificationID.LastInsertId()
+
+						// Send real-time notification via WebSocket if the user is online
+						websocket.SendToUser(int(followedID), websocket.Message{
+							Type: "notification",
+							Content: map[string]interface{}{
+								"id":           id,
+								"type":         "follow_request",
+								"user_id":      followedID,
+								"from_user_id": followerID,
+								"sender_name":  firstName + " " + lastName,
+								"content":      notificationContent,
+								"related_id":   followID,
+								"status":       "unread",
+								"created_at":   time.Now().Format(time.RFC3339),
+								"actions":      []string{"accept", "reject"},
+							},
+						})
+					}
 				}
 
 				return "pending", nil
@@ -86,13 +116,43 @@ func RequestFollow(followerID, followedID uint) (string, error) {
 		}
 
 		// Create notification
-		_, err = db.DBInstance.DB.Exec(`
+		notificationRes, err := db.DBInstance.DB.Exec(`
 			INSERT INTO notifications (user_id, type, related_id, status, created_at)
 			VALUES (?, ?, ?, ?, ?)
 		`, followedID, "follow_request", id, "unread", time.Now())
 
 		if err != nil {
 			log.Printf("Error creating notification: %v", err)
+		} else {
+			// Also send WebSocket notification for rejected requests that are re-requested
+			notificationID, _ := notificationRes.LastInsertId()
+
+			// Get user details for notification content
+			var firstName, lastName string
+			err = db.DBInstance.DB.QueryRow(`
+				SELECT first_name, last_name FROM users WHERE id = ?
+			`, followerID).Scan(&firstName, &lastName)
+
+			if err == nil {
+				notificationContent := firstName + " " + lastName + " wants to follow you"
+
+				// Send the real-time notification
+				websocket.SendToUser(int(followedID), websocket.Message{
+					Type: "notification",
+					Content: map[string]interface{}{
+						"id":           notificationID,
+						"type":         "follow_request",
+						"user_id":      followedID,
+						"from_user_id": followerID,
+						"sender_name":  firstName + " " + lastName,
+						"content":      notificationContent,
+						"related_id":   id,
+						"status":       "unread",
+						"created_at":   time.Now().Format(time.RFC3339),
+						"actions":      []string{"accept", "reject"},
+					},
+				})
+			}
 		}
 
 		return "pending", nil
@@ -136,14 +196,69 @@ func AcceptFollowRequest(requestID int, followedID uint) (uint, error) {
 		return 0, err
 	}
 
-	// Create notification for follower
-	_, err = db.DBInstance.DB.Exec(`
-		INSERT INTO notifications (user_id, type, related_id, status, created_at)
-		VALUES (?, ?, ?, ?, ?)
-	`, followerID, "follow_accept", requestID, "unread", time.Now())
+	// Get user names for notification
+	var followerFirstName, followerLastName string
+	var followedFirstName, followedLastName string
+
+	// Get follower's name
+	err = db.DBInstance.DB.QueryRow(`
+		SELECT first_name, last_name FROM users WHERE id = ?
+	`, followerID).Scan(&followerFirstName, &followerLastName)
+	if err != nil {
+		log.Printf("Error getting follower's name: %v", err)
+	}
+
+	// Get followed user's name
+	err = db.DBInstance.DB.QueryRow(`
+		SELECT first_name, last_name FROM users WHERE id = ?
+	`, followedID).Scan(&followedFirstName, &followedLastName)
+	if err != nil {
+		log.Printf("Error getting followed user's name: %v", err)
+	}
+
+	// Create notification content
+	followerName := followerFirstName + " " + followerLastName
+	followedName := followedFirstName + " " + followedLastName
+	notificationContent := followedName + " accepted your follow request"
+
+	// Create notification in database for follower
+	notificationRes, err := db.DBInstance.DB.Exec(`
+		INSERT INTO notifications (user_id, from_user_id, type, related_id, content, status, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?)
+	`, followerID, followedID, "follow_accept", requestID, notificationContent, "unread", time.Now())
 
 	if err != nil {
 		log.Printf("Error creating notification: %v", err)
+	} else {
+		// Get notification ID
+		notificationID, _ := notificationRes.LastInsertId()
+
+		// Send WebSocket notification to follower
+		websocket.SendToUser(int(followerID), websocket.Message{
+			Type: "notification",
+			Content: map[string]interface{}{
+				"id":           notificationID,
+				"type":         "follow_accept",
+				"user_id":      followerID,
+				"from_user_id": followedID,
+				"sender_name":  followedName,
+				"content":      notificationContent,
+				"related_id":   requestID,
+				"status":       "unread",
+				"created_at":   time.Now().Format(time.RFC3339),
+			},
+		})
+
+		// Also send a "follow_request_handled" message to followed user to update UI
+		websocket.SendToUser(int(followedID), websocket.Message{
+			Type: "follow_request_handled",
+			Content: map[string]interface{}{
+				"request_id":    requestID,
+				"follower_id":   followerID,
+				"action":        "accept",
+				"follower_name": followerName,
+			},
+		})
 	}
 
 	return followerID, nil
@@ -151,13 +266,95 @@ func AcceptFollowRequest(requestID int, followedID uint) (uint, error) {
 
 // RejectFollowRequest changes a follow request status to rejected
 func RejectFollowRequest(requestID int, followedID uint) error {
-	_, err := db.DBInstance.DB.Exec(`
+	// First get the follower ID
+	var followerID uint
+	err := db.DBInstance.DB.QueryRow(`
+		SELECT follower_id 
+		FROM followers 
+		WHERE id = ? AND following_id = ? AND status = 'pending'
+	`, requestID, followedID).Scan(&followerID)
+
+	if err != nil {
+		return err
+	}
+
+	// Update status to reject
+	_, err = db.DBInstance.DB.Exec(`
 		UPDATE followers 
 		SET status = 'reject' 
 		WHERE id = ? AND following_id = ?
 	`, requestID, followedID)
 
-	return err
+	if err != nil {
+		return err
+	}
+
+	// Get user names for notification purposes
+	var followerFirstName, followerLastName string
+	var followedFirstName, followedLastName string
+	
+	// Get follower's name
+	err = db.DBInstance.DB.QueryRow(`
+		SELECT first_name, last_name FROM users WHERE id = ?
+	`, followerID).Scan(&followerFirstName, &followerLastName)
+	if err != nil {
+		log.Printf("Error getting follower's name: %v", err)
+	}
+	
+	// Get followed user's name
+	err = db.DBInstance.DB.QueryRow(`
+		SELECT first_name, last_name FROM users WHERE id = ?
+	`, followedID).Scan(&followedFirstName, &followedLastName)
+	if err != nil {
+		log.Printf("Error getting followed user's name: %v", err)
+	}
+
+	// Create notification content
+	followerName := followerFirstName + " " + followerLastName
+	followedName := followedFirstName + " " + followedLastName
+	notificationContent := followedName + " rejected your follow request"
+
+	// Create notification for follower
+	notificationRes, err := db.DBInstance.DB.Exec(`
+		INSERT INTO notifications (user_id, from_user_id, type, related_id, content, status, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?)
+	`, followerID, followedID, "follow_reject", requestID, notificationContent, "unread", time.Now())
+
+	if err != nil {
+		log.Printf("Error creating notification: %v", err)
+	} else {
+		// Get notification ID
+		notificationID, _ := notificationRes.LastInsertId()
+		
+		// Send WebSocket notification to follower
+		websocket.SendToUser(int(followerID), websocket.Message{
+			Type: "notification",
+			Content: map[string]interface{}{
+				"id": notificationID,
+				"type": "follow_reject",
+				"user_id": followerID,
+				"from_user_id": followedID,
+				"sender_name": followedName,
+				"content": notificationContent,
+				"related_id": requestID,
+				"status": "unread",
+				"created_at": time.Now().Format(time.RFC3339),
+			},
+		})
+		
+		// Also send a "follow_request_handled" message to update the UI
+		websocket.SendToUser(int(followedID), websocket.Message{
+			Type: "follow_request_handled",
+			Content: map[string]interface{}{
+				"request_id": requestID,
+				"follower_id": followerID,
+				"action": "reject",
+				"follower_name": followerName,
+			},
+		})
+	}
+
+	return nil
 }
 
 // GetFollowers returns the list of users who follow a user
@@ -487,10 +684,10 @@ func CheckIfFollowing(userID, targetUserID uint) (bool, error) {
 		SELECT COUNT(*) FROM followers 
 		WHERE follower_id = ? AND following_id = ? AND status = 'accept'
 	`, userID, targetUserID).Scan(&count)
-	
+
 	if err != nil {
 		return false, err
 	}
-	
+
 	return count > 0, nil
 }
