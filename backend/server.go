@@ -77,6 +77,13 @@ func main() {
 
 	http.HandleFunc("/profile/privacy", auth.CorsMiddleware(auth.AuthMiddleware(routes.UpdatePrivacy)))
 
+	// Notification routes
+	http.HandleFunc("/notifications", auth.CorsMiddleware(auth.AuthMiddleware(routes.ServeNotifications)))
+	http.HandleFunc("/notifications/count", auth.CorsMiddleware(auth.AuthMiddleware(routes.GetNotificationCount)))
+	http.HandleFunc("/notifications/read", auth.CorsMiddleware(auth.AuthMiddleware(routes.MarkNotificationAsRead)))
+	http.HandleFunc("/notifications/read-all", auth.CorsMiddleware(auth.AuthMiddleware(routes.MarkAllNotificationsAsRead)))
+	http.HandleFunc("/notifications/action", auth.CorsMiddleware(auth.AuthMiddleware(routes.HandleNotificationAction)))
+
 	fmt.Println("Server is running on http://localhost:8080")
 	err = http.ListenAndServe(":8080", nil)
 	if err != nil {
