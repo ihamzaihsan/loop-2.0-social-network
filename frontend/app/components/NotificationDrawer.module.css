@@ -1,0 +1,123 @@
+.drawer {
+  position: absolute;
+  top: calc(100% + 8px);
+  width: 380px;
+  max-height: 500px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #e2e8f0;
+  background-color: #f8fafc;
+}
+
+.header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #2d3748;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.markAllButton {
+  background: none;
+  border: none;
+  font-size: 12px;
+  color: #4a5568;
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.markAllButton:hover:not(:disabled) {
+  background-color: #e2e8f0;
+  color: #2d3748;
+}
+
+.markAllButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  font-size: 20px;
+  line-height: 1;
+  color: #4a5568;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.closeButton:hover {
+  background-color: #e2e8f0;
+  color: #2d3748;
+}
+
+.content {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 440px;
+}
+
+.notificationList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.loading, .error, .empty {
+  padding: 20px;
+  text-align: center;
+  color: #4a5568;
+  font-size: 14px;
+}
+
+.error {
+  color: #e53e3e;
+}
+
+.empty {
+  color: #718096;
+  padding: 40px 20px;
+}
+
+@media (max-width: 768px) {
+  .drawer {
+    width: 320px;
+    left: -280px;
+  }
+}
+
+@media (max-width: 480px) {
+  .drawer {
+    width: 280px;
+    max-height: 400px;
+    left: -240px;
+  }
+  
+  .header {
+    padding: 12px;
+  }
+  
+  .header h3 {
+    font-size: 14px;
+  }
+} 

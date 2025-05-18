@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import Link from 'next/link'
+import NotificationBell from '../app/components/NotificationBell'
 
 export default function Sidebar({ activePage }: { activePage: string }) {
     const router = useRouter()
@@ -83,6 +84,10 @@ export default function Sidebar({ activePage }: { activePage: string }) {
                     </div>
                 </Link>
 
+                <div className={`sidebar-item ${activePage === 'notifications' ? 'active' : ''}`}>
+                    <NotificationBell />
+                    <span>Notifications</span>
+                </div>
 
                 <div className="sidebar-footer">
                     <div className="sidebar-item logout-item" onClick={handleLogout}>

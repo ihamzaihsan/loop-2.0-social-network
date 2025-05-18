@@ -108,6 +108,23 @@ export class WebSocketClient implements WebSocketClientInterface {
                 if (message.type === 'pong') {
                     console.log('Ping-pong successful, connection is working properly');
                 }
+
+                // Handle notification messages for all notification types
+                if (message.type === 'notification') {
+                    // Trigger notification event
+                    const event = new CustomEvent('notification', { detail: message.content });
+                    window.dispatchEvent(event);
+                    
+                    // Play notification sound if it's a new notification
+                    if (message.content && message.content.status === 'unread') {
+                        try {
+                            const audio = new Audio('/sounds/notification.mp3');
+                            audio.play().catch(err => console.log('Failed to play notification sound:', err));
+                        } catch (error) {
+                            console.log('Failed to create audio:', error);
+                        }
+                    }
+                }
             
                 const handler = this.messageHandlers.get(message.type);
                 if (handler) {

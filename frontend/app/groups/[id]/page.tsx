@@ -439,6 +439,9 @@ const handleGroupImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) =>
         try {
             const response = await fetch('http://localhost:8080/users', {
                 method: 'GET',
+                headers: {
+                    'Accept': 'application/json'
+                },
                 credentials: 'include'
             })
 
