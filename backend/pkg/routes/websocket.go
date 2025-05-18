@@ -10,23 +10,23 @@ import (
 	"socialNetwork/pkg/auth"
 	"socialNetwork/pkg/db"
 	"socialNetwork/pkg/db/query"
+	ws "socialNetwork/pkg/websocket"
 
-	"github.com/gorilla/websocket"
+	gorilla "github.com/gorilla/websocket"
 )
 
-var upgrader = websocket.Upgrader{
+var upgrader = gorilla.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
 		return true
 	},
 }
 
-type Message struct {
-	Type    string      `json:"type"`
-	Content interface{} `json:"content"`
-}
+// We're now using the Message type from the websocket package
+// Type aliases for backward compatibility
+type Message = ws.Message
 
 type SafeConn struct {
-	conn *websocket.Conn
+	conn *gorilla.Conn
 	mu   sync.Mutex
 }
 
@@ -71,24 +71,15 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("[INFO] Retrieved user info for %s %s (ID: %d)", user.FirstName, user.LastName, userID)
 
-	// Create a thread-safe connection wrapper
-	safeConn := &SafeConn{
-		conn: conn,
-	}
-
-	// Register the client
-	clientsMutex.Lock()
-	clients[userID] = safeConn
-	clientsMutex.Unlock()
+	// Register the client using the websocket package
+	ws.RegisterClient(userID, conn)
 
 	log.Printf("[INFO] Registered client for user %d", userID)
 
 	// Clean up when the connection closes
 	defer func() {
 		log.Printf("[INFO] Cleaning up WebSocket connection for user %d", userID)
-		clientsMutex.Lock()
-		delete(clients, userID)
-		clientsMutex.Unlock()
+		ws.UnregisterClient(userID)
 		conn.Close()
 		log.Printf("[INFO] WebSocket connection closed for user %d (%s %s)",
 			userID, user.FirstName, user.LastName)
@@ -127,7 +118,7 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 			handleGroupMessage(userID, contentMap)
-		
+
 		case "group_post":
 			log.Printf("[INFO] Handling group post from user %d", userID)
 			contentMap, ok := msg.Content.(map[string]interface{})
@@ -144,8 +135,8 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 				log.Printf("[ERROR] Invalid message content format")
 				continue
 			}
-			handleGroupComment(userID, contentMap)	
-			
+			handleGroupComment(userID, contentMap)
+
 		case "group_event":
 			log.Printf("[INFO] Handling group event from user %d", userID)
 			contentMap, ok := msg.Content.(map[string]interface{})
@@ -161,24 +152,27 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 				log.Printf("[ERROR] Invalid message content format")
 				continue
 			}
-			handleEventResponse(userID, contentMap)	
+			handleEventResponse(userID, contentMap)
 
 		case "typing_status":
 			log.Printf("[INFO] Handling typing status from user %d", userID)
 			// TODO: Implement typing status handling
 		case "ping":
 			log.Printf("[INFO] Handling ping from user %d", userID)
-			err = safeConn.WriteJSON(Message{
-				Type: "pong",
-				Content: map[string]interface{}{
-					"timestamp": time.Now().Format(time.RFC3339),
-				},
-			})
-			if err != nil {
-				log.Printf("[ERROR] Failed to send pong to user %d (%s %s): %v",
-					userID, user.FirstName, user.LastName, err)
-			} else {
-				log.Printf("[INFO] Sent pong to user %d", userID)
+			client, exists := ws.GetClient(userID)
+			if exists {
+				err = client.WriteJSON(Message{
+					Type: "pong",
+					Content: map[string]interface{}{
+						"timestamp": time.Now().Format(time.RFC3339),
+					},
+				})
+				if err != nil {
+					log.Printf("[ERROR] Failed to send pong to user %d (%s %s): %v",
+						userID, user.FirstName, user.LastName, err)
+				} else {
+					log.Printf("[INFO] Sent pong to user %d", userID)
+				}
 			}
 		default:
 			log.Printf("[WARN] Unknown message type from user %d (%s %s): %s",
@@ -193,33 +187,14 @@ func (sc *SafeConn) WriteJSON(v interface{}) error {
 	return sc.conn.WriteJSON(v)
 }
 
-// SendToUser sends a message to a specific user if they are connected
+// For compatibility, alias the SendToUser function
 func SendToUser(userID int, message Message) bool {
-	clientsMutex.RLock()
-	client, exists := clients[userID]
-	clientsMutex.RUnlock()
-
-	if !exists {
-		return false
-	}
-
-	if err := client.WriteJSON(message); err != nil {
-		log.Printf("[ERROR] Failed to send message to user %d: %v", userID, err)
-		return false
-	}
-	return true
+	return ws.SendToUser(userID, message)
 }
 
-// BroadcastMessage sends a message to all connected clients
+// For compatibility, alias the BroadcastMessage function
 func BroadcastMessage(message Message) {
-	clientsMutex.RLock()
-	defer clientsMutex.RUnlock()
-
-	for userID, client := range clients {
-		if err := client.WriteJSON(message); err != nil {
-			log.Printf("[ERROR] Failed to broadcast message to user %d: %v", userID, err)
-		}
-	}
+	ws.BroadcastMessage(message)
 }
 
 // Add this function to handle private messages
@@ -417,419 +392,417 @@ func handleGroupMessage(userID int, content map[string]interface{}) {
 }
 
 func handleGroupPost(userID int, content map[string]interface{}) {
-    // Extract group_id and post content
-    groupIDFloat, ok := content["group_id"].(float64)
-    if !ok {
-        log.Printf("[ERROR] Invalid group_id format")
-        return
-    }
-    groupID := int(groupIDFloat)
-    
-    postContent, ok := content["content"].(string)
-    if !ok {
-        log.Printf("[ERROR] Invalid post content format")
-        return
-    }
-    
-    // Optional image
-    var image string
-    if imgContent, ok := content["image"].(string); ok {
-        image = imgContent
-    }
-    
-    log.Printf("[INFO] Processing group post from user %d to group %d", userID, groupID)
-    
-    // Check if user is a member of the group
-    var isMember bool
-    err := db.DBInstance.DB.QueryRow(`
+	// Extract group_id and post content
+	groupIDFloat, ok := content["group_id"].(float64)
+	if !ok {
+		log.Printf("[ERROR] Invalid group_id format")
+		return
+	}
+	groupID := int(groupIDFloat)
+
+	postContent, ok := content["content"].(string)
+	if !ok {
+		log.Printf("[ERROR] Invalid post content format")
+		return
+	}
+
+	// Optional image
+	var image string
+	if imgContent, ok := content["image"].(string); ok {
+		image = imgContent
+	}
+
+	log.Printf("[INFO] Processing group post from user %d to group %d", userID, groupID)
+
+	// Check if user is a member of the group
+	var isMember bool
+	err := db.DBInstance.DB.QueryRow(`
         SELECT EXISTS(
             SELECT 1 FROM group_members 
             WHERE group_id = ? AND user_id = ?
         )
     `, groupID, userID).Scan(&isMember)
-    
-    if err != nil {
-        log.Printf("[ERROR] Failed to check group membership: %v", err)
-        return
-    }
-    
-    if !isMember {
-        log.Printf("[ERROR] User %d is not a member of group %d", userID, groupID)
-        return
-    }
-    
-    // Insert the post
-    result, err := db.DBInstance.DB.Exec(`
+
+	if err != nil {
+		log.Printf("[ERROR] Failed to check group membership: %v", err)
+		return
+	}
+
+	if !isMember {
+		log.Printf("[ERROR] User %d is not a member of group %d", userID, groupID)
+		return
+	}
+
+	// Insert the post
+	result, err := db.DBInstance.DB.Exec(`
         INSERT INTO group_posts (group_id, user_id, content, image, created_at)
         VALUES (?, ?, ?, ?, ?)
     `, groupID, userID, postContent, image, time.Now())
-    
-    if err != nil {
-        log.Printf("[ERROR] Failed to store group post: %v", err)
-        return
-    }
-    
-    postID, _ := result.LastInsertId()
-    log.Printf("[INFO] Stored group post with ID %d", postID)
-    
-    // Get user info for the post
-    var firstName, lastName string
-    var avatar sql.NullString
-    err = db.DBInstance.DB.QueryRow(`
+
+	if err != nil {
+		log.Printf("[ERROR] Failed to store group post: %v", err)
+		return
+	}
+
+	postID, _ := result.LastInsertId()
+	log.Printf("[INFO] Stored group post with ID %d", postID)
+
+	// Get user info for the post
+	var firstName, lastName string
+	var avatar sql.NullString
+	err = db.DBInstance.DB.QueryRow(`
         SELECT first_name, last_name, avatar
         FROM users
         WHERE id = ?
     `, userID).Scan(&firstName, &lastName, &avatar)
-    
-    if err != nil {
-        log.Printf("[ERROR] Failed to get user info: %v", err)
-        return
-    }
-    
-    // Create post object for broadcasting
-    post := map[string]interface{}{
-        "id":           postID,
-        "group_id":     groupID,
-        "user_id":      userID,
-        "content":      postContent,
-        "image":        image,
-        "created_at":   time.Now(),
-        "first_name":   firstName,
-        "last_name":    lastName,
-        "comment_count": 0,
-    }
-    
-    if avatar.Valid {
-        post["avatar"] = avatar.String
-    }
-    
-    // Broadcast to all group members
-    broadcastToGroupMembers(groupID, userID, Message{
-        Type:    "group_post",
-        Content: post,
-    })
+
+	if err != nil {
+		log.Printf("[ERROR] Failed to get user info: %v", err)
+		return
+	}
+
+	// Create post object for broadcasting
+	post := map[string]interface{}{
+		"id":            postID,
+		"group_id":      groupID,
+		"user_id":       userID,
+		"content":       postContent,
+		"image":         image,
+		"created_at":    time.Now(),
+		"first_name":    firstName,
+		"last_name":     lastName,
+		"comment_count": 0,
+	}
+
+	if avatar.Valid {
+		post["avatar"] = avatar.String
+	}
+
+	// Broadcast to all group members
+	broadcastToGroupMembers(groupID, userID, Message{
+		Type:    "group_post",
+		Content: post,
+	})
 }
 func handleGroupComment(userID int, content map[string]interface{}) {
-    // Extract post_id and content
-    postIDFloat, ok := content["post_id"].(float64)
-    if !ok {
-        log.Printf("[ERROR] Invalid post_id format")
-        return
-    }
-    postID := int(postIDFloat)
-    
-    commentContent, ok := content["content"].(string)
-    if !ok {
-        log.Printf("[ERROR] Invalid comment content format")
-        return
-    }
-    
-    log.Printf("[INFO] Processing group comment from user %d on post %d", userID, postID)
-    
-    // Get the post to find the group ID
-    var groupID int
-    err := db.DBInstance.DB.QueryRow(`
+	// Extract post_id and content
+	postIDFloat, ok := content["post_id"].(float64)
+	if !ok {
+		log.Printf("[ERROR] Invalid post_id format")
+		return
+	}
+	postID := int(postIDFloat)
+
+	commentContent, ok := content["content"].(string)
+	if !ok {
+		log.Printf("[ERROR] Invalid comment content format")
+		return
+	}
+
+	log.Printf("[INFO] Processing group comment from user %d on post %d", userID, postID)
+
+	// Get the post to find the group ID
+	var groupID int
+	err := db.DBInstance.DB.QueryRow(`
         SELECT group_id FROM group_posts WHERE id = ?
     `, postID).Scan(&groupID)
-    
-    if err != nil {
-        log.Printf("[ERROR] Failed to get group ID for post: %v", err)
-        return
-    }
-    
-    // Check if user is a member of the group
-    var isMember bool
-    err = db.DBInstance.DB.QueryRow(`
+
+	if err != nil {
+		log.Printf("[ERROR] Failed to get group ID for post: %v", err)
+		return
+	}
+
+	// Check if user is a member of the group
+	var isMember bool
+	err = db.DBInstance.DB.QueryRow(`
         SELECT EXISTS(
             SELECT 1 FROM group_members 
             WHERE group_id = ? AND user_id = ?
         )
     `, groupID, userID).Scan(&isMember)
-    
-    if err != nil {
-        log.Printf("[ERROR] Failed to check group membership: %v", err)
-        return
-    }
-    
-    if !isMember {
-        log.Printf("[ERROR] User %d is not a member of group %d", userID, groupID)
-        return
-    }
-    
-    // Insert the comment
-    result, err := db.DBInstance.DB.Exec(`
+
+	if err != nil {
+		log.Printf("[ERROR] Failed to check group membership: %v", err)
+		return
+	}
+
+	if !isMember {
+		log.Printf("[ERROR] User %d is not a member of group %d", userID, groupID)
+		return
+	}
+
+	// Insert the comment
+	result, err := db.DBInstance.DB.Exec(`
     INSERT INTO group_comments (post_id, user_id, content, created_at)
     VALUES (?, ?, ?, ?)
 	`, postID, userID, commentContent, time.Now())
-    
-    if err != nil {
-        log.Printf("[ERROR] Failed to store group comment: %v", err)
-        return
-    }
-    
-    commentID, _ := result.LastInsertId()
-    log.Printf("[INFO] Stored group comment with ID %d", commentID)
-    
-    // Get user info for the comment
-    var firstName, lastName string
-    var avatar sql.NullString
-    err = db.DBInstance.DB.QueryRow(`
+
+	if err != nil {
+		log.Printf("[ERROR] Failed to store group comment: %v", err)
+		return
+	}
+
+	commentID, _ := result.LastInsertId()
+	log.Printf("[INFO] Stored group comment with ID %d", commentID)
+
+	// Get user info for the comment
+	var firstName, lastName string
+	var avatar sql.NullString
+	err = db.DBInstance.DB.QueryRow(`
         SELECT first_name, last_name, avatar
         FROM users
         WHERE id = ?
     `, userID).Scan(&firstName, &lastName, &avatar)
-    
-    if err != nil {
-        log.Printf("[ERROR] Failed to get user info: %v", err)
-        return
-    }
-    
-    // Create comment object for broadcasting
-    comment := map[string]interface{}{
-        "id":         commentID,
-        "post_id":    postID,
-        "group_id":   groupID,
-        "user_id":    userID,
-        "content":    commentContent,
-        "created_at": time.Now(),
-        "first_name": firstName,
-        "last_name":  lastName,
-    }
-    
-    if avatar.Valid {
-        comment["avatar"] = avatar.String
-    }
-    
-    // Broadcast to all group members
-    broadcastToGroupMembers(groupID, userID, Message{
-        Type:    "group_comment",
-        Content: comment,
-    })
+
+	if err != nil {
+		log.Printf("[ERROR] Failed to get user info: %v", err)
+		return
+	}
+
+	// Create comment object for broadcasting
+	comment := map[string]interface{}{
+		"id":         commentID,
+		"post_id":    postID,
+		"group_id":   groupID,
+		"user_id":    userID,
+		"content":    commentContent,
+		"created_at": time.Now(),
+		"first_name": firstName,
+		"last_name":  lastName,
+	}
+
+	if avatar.Valid {
+		comment["avatar"] = avatar.String
+	}
+
+	// Broadcast to all group members
+	broadcastToGroupMembers(groupID, userID, Message{
+		Type:    "group_comment",
+		Content: comment,
+	})
 }
 
-
 func handleGroupEvent(userID int, content map[string]interface{}) {
-    // Extract event details
-    groupIDFloat, ok := content["group_id"].(float64)
-    if !ok {
-        log.Printf("[ERROR] Invalid group_id format")
-        return
-    }
-    groupID := int(groupIDFloat)
-    
-    title, ok := content["title"].(string)
-    if !ok {
-        log.Printf("[ERROR] Invalid event title format")
-        return
-    }
-    
-    description, ok := content["description"].(string)
-    if !ok {
-        log.Printf("[ERROR] Invalid event description format")
-        return
-    }
-    
-    eventTimeStr, ok := content["event_time"].(string)
-    if !ok {
-        log.Printf("[ERROR] Invalid event time format")
-        return
-    }
-    
-    eventTime, err := time.Parse(time.RFC3339, eventTimeStr)
-    if err != nil {
-        log.Printf("[ERROR] Failed to parse event time: %v", err)
-        return
-    }
-    
-    // Check if user is a member of the group
-    var isMember bool
-    err = db.DBInstance.DB.QueryRow(`
+	// Extract event details
+	groupIDFloat, ok := content["group_id"].(float64)
+	if !ok {
+		log.Printf("[ERROR] Invalid group_id format")
+		return
+	}
+	groupID := int(groupIDFloat)
+
+	title, ok := content["title"].(string)
+	if !ok {
+		log.Printf("[ERROR] Invalid event title format")
+		return
+	}
+
+	description, ok := content["description"].(string)
+	if !ok {
+		log.Printf("[ERROR] Invalid event description format")
+		return
+	}
+
+	eventTimeStr, ok := content["event_time"].(string)
+	if !ok {
+		log.Printf("[ERROR] Invalid event time format")
+		return
+	}
+
+	eventTime, err := time.Parse(time.RFC3339, eventTimeStr)
+	if err != nil {
+		log.Printf("[ERROR] Failed to parse event time: %v", err)
+		return
+	}
+
+	// Check if user is a member of the group
+	var isMember bool
+	err = db.DBInstance.DB.QueryRow(`
         SELECT EXISTS(
             SELECT 1 FROM group_members 
             WHERE group_id = ? AND user_id = ?
         )
     `, groupID, userID).Scan(&isMember)
-    
-    if err != nil {
-        log.Printf("[ERROR] Failed to check group membership: %v", err)
-        return
-    }
-    
-    if !isMember {
-        log.Printf("[ERROR] User %d is not a member of group %d", userID, groupID)
-        return
-    }
-    
-    // Insert the event
-    tx, err := db.DBInstance.DB.Begin()
-    if err != nil {
-        log.Printf("[ERROR] Failed to begin transaction: %v", err)
-        return
-    }
-    
-    result, err := tx.Exec(`
+
+	if err != nil {
+		log.Printf("[ERROR] Failed to check group membership: %v", err)
+		return
+	}
+
+	if !isMember {
+		log.Printf("[ERROR] User %d is not a member of group %d", userID, groupID)
+		return
+	}
+
+	// Insert the event
+	tx, err := db.DBInstance.DB.Begin()
+	if err != nil {
+		log.Printf("[ERROR] Failed to begin transaction: %v", err)
+		return
+	}
+
+	result, err := tx.Exec(`
     INSERT INTO group_events (group_id, title, description, event_time, created_at)
     VALUES (?, ?, ?, ?, ?)
 	`, groupID, title, description, eventTime, time.Now())
 
-    
-    if err != nil {
-        tx.Rollback()
-        log.Printf("[ERROR] Failed to store group event: %v", err)
-        return
-    }
-    
-    eventID, _ := result.LastInsertId()
-    
-    // Add default response options
-    optionsInterface, ok := content["options"].([]interface{})
-    if !ok || len(optionsInterface) == 0 {
-        // Default options if none provided
-        optionsInterface = []interface{}{"Going", "Not Going"}
-    }
-    
-    for _, optionInterface := range optionsInterface {
-        optionText, ok := optionInterface.(string)
-        if !ok {
-            continue
-        }
-        
-        _, err := tx.Exec(`
+	if err != nil {
+		tx.Rollback()
+		log.Printf("[ERROR] Failed to store group event: %v", err)
+		return
+	}
+
+	eventID, _ := result.LastInsertId()
+
+	// Add default response options
+	optionsInterface, ok := content["options"].([]interface{})
+	if !ok || len(optionsInterface) == 0 {
+		// Default options if none provided
+		optionsInterface = []interface{}{"Going", "Not Going"}
+	}
+
+	for _, optionInterface := range optionsInterface {
+		optionText, ok := optionInterface.(string)
+		if !ok {
+			continue
+		}
+
+		_, err := tx.Exec(`
             INSERT INTO event_response_options (event_id, option_text)
             VALUES (?, ?)
         `, eventID, optionText)
-        
-        if err != nil {
-            tx.Rollback()
-            log.Printf("[ERROR] Failed to store event option: %v", err)
-            return
-        }
-    }
-    
-    if err := tx.Commit(); err != nil {
-        log.Printf("[ERROR] Failed to commit transaction: %v", err)
-        return
-    }
-    
-    log.Printf("[INFO] Stored group event with ID %d", eventID)
-    
-    // Get response options for the event
-    rows, err := db.DBInstance.DB.Query(`
+
+		if err != nil {
+			tx.Rollback()
+			log.Printf("[ERROR] Failed to store event option: %v", err)
+			return
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		log.Printf("[ERROR] Failed to commit transaction: %v", err)
+		return
+	}
+
+	log.Printf("[INFO] Stored group event with ID %d", eventID)
+
+	// Get response options for the event
+	rows, err := db.DBInstance.DB.Query(`
         SELECT id, option_text
         FROM event_response_options
         WHERE event_id = ?
     `, eventID)
-    
-    if err != nil {
-        log.Printf("[ERROR] Failed to get event options: %v", err)
-        return
-    }
-    
-    var responseOptions []map[string]interface{}
-    for rows.Next() {
-        var id int
-        var optionText string
-        if err := rows.Scan(&id, &optionText); err != nil {
-            log.Printf("[ERROR] Failed to scan event option: %v", err)
-            continue
-        }
-        
-        responseOptions = append(responseOptions, map[string]interface{}{
-            "id":          id,
-            "event_id":    eventID,
-            "option_text": optionText,
-        })
-    }
-    rows.Close()
-    
-    // Create event object for broadcasting
-    event := map[string]interface{}{
-        "id":              eventID,
-        "group_id":        groupID,
-        "creator_id":      userID,
-        "title":           title,
-        "description":     description,
-        "event_time":      eventTime,
-        "created_at":      time.Now(),
-        "going_count":     0,
-        "not_going_count": 0,
-        "response_options": responseOptions,
-    }
-    
-    // Broadcast to all group members
-    broadcastToGroupMembers(groupID, userID, Message{
-        Type:    "group_event",
-        Content: event,
-    })
+
+	if err != nil {
+		log.Printf("[ERROR] Failed to get event options: %v", err)
+		return
+	}
+
+	var responseOptions []map[string]interface{}
+	for rows.Next() {
+		var id int
+		var optionText string
+		if err := rows.Scan(&id, &optionText); err != nil {
+			log.Printf("[ERROR] Failed to scan event option: %v", err)
+			continue
+		}
+
+		responseOptions = append(responseOptions, map[string]interface{}{
+			"id":          id,
+			"event_id":    eventID,
+			"option_text": optionText,
+		})
+	}
+	rows.Close()
+
+	// Create event object for broadcasting
+	event := map[string]interface{}{
+		"id":               eventID,
+		"group_id":         groupID,
+		"creator_id":       userID,
+		"title":            title,
+		"description":      description,
+		"event_time":       eventTime,
+		"created_at":       time.Now(),
+		"going_count":      0,
+		"not_going_count":  0,
+		"response_options": responseOptions,
+	}
+
+	// Broadcast to all group members
+	broadcastToGroupMembers(groupID, userID, Message{
+		Type:    "group_event",
+		Content: event,
+	})
 }
 
 func handleEventResponse(userID int, content map[string]interface{}) {
-    // Extract event_id and option_id
-    eventIDFloat, ok := content["event_id"].(float64)
-    if !ok {
-        log.Printf("[ERROR] Invalid event_id format")
-        return
-    }
-    eventID := int(eventIDFloat)
-    
-    optionIDFloat, ok := content["option_id"].(float64)
-    if !ok {
-        log.Printf("[ERROR] Invalid option_id format")
-        return
-    }
-    optionID := int(optionIDFloat)
-    
-    // Get the group ID for this event
-    var groupID int
-    err := db.DBInstance.DB.QueryRow(`
+	// Extract event_id and option_id
+	eventIDFloat, ok := content["event_id"].(float64)
+	if !ok {
+		log.Printf("[ERROR] Invalid event_id format")
+		return
+	}
+	eventID := int(eventIDFloat)
+
+	optionIDFloat, ok := content["option_id"].(float64)
+	if !ok {
+		log.Printf("[ERROR] Invalid option_id format")
+		return
+	}
+	optionID := int(optionIDFloat)
+
+	// Get the group ID for this event
+	var groupID int
+	err := db.DBInstance.DB.QueryRow(`
         SELECT group_id FROM group_events WHERE id = ?
     `, eventID).Scan(&groupID)
-    
-    if err != nil {
-        log.Printf("[ERROR] Failed to get group ID for event: %v", err)
-        return
-    }
-    
-    // Check if user is a member of the group
-    var isMember bool
-    err = db.DBInstance.DB.QueryRow(`
+
+	if err != nil {
+		log.Printf("[ERROR] Failed to get group ID for event: %v", err)
+		return
+	}
+
+	// Check if user is a member of the group
+	var isMember bool
+	err = db.DBInstance.DB.QueryRow(`
         SELECT EXISTS(
             SELECT 1 FROM group_members 
             WHERE group_id = ? AND user_id = ?
         )
     `, groupID, userID).Scan(&isMember)
-    
-    if err != nil {
-        log.Printf("[ERROR] Failed to check group membership: %v", err)
-        return
-    }
-    
-    if !isMember {
-        log.Printf("[ERROR] User %d is not a member of group %d", userID, groupID)
-        return
-    }
-    
-    // Record the response
-    err = query.RespondToEvent(eventID, userID, optionID)
-    if err != nil {
-        log.Printf("[ERROR] Failed to record event response: %v", err)
-        return
-    }
-    
-    // Get the option text
-    var optionText string
-    err = db.DBInstance.DB.QueryRow(`
+
+	if err != nil {
+		log.Printf("[ERROR] Failed to check group membership: %v", err)
+		return
+	}
+
+	if !isMember {
+		log.Printf("[ERROR] User %d is not a member of group %d", userID, groupID)
+		return
+	}
+
+	// Record the response
+	err = query.RespondToEvent(eventID, userID, optionID)
+	if err != nil {
+		log.Printf("[ERROR] Failed to record event response: %v", err)
+		return
+	}
+
+	// Get the option text
+	var optionText string
+	err = db.DBInstance.DB.QueryRow(`
         SELECT option_text FROM event_response_options WHERE id = ?
     `, optionID).Scan(&optionText)
-    
-    if err != nil {
-        log.Printf("[ERROR] Failed to get option text: %v", err)
-        return
-    }
-    
-    // Count responses for this event
-    var goingCount, notGoingCount int
-    err = db.DBInstance.DB.QueryRow(`
+
+	if err != nil {
+		log.Printf("[ERROR] Failed to get option text: %v", err)
+		return
+	}
+
+	// Count responses for this event
+	var goingCount, notGoingCount int
+	err = db.DBInstance.DB.QueryRow(`
         SELECT 
             COUNT(CASE WHEN ero.option_text = 'Going' THEN 1 END) as going_count,
             COUNT(CASE WHEN ero.option_text = 'Not Going' THEN 1 END) as not_going_count
@@ -837,26 +810,26 @@ func handleEventResponse(userID int, content map[string]interface{}) {
         JOIN event_response_options ero ON er.response_option_id = ero.id
         WHERE er.event_id = ?
     `, eventID).Scan(&goingCount, &notGoingCount)
-    
-    if err != nil {
-        log.Printf("[ERROR] Failed to count event responses: %v", err)
-        return
-    }
-    
-    // Create response object for broadcasting
-    responseData := map[string]interface{}{
-        "event_id":        eventID,
-        "user_id":         userID,
-        "option_id":       optionID,
-        "response":        optionText,
-        "going_count":     goingCount,
-        "not_going_count": notGoingCount,
-        "current_user_id": userID,
-    }
-    
-    // Broadcast to all group members
-    broadcastToGroupMembers(groupID, 0, Message{
-        Type:    "event_response",
-        Content: responseData,
-    })
+
+	if err != nil {
+		log.Printf("[ERROR] Failed to count event responses: %v", err)
+		return
+	}
+
+	// Create response object for broadcasting
+	responseData := map[string]interface{}{
+		"event_id":        eventID,
+		"user_id":         userID,
+		"option_id":       optionID,
+		"response":        optionText,
+		"going_count":     goingCount,
+		"not_going_count": notGoingCount,
+		"current_user_id": userID,
+	}
+
+	// Broadcast to all group members
+	broadcastToGroupMembers(groupID, 0, Message{
+		Type:    "event_response",
+		Content: responseData,
+	})
 }
