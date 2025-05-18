@@ -4,7 +4,7 @@ import (
 	"log"
 	"socialNetwork/pkg/db"
 	"socialNetwork/pkg/db/query"
-	"socialNetwork/pkg/routes"
+	ws "socialNetwork/pkg/websocket"
 	"time"
 )
 
@@ -31,30 +31,49 @@ func CreateGroupEventService(groupID, userID int, title, description string, eve
 		err = db.DBInstance.DB.QueryRow(
 			"SELECT first_name, last_name FROM users WHERE id = ?", userID,
 		).Scan(&firstName, &lastName)
-		
+
 		if err == nil {
+			creatorName := firstName + " " + lastName
+			// Get group info
+			group, err := query.GetGroupByID(groupID, userID)
+			if err != nil {
+				log.Printf("[ERROR] Failed to get group info: %v", err)
+				return eventID, nil
+			}
+
+			// Create notification content
+			notificationContent := creatorName + " created a new event in group " + group.Title + ": " + title
+
 			// Notify group members
 			for _, member := range members {
 				if member.UserID != userID {
 					// Create notification in database
-					_, err = db.DBInstance.DB.Exec(
-						"INSERT INTO notifications (to_user_id, from_user_id, content, type, read, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-						member.UserID, userID, firstName + " " + lastName + " created a new event: " + title, "group_event", false, time.Now(),
+					notificationID, err := CreateNotification(
+						member.UserID,
+						userID,
+						"group_event",
+						eventID,
+						notificationContent,
 					)
 					if err != nil {
 						log.Printf("[ERROR] Failed to create notification: %v", err)
+						continue
 					}
 
 					// Send WebSocket notification
-					routes.SendToUser(member.UserID, routes.Message{
-						Type: "group_event",
+					ws.SendToUser(member.UserID, ws.Message{
+						Type: "notification",
 						Content: map[string]interface{}{
-							"group_id": groupID,
-							"event_id": eventID,
-							"title": title,
-							"creator_id": userID,
-							"creator_name": firstName + " " + lastName,
-							"event_time": eventTime,
+							"id":           notificationID,
+							"type":         "group_event",
+							"group_id":     groupID,
+							"group_title":  group.Title,
+							"event_id":     eventID,
+							"title":        title,
+							"creator_id":   userID,
+							"creator_name": creatorName,
+							"event_time":   eventTime,
+							"content":      notificationContent,
 						},
 					})
 				}

@@ -5,8 +5,7 @@ import (
 	"log"
 	"socialNetwork/pkg/db"
 	"socialNetwork/pkg/db/query"
-	"socialNetwork/pkg/routes"
-	"time"
+	ws "socialNetwork/pkg/websocket"
 )
 
 // InviteToGroupService handles inviting users to a group
@@ -23,6 +22,16 @@ func InviteToGroupService(groupID, inviterID int, userIDs []int) error {
 		return err
 	}
 
+	// Get inviter's name
+	var inviterFirstName, inviterLastName string
+	err = db.DBInstance.DB.QueryRow(`
+		SELECT first_name, last_name FROM users WHERE id = ?
+	`, inviterID).Scan(&inviterFirstName, &inviterLastName)
+	if err != nil {
+		log.Printf("[ERROR] Failed to get inviter name: %v", err)
+	}
+	inviterName := inviterFirstName + " " + inviterLastName
+
 	// Invite each user
 	for _, inviteeID := range userIDs {
 		err := query.InviteUserToGroup(groupID, inviterID, inviteeID)
@@ -32,21 +41,32 @@ func InviteToGroupService(groupID, inviterID int, userIDs []int) error {
 		}
 
 		// Create notification
-		_, err = db.DBInstance.DB.Exec(
-			"INSERT INTO notifications (to_user_id, from_user_id, content, type, read, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-			inviteeID, inviterID, "You have been invited to join the group: "+group.Title, "group_invitation", false, time.Now(),
+		notificationContent := inviterName + " invited you to join the group: " + group.Title
+		notificationID, err := CreateNotification(
+			inviteeID,
+			inviterID,
+			"group_invitation",
+			groupID,
+			notificationContent,
 		)
 		if err != nil {
 			log.Printf("[ERROR] Failed to create notification: %v", err)
+		} else {
+			log.Printf("[INFO] Created group invitation notification: %d", notificationID)
 		}
 
 		// Send WebSocket notification if user is online
-		routes.SendToUser(inviteeID, routes.Message{
-			Type: "group_invitation",
+		ws.SendToUser(inviteeID, ws.Message{
+			Type: "notification",
 			Content: map[string]interface{}{
-				"group_id":    groupID,
-				"group_title": group.Title,
-				"inviter_id":  inviterID,
+				"id":           notificationID,
+				"type":         "group_invitation",
+				"group_id":     groupID,
+				"group_title":  group.Title,
+				"inviter_id":   inviterID,
+				"inviter_name": inviterName,
+				"content":      notificationContent,
+				"actions":      []string{"accept", "reject"},
 			},
 		})
 	}

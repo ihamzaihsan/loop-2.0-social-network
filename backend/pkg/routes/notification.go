@@ -244,6 +244,10 @@ func HandleNotificationAction(w http.ResponseWriter, r *http.Request) {
 	switch notification.Type {
 	case "follow_request":
 		result = handleFollowRequestAction(notification, userID, req.Action)
+	case "group_invitation":
+		result = handleGroupInvitationAction(notification, userID, req.Action)
+	case "group_join_request":
+		result = handleGroupJoinRequestAction(notification, userID, req.Action)
 	}
 
 	// Mark notification as read after processing action
@@ -283,6 +287,68 @@ func handleFollowRequestAction(notification *models.Notification, userID int, ac
 		}
 		result["success"] = true
 		result["message"] = "Follow request rejected"
+	}
+
+	return result
+}
+
+func handleGroupInvitationAction(notification *models.Notification, userID int, action string) map[string]interface{} {
+	log.Printf("[INFO] Handling group invitation action: %s", action)
+
+	groupID := notification.RelatedID
+
+	result := map[string]interface{}{
+		"success": false,
+		"message": "Failed to process group invitation",
+	}
+
+	// Request type is "invitation" for group invitations
+	err := query.HandleGroupMembershipRequest(groupID, userID, action, "invitation")
+	if err != nil {
+		log.Printf("[ERROR] Failed to handle group invitation: %v", err)
+		return result
+	}
+
+	result["success"] = true
+	if action == "accept" {
+		result["message"] = "Group invitation accepted"
+	} else {
+		result["message"] = "Group invitation rejected"
+	}
+
+	return result
+}
+
+func handleGroupJoinRequestAction(notification *models.Notification, userID int, action string) map[string]interface{} {
+	log.Printf("[INFO] Handling group join request action: %s", action)
+
+	groupID := notification.RelatedID
+	requesterID := notification.FromUserID
+
+	result := map[string]interface{}{
+		"success": false,
+		"message": "Failed to process join request",
+	}
+
+	// Check if the user is the group creator
+	isCreator, err := query.IsGroupCreator(groupID, userID)
+	if err != nil || !isCreator {
+		result["message"] = "Only the group creator can process join requests"
+		return result
+	}
+
+	// Request type is "request" for join requests
+	err = query.HandleGroupMembershipRequest(groupID, requesterID, action, "request")
+	if err != nil {
+		log.Printf("[ERROR] Failed to handle group join request: %v", err)
+		return result
+	}
+
+	result["success"] = true
+	if action == "accept" {
+		result["message"] = "Join request accepted"
+	} else {
+		result["message"] = "Join request rejected"
 	}
 
 	return result
