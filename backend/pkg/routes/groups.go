@@ -8,6 +8,7 @@ import (
 	query "socialNetwork/pkg/db/query"
 	"socialNetwork/pkg/models"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -112,25 +113,49 @@ func GetGroupDetails(w http.ResponseWriter, r *http.Request) {
 	// Get user ID from session
 	userID, err := auth.GetUserID(r)
 	if err != nil {
+		log.Printf("[ERROR] Failed to get user ID: %v", err)
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	// Get group ID from query parameters
+	// Get group ID from URL
 	groupIDStr := r.URL.Query().Get("id")
 	if groupIDStr == "" {
-		http.Error(w, "Group ID is required", http.StatusBadRequest)
-		return
+		groupIDStr = r.URL.Path
+		// Extract group ID from path like /groups/1
+		if len(groupIDStr) > 0 {
+			groupIDStr = groupIDStr[len("/groups/"):] // Remove prefix
+		}
+	}
+
+	// Remove any extra characters after the ID if present
+	if idx := strings.IndexAny(groupIDStr, ":"); idx != -1 {
+		groupIDStr = groupIDStr[:idx]
 	}
 
 	groupID, err := strconv.Atoi(groupIDStr)
 	if err != nil {
+		log.Printf("[ERROR] Invalid group ID: %v", err)
 		http.Error(w, "Invalid group ID", http.StatusBadRequest)
 		return
 	}
 
+	// Check if user is a member of the group
+	isMember, err := query.IsGroupMember(groupID, userID)
+	if err != nil {
+		log.Printf("[ERROR] Failed to check group membership: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if !isMember {
+		log.Printf("[INFO] User %d attempted to access group %d without permission", userID, groupID)
+		http.Error(w, "Access denied", http.StatusForbidden)
+		return
+	}
+
 	// Get group details using service
-	result, err := GroupServiceImpl.GetGroupDetails(groupID, userID)
+	group, err := GroupServiceImpl.GetGroupDetails(groupID, userID)
 	if err != nil {
 		log.Printf("[ERROR] Failed to get group details: %v", err)
 		http.Error(w, "Group not found", http.StatusNotFound)
@@ -141,7 +166,7 @@ func GetGroupDetails(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
-		"data":    result,
+		"data":    group,
 	})
 }
 
@@ -274,7 +299,7 @@ func HandleGroupMembershipRequest(w http.ResponseWriter, r *http.Request) {
 	// Parse request body
 	var req struct {
 		GroupID     int    `json:"group_id"`
-		UserID      int    `json:"user_id,omitempty"` 
+		UserID      int    `json:"user_id,omitempty"`
 		Action      string `json:"action"`
 		RequestType string `json:"request_type"`
 	}
@@ -336,9 +361,9 @@ func HandleGroupMembershipRequest(w http.ResponseWriter, r *http.Request) {
 
 	// Return success response
 	w.WriteHeader(http.StatusOK)
+
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
-		"message": "Group membership request processed successfully",
 	})
 }
 
@@ -365,6 +390,20 @@ func CreateGroupPost(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Check if user is a member of the group
+	isMember, err := query.IsGroupMember(req.GroupID, userID)
+	if err != nil {
+		log.Printf("[ERROR] Failed to check group membership: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if !isMember {
+		log.Printf("[INFO] User %d attempted to post in group %d without permission", userID, req.GroupID)
+		http.Error(w, "Access denied", http.StatusForbidden)
 		return
 	}
 

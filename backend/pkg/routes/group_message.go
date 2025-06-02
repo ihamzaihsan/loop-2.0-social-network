@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"socialNetwork/pkg/auth"
 	"socialNetwork/pkg/db"
+	query "socialNetwork/pkg/db/query"
 	"strconv"
 	"time"
 )
@@ -33,6 +34,13 @@ func ServeGroupMessages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get user ID from session
+	userID, err := auth.GetUserID(r)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	// Get group ID from query parameters
 	groupIDStr := r.URL.Query().Get("id")
 	if groupIDStr == "" {
@@ -46,22 +54,8 @@ func ServeGroupMessages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get current user ID
-	userID, err := auth.GetUserID(r)
-	if err != nil || userID == 0 {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
 	// Check if user is a member of the group
-	var isMember bool
-	err = db.DBInstance.DB.QueryRow(`
-		SELECT EXISTS(
-			SELECT 1 FROM group_members 
-			WHERE group_id = ? AND user_id = ?
-		)
-	`, groupID, userID).Scan(&isMember)
-
+	isMember, err := query.IsGroupMember(groupID, userID)
 	if err != nil {
 		log.Printf("[ERROR] Failed to check group membership: %v", err)
 		http.Error(w, "Database error", http.StatusInternalServerError)
@@ -231,56 +225,56 @@ func SendGroupMessage(w http.ResponseWriter, r *http.Request) {
 
 // broadcastToGroupMembers sends a message to all online group members except the sender
 func broadcastToGroupMembers(groupID, senderID int, message interface{}) {
-    // Get all members of the group
-    rows, err := db.DBInstance.DB.Query(`
+	// Get all members of the group
+	rows, err := db.DBInstance.DB.Query(`
         SELECT user_id FROM group_members
         WHERE group_id = ?
     `, groupID)
 
-    if err != nil {
-        log.Printf("[ERROR] Failed to get group members for broadcast: %v", err)
-        return
-    }
-    defer rows.Close()
+	if err != nil {
+		log.Printf("[ERROR] Failed to get group members for broadcast: %v", err)
+		return
+	}
+	defer rows.Close()
 
-    var memberIDs []int
-    for rows.Next() {
-        var memberID int
-        if err := rows.Scan(&memberID); err != nil {
-            log.Printf("[ERROR] Failed to scan member ID: %v", err)
-            continue
-        }
-        memberIDs = append(memberIDs, memberID)
-    }
+	var memberIDs []int
+	for rows.Next() {
+		var memberID int
+		if err := rows.Scan(&memberID); err != nil {
+			log.Printf("[ERROR] Failed to scan member ID: %v", err)
+			continue
+		}
+		memberIDs = append(memberIDs, memberID)
+	}
 
-    // Determine the message type based on the type of the message parameter
-    var msgType string
-    switch message.(type) {
-    case GroupMessageResponse:
-        msgType = "group_message"
-    case Message:
-        // For Message type, the Type field is already set
-        msg, ok := message.(Message)
-        if ok {
-            // Send the message to all online members except the sender
-            for _, memberID := range memberIDs {
-                if memberID != senderID || senderID == 0 {
-                    SendToUser(memberID, msg)
-                }
-            }
-            return
-        }
-    default:
-        msgType = "group_update" // Default type
-    }
+	// Determine the message type based on the type of the message parameter
+	var msgType string
+	switch message.(type) {
+	case GroupMessageResponse:
+		msgType = "group_message"
+	case Message:
+		// For Message type, the Type field is already set
+		msg, ok := message.(Message)
+		if ok {
+			// Send the message to all online members except the sender
+			for _, memberID := range memberIDs {
+				if memberID != senderID || senderID == 0 {
+					SendToUser(memberID, msg)
+				}
+			}
+			return
+		}
+	default:
+		msgType = "group_update" // Default type
+	}
 
-    // Send the message to all online members except the sender
-    for _, memberID := range memberIDs {
-        if memberID != senderID || senderID == 0 {
-            SendToUser(memberID, Message{
-                Type:    msgType,
-                Content: message,
-            })
-        }
-    }
+	// Send the message to all online members except the sender
+	for _, memberID := range memberIDs {
+		if memberID != senderID || senderID == 0 {
+			SendToUser(memberID, Message{
+				Type:    msgType,
+				Content: message,
+			})
+		}
+	}
 }
