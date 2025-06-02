@@ -77,7 +77,15 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 					"avatar":    user.Avatar,
 					"isPrivate": user.IsPrivate,
 				},
-				"isPrivate": true,
+				"isPrivate":      true,
+				"isCurrentUser":  false,
+				"isFollowing":    false,
+				"posts":          []models.PostResponse{},
+				"postsCount":     0,
+				"followersCount": 0,
+				"followingCount": 0,
+				"followers":      []models.User{},
+				"following":      []models.User{},
 			}
 			json.NewEncoder(w).Encode(limitedProfile)
 			return
@@ -91,9 +99,34 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 		posts = []models.PostResponse{} // Use the correct type
 	}
 
+	// Fix image paths in posts
+	for i := range posts {
+		if posts[i].Image != "" {
+			// If the image path starts with "./uploads", convert it to "/uploads"
+			if strings.HasPrefix(posts[i].Image, "./uploads") {
+				posts[i].Image = strings.Replace(posts[i].Image, "./uploads", "/uploads", 1)
+			}
+		}
+
+		// Ensure author data is properly set
+		if posts[i].Author.Avatar != nil && *posts[i].Author.Avatar != "" {
+			avatarStr := *posts[i].Author.Avatar
+			if strings.HasPrefix(avatarStr, "./uploads") {
+				avatarStr = strings.Replace(avatarStr, "./uploads", "/uploads", 1)
+				posts[i].Author.Avatar = &avatarStr
+			}
+		}
+	}
+
 	postsCount, _ := query.GetUserPostsCount(userID)
 	followers, followersCount, _ := query.GetFollowers(uint(userID))
 	following, followingCount, _ := query.GetFollowing(uint(userID))
+
+	// Check if current user is following this user
+	isFollowing := false
+	if userID != currentUserID {
+		isFollowing, _ = query.CheckIfFollowing(uint(currentUserID), uint(userID))
+	}
 
 	// Build profile response
 	profile := map[string]interface{}{
@@ -105,6 +138,7 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 		"followers":      followers,
 		"following":      following,
 		"isCurrentUser":  userID == currentUserID,
+		"isFollowing":    isFollowing,
 	}
 
 	json.NewEncoder(w).Encode(profile)

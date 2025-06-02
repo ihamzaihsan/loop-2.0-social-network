@@ -1,0 +1,310 @@
+'use client'
+
+import { useRouter, useParams } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import '../../home/home.css'
+import '../profile.css'
+import Sidebar from '../../../components/Sidebar'
+
+interface User {
+  id: number
+  firstName?: string
+  lastName?: string
+  nickname?: string
+  aboutMe?: string
+  email?: string
+  avatar?: string
+  isPrivate?: boolean 
+  createdAt?: string
+}
+
+interface Post {
+  id: number
+  userId: number
+  content: string
+  image: string
+  privacy: string
+  createdAt: string
+  author: {
+    firstName: string
+    lastName: string
+    nickname?: string
+    avatar?: string
+  }
+  likeCount: number
+  isLiked: boolean
+}
+
+interface ProfileData {
+  user: User
+  posts: Post[]
+  postsCount: number
+  followersCount: number
+  followingCount: number
+  followers: User[]
+  following: User[]
+  isCurrentUser: boolean
+  isFollowing: boolean
+  isPrivate?: boolean
+}
+
+export default function UserProfile() {
+  const router = useRouter()
+  const params = useParams()
+  const userId = params.id as string
+  const [profile, setProfile] = useState<ProfileData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [isFollowLoading, setIsFollowLoading] = useState(false)
+
+  useEffect(() => {
+    if (userId) {
+      fetchProfile()
+    }
+  }, [userId])
+
+  const fetchProfile = async () => {
+    try {
+      const response = await fetch(`http://localhost:8080/profile/${userId}`, {
+        method: 'GET',
+        credentials: 'include'
+      })
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          router.push('/')
+          return
+        }
+        if (response.status === 404) {
+          setError('User not found')
+          return
+        }
+        throw new Error('Failed to fetch profile data')
+      }
+
+      const data = await response.json()
+      console.log('Profile data:', data)
+      setProfile(data)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleFollowToggle = async () => {
+    if (!profile || profile.isCurrentUser) return
+    
+    setIsFollowLoading(true)
+    
+    try {
+      const endpoint = profile.isFollowing ? '/unfollow' : '/follow'
+      const response = await fetch(`http://localhost:8080${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          user_id: profile.user.id
+        }),
+        credentials: 'include'
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to update follow status')
+      }
+      
+      // Update the local state
+      setProfile(prevProfile => {
+        if (!prevProfile) return null
+        
+        return {
+          ...prevProfile,
+          isFollowing: !prevProfile.isFollowing,
+          followersCount: prevProfile.isFollowing 
+            ? prevProfile.followersCount - 1 
+            : prevProfile.followersCount + 1
+        }
+      })
+      
+    } catch (err: any) {
+      console.error('Error updating follow status:', err)
+      setError(err.message)
+    } finally {
+      setIsFollowLoading(false)
+    }
+  }
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
+  }
+
+  const navigateToChat = () => {
+    if (profile && !profile.isCurrentUser) {
+      router.push(`/chat?user=${profile.user.id}`)
+    }
+  }
+
+  if (loading) return <div className="profile-page">Loading profile...</div>
+  if (error) return <div className="profile-page">Error: {error}</div>
+
+  return (
+    <div className="profile-page">
+      <Sidebar activePage="profile" />
+      
+      <main className="main-content">
+        {profile && (
+          <div className="profile-container">
+            <div className="card profile-card">
+              <div className="profile-header">
+                <div className="profile-avatar">
+                  {profile.user.avatar ? (
+                    <img 
+                      src={`http://localhost:8080${profile.user.avatar}`} 
+                      alt={`${profile.user.firstName}'s avatar`} 
+                      className="avatar-image"
+                    />
+                  ) : (
+                    <div className="avatar-placeholder">
+                      {profile.user.firstName?.charAt(0) || '?'}
+                    </div>
+                  )}
+                </div>
+                
+                <div className="profile-info">
+                  <h2 className="profile-name">
+                    {profile.user.firstName} {profile.user.lastName}
+                  </h2>
+                  <p className="profile-nickname">@{profile.user.nickname || profile.user.firstName?.toLowerCase()}</p>
+                  
+                  {!profile.isCurrentUser && (
+                    <div className="profile-actions">
+                      <button 
+                        className={`follow-button ${profile.isFollowing ? 'following' : 'not-following'}`}
+                        onClick={handleFollowToggle}
+                        disabled={isFollowLoading}
+                      >
+                        {isFollowLoading ? 'Loading...' : profile.isFollowing ? 'Unfollow' : 'Follow'}
+                      </button>
+                      
+                      {profile.isFollowing && (
+                        <button 
+                          className="message-button"
+                          onClick={navigateToChat}
+                        >
+                          Message
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  
+                  {profile.user.isPrivate && (
+                    <div className="privacy-controls">
+                      <span className="privacy-badge private">Private Account</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {profile.user.aboutMe && (
+                <div className="profile-about">
+                  <h3>About</h3>
+                  <p>{profile.user.aboutMe}</p>
+                </div>
+              )}
+              
+              <div className="profile-stats">
+                <div className="stat">
+                  <span className="stat-count">{profile.postsCount}</span>
+                  <span className="stat-label">Posts</span>
+                </div>
+                <div className="stat">
+                  <span className="stat-count">{profile.followersCount}</span>
+                  <span className="stat-label">Followers</span>
+                </div>
+                <div className="stat">
+                  <span className="stat-count">{profile.followingCount}</span>
+                  <span className="stat-label">Following</span>
+                </div>
+              </div>
+            </div>
+            
+            {profile.isPrivate && !profile.isFollowing && !profile.isCurrentUser ? (
+              <div className="card posts-card">
+                <div className="private-account-message">
+                  <h3>This account is private</h3>
+                  <p>Follow this account to see their posts.</p>
+                </div>
+              </div>
+            ) : (
+              <div className="card posts-card">
+                <h2 className="card-title">
+                  {profile.isCurrentUser ? 'My Posts' : `${profile.user.firstName}'s Posts`}
+                </h2>
+                
+                {profile.posts && profile.posts.length > 0 ? (
+                  <div className="posts-container">
+                    {profile.posts.map(post => (
+                      <div key={post.id} className="post-card">
+                        <div className="post-header">
+                          <div className="post-author">
+                            <div 
+                              className="author-avatar clickable-avatar"
+                              onClick={() => router.push(`/profile/${post.userId}`)}
+                            >
+                              {post.author.avatar ? (
+                                <img src={post.author.avatar} alt={`${post.author.firstName}'s avatar`} />
+                              ) : (
+                                <div className="avatar-placeholder">
+                                  {post.author.firstName.charAt(0)}
+                                </div>
+                              )}
+                            </div>
+                            <div className="author-info">
+                              <h3 className="author-name">
+                                {post.author.nickname || `${post.author.firstName} ${post.author.lastName}`}
+                              </h3>
+                              <span className="post-date">
+                                {formatDate(post.createdAt)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="post-content">
+                          {post.content && <p className="post-text">{post.content}</p>}
+                          {post.image && (
+                            <div className="post-image-container">
+                              <img 
+                                src={post.image.startsWith('http') ? post.image : `http://localhost:8080/${post.image}`} 
+                                alt="Post image" 
+                                className="post-image" 
+                              />
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="post-footer">
+                          <div className="post-stats">
+                            <span className="like-count">{post.likeCount || 0} likes</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="empty-posts">No posts yet.</p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </main>
+    </div>
+  )
+}
