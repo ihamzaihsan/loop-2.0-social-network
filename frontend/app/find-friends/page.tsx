@@ -93,6 +93,25 @@ export default function FindFriends() {
     }
 
     fetchData()
+
+    // Add event listener for follow status updates
+    const handleFollowStatusUpdate = (event: CustomEvent) => {
+      const { followed_id, status } = event.detail;
+      setUsers(prevUsers =>
+        prevUsers.map(user =>
+          user.id === followed_id
+            ? { ...user, following: status === 'accept', pendingFollow: false }
+            : user
+        )
+      );
+    };
+
+    window.addEventListener('follow_status_update', handleFollowStatusUpdate as EventListener);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('follow_status_update', handleFollowStatusUpdate as EventListener);
+    };
   }, [router])
 
   const fetchUsers = async (currentUserId: number) => {

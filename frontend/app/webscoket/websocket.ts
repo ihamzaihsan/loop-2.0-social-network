@@ -125,6 +125,13 @@ export class WebSocketClient implements WebSocketClientInterface {
                         }
                     }
                 }
+
+                // Handle follow status updates
+                if (message.type === 'follow_status_update') {
+                    // Trigger follow status update event
+                    const event = new CustomEvent('follow_status_update', { detail: message.content });
+                    window.dispatchEvent(event);
+                }
             
                 const handler = this.messageHandlers.get(message.type);
                 if (handler) {

@@ -249,6 +249,16 @@ func AcceptFollowRequest(requestID int, followedID uint) (uint, error) {
 			},
 		})
 
+		// Send follow status update message
+		websocket.SendToUser(int(followerID), websocket.Message{
+			Type: "follow_status_update",
+			Content: map[string]interface{}{
+				"followed_id": followedID,
+				"status":      "accept",
+				"username":    followedName,
+			},
+		})
+
 		// Also send a "follow_request_handled" message to followed user to update UI
 		websocket.SendToUser(int(followedID), websocket.Message{
 			Type: "follow_request_handled",
