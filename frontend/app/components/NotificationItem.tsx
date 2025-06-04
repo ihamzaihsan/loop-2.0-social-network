@@ -14,6 +14,7 @@ interface Notification {
   sender_avatar?: string;
   group_title?: string;
   actions?: string[];
+  related_id?: number;
 }
 
 interface NotificationItemProps {
@@ -45,8 +46,8 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
       case 'group_invitation':
       case 'group_join_request':
       case 'group_event':
-        if (notification.from_user_id) {
-          router.push(`/groups/${notification.from_user_id}`);
+        if (notification.related_id) {
+          router.push(`/groups/${notification.related_id}`);
         }
         break;
       default:
