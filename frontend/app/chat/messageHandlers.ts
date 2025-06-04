@@ -3,6 +3,7 @@ import { WebSocketClient } from '../webscoket/websocket';
 
 interface User {
     id: number;
+    followedID?: number;  // Add this optional property
     firstName: string;
     lastName: string;
     nickname?: string;
@@ -181,8 +182,9 @@ export const fetchFollowedUsers = async (): Promise<User[]> => {
         const data = await response.json();
         console.log("Followed users response:", data);
         
-        if (data.success && data.users) {
-            return data.users;
+        // Fix: Check for data.following instead of data.users
+        if (data.success && data.following) {
+            return data.following;
         }
         return [];
     } catch (error) {

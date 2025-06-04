@@ -263,37 +263,37 @@ func handlePrivateMessage(userID int, content map[string]interface{}) {
 	messageID, _ := result.LastInsertId()
 	log.Printf("[INFO] Stored message with ID %d", messageID)
 
-	// Get sender info for the small notification
+	// Get sender info for the notification
 	sender, err := query.GetUserInfo(userID)
 	if err != nil {
 		log.Printf("[ERROR] Failed to get sender info: %v", err)
 		return
 	}
 
-	// Send notification to receiver if they're online
-	clientsMutex.RLock()
-	if recipientConn, ok := clients[receiverID]; ok {
-		err = recipientConn.WriteJSON(Message{
-			Type: "private_message",
-			Content: map[string]interface{}{
-				"id":          messageID,
-				"sender_id":   userID,
-				"receiver_id": receiverID,
-				"sender":      sender.FirstName + " " + sender.LastName,
-				"content":     messageContent,
-				"created_at":  time.Now(),
-			},
-		})
-
-		if err != nil {
-			log.Printf("[ERROR] Failed to deliver message to user %d: %v", receiverID, err)
-		} else {
-			log.Printf("[INFO] Successfully delivered message to user %d", receiverID)
-		}
-	} else {
-		log.Printf("[INFO] User %d is offline, message will be delivered when they connect", receiverID)
+	// Create the message object to send
+	messageToSend := Message{
+		Type: "private_message",
+		Content: map[string]interface{}{
+			"id":          messageID,
+			"sender_id":   userID,
+			"receiver_id": receiverID,
+			"sender":      sender.FirstName + " " + sender.LastName,
+			"content":     messageContent,
+			"type":        "text",
+			"created_at":  time.Now(),
+		},
 	}
-	clientsMutex.RUnlock()
+
+	// Check if receiver is connected
+	log.Printf("[INFO] Checking if user %d is connected...", receiverID)
+    
+	// Send to receiver using the websocket package
+	success := ws.SendToUser(receiverID, messageToSend)
+	if success {
+		log.Printf("[INFO] Successfully delivered message to user %d", receiverID)
+	} else {
+		log.Printf("[INFO] User %d is offline or not connected, message stored but not delivered in real-time", receiverID)
+	}
 }
 
 // Add these functions to your existing websocket.go file

@@ -8,6 +8,7 @@ import { WebSocketClient } from '../webscoket/websocket'
 import { fetchFollowedUsers, fetchChatContacts, fetchMessages, sendMessage } from './messageHandlers'
 interface User {
   id: number
+  followedID?: number  // Add this optional property
   firstName: string
   lastName: string
   nickname?: string
@@ -60,29 +61,55 @@ export default function Chat() {
         const client = WebSocketClient.getInstance();
     
         if (currentUser) {
+          // Remove the old handler first to avoid duplicates
+          client.messageHandlers.delete('private_message');
+    
           client.addMessageHandler('private_message', (content) => {
             console.log('Received private message:', content);
         
-            // Only process messages if they're from the currently selected contact
-            if (selectedContact && content.sender_id === selectedContact.id) {
-              const newMessage = {
-                id: content.id || 0,
-                sender_id: content.sender_id || 0,
-                receiver_id: currentUser.id,
-                content: content.content || "",
-                type: content.type || "text",
-                created_at: content.created_at || new Date().toISOString(),
-                is_read: false,
-                sender: {
-                  id: content.sender_id || 0,
-                  first_name: typeof content.sender === 'string' ? content.sender.split(' ')[0] : "",
-                  last_name: typeof content.sender === 'string' ? (content.sender.split(' ')[1] || "") : "",
-                  avatar: undefined
+            // Create the new message object
+            const newMessage = {
+              id: content.id || 0,
+              sender_id: content.sender_id || 0,
+              receiver_id: currentUser.id,
+              content: content.content || "",
+              type: content.type || "text",
+              created_at: content.created_at || new Date().toISOString(),
+              is_read: false,
+              sender: {
+                id: content.sender_id || 0,
+                first_name: typeof content.sender === 'string' ? content.sender.split(' ')[0] : "",
+                last_name: typeof content.sender === 'string' ? (content.sender.split(' ')[1] || "") : "",
+                avatar: undefined
+              }
+            };
+
+            // Add message to current chat if it's from the selected contact
+            setMessages(prev => {
+                // Check if we're currently viewing this contact's chat
+                const currentPath = window.location.pathname;
+                const isInChatPage = currentPath === '/chat';
+                
+                if (isInChatPage) {
+                    // Get the current selected contact from state
+                    setSelectedContact(currentSelected => {
+                        if (currentSelected && content.sender_id === currentSelected.id) {
+                            // We're viewing this contact's chat, add the message
+                            return currentSelected;
+                        }
+                        return currentSelected;
+                    });
+                    
+                    // Add message if it's from the currently selected contact
+                    const shouldAddMessage = prev.length === 0 || 
+                        prev.some(msg => msg.sender_id === content.sender_id || msg.receiver_id === content.sender_id);
+                    
+                    if (shouldAddMessage) {
+                        return [...prev, newMessage];
+                    }
                 }
-              };
-          
-              setMessages(prev => [...prev, newMessage]);
-            }
+                return prev;
+            });
         
             // Update the contact's last message in the contacts list
             setContacts(prev => {
@@ -99,7 +126,7 @@ export default function Chat() {
                   unreadCount: (updatedContacts[contactIndex].unreadCount || 0) + 1
                 };
               } else if (content.sender_id) {
-                // If this is a new contact, we need to fetch their info and add them
+                // If this is a new contact, fetch their info and add them
                 fetch(`http://localhost:8080/users?id=${content.sender_id}`, {
                   credentials: 'include'
                 })
@@ -130,8 +157,21 @@ export default function Chat() {
         }
     
         // No cleanup needed as we want to keep the connection alive
-      }, [currentUser, selectedContact]);
+      }, [currentUser]); // Keep only currentUser as dependency
 
+      // Add a separate effect to handle message updates when selectedContact changes
+      useEffect(() => {
+        if (selectedContact) {
+            // When a contact is selected, add any pending messages for this contact
+            setMessages(prev => {
+                // Filter messages to only show messages between current user and selected contact
+                return prev.filter(msg => 
+                    (msg.sender_id === currentUser?.id && msg.receiver_id === selectedContact.id) ||
+                    (msg.sender_id === selectedContact.id && msg.receiver_id === currentUser?.id)
+                );
+            });
+        }
+      }, [selectedContact, currentUser]);
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -161,6 +201,7 @@ export default function Chat() {
           
           // Fetch chat contacts
           const chatContacts = await fetchChatContacts();
+          console.log('Fetched chat contacts:', chatContacts); // Add this debug line
           setContacts(chatContacts);
         }
       } catch (error: any) {
@@ -179,18 +220,20 @@ export default function Chat() {
   // Handle selecting a contact
   const handleSelectContact = async (contact: ChatContact) => {
     setSelectedContact(contact);
+    
+    // Fetch messages for this contact
     const contactMessages = await fetchMessages(contact.id);
     setMessages(contactMessages);
     setShowUsersList(false);
     
-    // Mark messages as read (this would be implemented in the backend)
+    // Mark messages as read
     if (contact.unreadCount && contact.unreadCount > 0) {
-      // Update the contact to show no unread messages
-      setContacts(prev => 
-        prev.map(c => 
-          c.id === contact.id ? { ...c, unreadCount: 0 } : c
-        )
-      );
+        // Update the contact to show no unread messages
+        setContacts(prev => 
+            prev.map(c => 
+                c.id === contact.id ? { ...c, unreadCount: 0 } : c
+            )
+        );
     }
   };
     // Handle sending a message
@@ -284,28 +327,49 @@ export default function Chat() {
   // Show the users list
   const handleShowUsersList = async () => {
     const users = await fetchFollowedUsers();
-    console.log(users);
-    setFollowedUsers(users);
+    console.log('All followed users:', users);
+    console.log('Current contacts:', contacts);
+    
+    // Filter out users we already have conversations with
+    const existingContactIds = contacts.map(contact => contact.id);
+    console.log('Existing contact IDs:', existingContactIds);
+    
+    // The issue might be that we need to use followedID instead of id for comparison
+    // Let's check both id and followedID to be safe
+    const availableUsers = users.filter(user => {
+        const userId = user.followedID || user.id; // Use followedID if available, otherwise use id
+        const isExistingContact = existingContactIds.includes(userId);
+        console.log(`User ${user.firstName} ${user.lastName} (ID: ${userId}) - Existing contact: ${isExistingContact}`);
+        return !isExistingContact;
+    });
+    
+    console.log('Available users for new chat:', availableUsers);
+    setFollowedUsers(availableUsers);
     setShowUsersList(true);
   };
 
   // Start a new chat with a user
   const handleStartChat = (user: User) => {
+    // Use followedID if available, otherwise use id
+    const userId = user.followedID || user.id;
+    
     const contact: ChatContact = {
-      id: user.id,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      nickname: user.nickname,
-      avatar: user.avatar
+        id: userId,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        nickname: user.nickname,
+        avatar: user.avatar
     };
+    
+    console.log('Starting chat with user:', contact);
     
     setSelectedContact(contact);
     setMessages([]);
     setShowUsersList(false);
     
     // Add this user to contacts if not already there
-    if (!contacts.some(c => c.id === user.id)) {
-      setContacts(prev => [...prev, contact]);
+    if (!contacts.some(c => c.id === userId)) {
+        setContacts(prev => [...prev, contact]);
     }
   };
 

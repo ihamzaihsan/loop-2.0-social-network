@@ -51,7 +51,7 @@ func ServeMessages(w http.ResponseWriter, r *http.Request) {
 	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 	if limit == 0 {
-		limit = 10
+		limit = 999
 	}
 
 	currentUserID, err := auth.GetUserID(r)
