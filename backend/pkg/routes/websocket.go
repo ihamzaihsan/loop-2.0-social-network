@@ -12,6 +12,8 @@ import (
 	"socialNetwork/pkg/db/query"
 	ws "socialNetwork/pkg/websocket"
 
+	"socialNetwork/pkg/handlers"
+
 	gorilla "github.com/gorilla/websocket"
 )
 
@@ -294,7 +296,7 @@ func handlePrivateMessage(userID int, content map[string]interface{}) {
 
 	// Check if receiver is connected
 	log.Printf("[INFO] Checking if user %d is connected...", receiverID)
-    
+
 	// Send to receiver using the websocket package
 	success := ws.SendToUser(receiverID, messageToSend)
 	if success {
@@ -591,157 +593,10 @@ func handleGroupComment(userID int, content map[string]interface{}) {
 }
 
 func handleGroupEvent(userID int, content map[string]interface{}) {
-	// Extract event details
-	groupIDFloat, ok := content["group_id"].(float64)
-	if !ok {
-		log.Printf("[ERROR] Invalid group_id format")
-		return
-	}
-	groupID := int(groupIDFloat)
+	log.Printf("[INFO] Handling group event from user %d", userID)
 
-	title, ok := content["title"].(string)
-	if !ok {
-		log.Printf("[ERROR] Invalid event title format")
-		return
-	}
-
-	description, ok := content["description"].(string)
-	if !ok {
-		log.Printf("[ERROR] Invalid event description format")
-		return
-	}
-
-	eventTimeStr, ok := content["event_time"].(string)
-	if !ok {
-		log.Printf("[ERROR] Invalid event time format")
-		return
-	}
-
-	eventTime, err := time.Parse(time.RFC3339, eventTimeStr)
-	if err != nil {
-		log.Printf("[ERROR] Failed to parse event time: %v", err)
-		return
-	}
-
-	// Check if user is a member of the group
-	var isMember bool
-	err = db.DBInstance.DB.QueryRow(`
-        SELECT EXISTS(
-            SELECT 1 FROM group_members 
-            WHERE group_id = ? AND user_id = ?
-        )
-    `, groupID, userID).Scan(&isMember)
-
-	if err != nil {
-		log.Printf("[ERROR] Failed to check group membership: %v", err)
-		return
-	}
-
-	if !isMember {
-		log.Printf("[ERROR] User %d is not a member of group %d", userID, groupID)
-		return
-	}
-
-	// Insert the event
-	tx, err := db.DBInstance.DB.Begin()
-	if err != nil {
-		log.Printf("[ERROR] Failed to begin transaction: %v", err)
-		return
-	}
-
-	result, err := tx.Exec(`
-    INSERT INTO group_events (group_id, title, description, event_time, created_at)
-    VALUES (?, ?, ?, ?, ?)
-	`, groupID, title, description, eventTime, time.Now())
-
-	if err != nil {
-		tx.Rollback()
-		log.Printf("[ERROR] Failed to store group event: %v", err)
-		return
-	}
-
-	eventID, _ := result.LastInsertId()
-
-	// Add default response options
-	optionsInterface, ok := content["options"].([]interface{})
-	if !ok || len(optionsInterface) == 0 {
-		// Default options if none provided
-		optionsInterface = []interface{}{"Going", "Not Going"}
-	}
-
-	for _, optionInterface := range optionsInterface {
-		optionText, ok := optionInterface.(string)
-		if !ok {
-			continue
-		}
-
-		_, err := tx.Exec(`
-            INSERT INTO event_response_options (event_id, option_text)
-            VALUES (?, ?)
-        `, eventID, optionText)
-
-		if err != nil {
-			tx.Rollback()
-			log.Printf("[ERROR] Failed to store event option: %v", err)
-			return
-		}
-	}
-
-	if err := tx.Commit(); err != nil {
-		log.Printf("[ERROR] Failed to commit transaction: %v", err)
-		return
-	}
-
-	log.Printf("[INFO] Stored group event with ID %d", eventID)
-
-	// Get response options for the event
-	rows, err := db.DBInstance.DB.Query(`
-        SELECT id, option_text
-        FROM event_response_options
-        WHERE event_id = ?
-    `, eventID)
-
-	if err != nil {
-		log.Printf("[ERROR] Failed to get event options: %v", err)
-		return
-	}
-
-	var responseOptions []map[string]interface{}
-	for rows.Next() {
-		var id int
-		var optionText string
-		if err := rows.Scan(&id, &optionText); err != nil {
-			log.Printf("[ERROR] Failed to scan event option: %v", err)
-			continue
-		}
-
-		responseOptions = append(responseOptions, map[string]interface{}{
-			"id":          id,
-			"event_id":    eventID,
-			"option_text": optionText,
-		})
-	}
-	rows.Close()
-
-	// Create event object for broadcasting
-	event := map[string]interface{}{
-		"id":               eventID,
-		"group_id":         groupID,
-		"creator_id":       userID,
-		"title":            title,
-		"description":      description,
-		"event_time":       eventTime,
-		"created_at":       time.Now(),
-		"going_count":      0,
-		"not_going_count":  0,
-		"response_options": responseOptions,
-	}
-
-	// Broadcast to all group members
-	broadcastToGroupMembers(groupID, userID, Message{
-		Type:    "group_event",
-		Content: event,
-	})
+	// Delegate to the handler
+	handlers.HandleGroupEventCreation(userID, content)
 }
 
 func handleEventResponse(userID int, content map[string]interface{}) {

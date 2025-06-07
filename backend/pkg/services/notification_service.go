@@ -10,10 +10,15 @@ import (
 
 // CreateNotification creates a new notification and sends it via WebSocket if the user is online
 func CreateNotification(userID, fromUserID int, notificationType string, relatedID int, content string) (int64, error) {
+	log.Printf("[INFO] Creating notification: userID=%d, fromUserID=%d, type=%s, relatedID=%d", userID, fromUserID, notificationType, relatedID)
+	
 	notificationID, err := query.CreateNotification(userID, fromUserID, notificationType, relatedID, content)
 	if err != nil {
+		log.Printf("[ERROR] Failed to create notification in database: %v", err)
 		return 0, err
 	}
+
+	log.Printf("[INFO] Created notification in database with ID: %d", notificationID)
 
 	// Send real-time notification via WebSocket if the user is online
 	// Get additional notification information for rich display
@@ -33,6 +38,9 @@ func CreateNotification(userID, fromUserID int, notificationType string, related
 		err := query.GetUserNames(fromUserID, &firstName, &lastName)
 		if err == nil {
 			notification.SenderName = fmt.Sprintf("%s %s", firstName, lastName)
+			log.Printf("[INFO] Set sender name: %s", notification.SenderName)
+		} else {
+			log.Printf("[ERROR] Failed to get sender name: %v", err)
 		}
 	}
 
@@ -41,17 +49,24 @@ func CreateNotification(userID, fromUserID int, notificationType string, related
 		group, err := query.GetGroupByID(relatedID, userID)
 		if err == nil {
 			notification.GroupTitle = group.Title
+			log.Printf("[INFO] Set group title: %s", notification.GroupTitle)
+		} else {
+			log.Printf("[ERROR] Failed to get group title: %v", err)
 		}
 	}
 
 	// Set available actions based on notification type
 	notification.Actions = getNotificationActions(notificationType)
 
+	log.Printf("[INFO] Sending WebSocket notification to user %d", userID)
+
 	// Send WebSocket notification
-	websocket.SendToUser(userID, websocket.Message{
+	sent := websocket.SendToUser(userID, websocket.Message{
 		Type:    "notification",
 		Content: notification,
 	})
+
+	log.Printf("[INFO] WebSocket notification sent to user %d: %t", userID, sent)
 
 	return notificationID, nil
 }
@@ -102,6 +117,8 @@ func getNotificationActions(notificationType string) []string {
 		return []string{"accept", "reject"}
 	case "group_join_request":
 		return []string{"accept", "reject"}
+	case "group_event":
+		return []string{} 
 	default:
 		return []string{}
 	}
