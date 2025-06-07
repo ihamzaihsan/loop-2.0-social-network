@@ -326,15 +326,43 @@ func HandleGroupMembershipRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Send notification if request was accepted
+	// If request was accepted, broadcast membership update
 	if req.Action == "accept" {
-		// If it's an invitation, notify the group creator
-		// If it's a join request, notify the user who requested to join
+		// Get updated group info
+		group, err := query.GetGroupByID(req.GroupID, userID)
+		if err == nil {
+			// Get updated ACTIVE members list only
+			members, err := query.GetActiveGroupMembers(req.GroupID)
+			if err == nil {
+				// Get active members count
+				activeCount := len(members)
+				
+				// Update group member count
+				group.MemberCount = activeCount
+
+				// Create update message
+				updateData := map[string]interface{}{
+					"group_id":     req.GroupID,
+					"action":       "member_joined",
+					"member_count": activeCount,
+					"members":      members,
+					"group":        group,
+					"new_member_id": targetUserID,
+				}
+
+				// Broadcast to all group members
+				broadcastToGroupMembers(req.GroupID, 0, Message{
+					Type:    "group_membership_update",
+					Content: updateData,
+				})
+			}
+		}
+
+		// Send notification if request was accepted
 		recipientID := targetUserID
 		if req.RequestType == "invitation" {
 			// Get group creator ID to notify them
-			group, err := query.GetGroupByID(req.GroupID, userID)
-			if err == nil && group.CreatorID > 0 {
+			if group.CreatorID > 0 {
 				recipientID = group.CreatorID
 
 				// Send WebSocket notification to group creator
@@ -361,7 +389,6 @@ func HandleGroupMembershipRequest(w http.ResponseWriter, r *http.Request) {
 
 	// Return success response
 	w.WriteHeader(http.StatusOK)
-
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
 	})

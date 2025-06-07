@@ -79,6 +79,7 @@ interface GroupEvent {
 }
 
 
+
 interface User {
     id: number
     firstName: string
@@ -128,9 +129,43 @@ export default function GroupChatPage() {
     const [inviteLoading, setInviteLoading] = useState(false)
     const [inviteSuccess, setInviteSuccess] = useState('')
     const [inviteError, setInviteError] = useState('')
+    
 
     // Add these to your existing state variables
 const fileInputRef = useRef<HTMLInputElement>(null);
+
+// ADD THIS NEW FUNCTION HERE - right after all your useState declarations
+const fetchGroupDetails = async () => {
+    if (!groupId) return;
+
+    try {
+        // Fetch group details
+        const response = await fetch(`http://localhost:8080/groups/details?id=${groupId}`, {
+            method: 'GET',
+            credentials: 'include'
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.data) {
+                console.log('Fetched updated group details:', data.data);
+                setGroup(data.data.group);
+                setMembers(data.data.members || []);
+            } else {
+                setError('Failed to load group details');
+            }
+        } else {
+            if (response.status === 401) {
+                router.push('/');
+                return;
+            }
+            setError('Failed to load group');
+        }
+    } catch (error) {
+        console.error('Error fetching group details:', error);
+        setError('An error occurred while loading the group');
+    }
+};
 
 // Add this function to handle image uploads
 const handleGroupImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -220,38 +255,15 @@ const handleGroupImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) =>
 
     // Fetch group details
     useEffect(() => {
-        const fetchGroupDetails = async () => {
-            try {
-                // Fetch group details
-                const response = await fetch(`http://localhost:8080/groups/details?id=${groupId}`, {
-                    method: 'GET',
-                    credentials: 'include'
-                })
-
-                if (response.ok) {
-                    const data = await response.json()
-                    if (data.success && data.data) {
-                        setGroup(data.data.group)
-                        setMembers(data.data.members || [])
-                    } else {
-                        setError('Failed to load group details')
-                    }
-                } else {
-                    setError('Failed to load group')
-                    router.push('/groups')
-                }
-            } catch (error) {
-                console.error('Error fetching group details:', error)
-                setError('An error occurred while loading the group')
-            } finally {
-                setLoading(false)
+        const initializeGroupDetails = async () => {
+            if (groupId) {
+                await fetchGroupDetails();
+                setLoading(false);
             }
-        }
+        };
 
-        if (groupId) {
-            fetchGroupDetails()
-        }
-    }, [groupId, router])
+        initializeGroupDetails();
+    }, [groupId, router]);
 
     // Fetch group messages, posts, and events
     useEffect(() => {
@@ -346,6 +358,7 @@ const handleGroupImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) =>
                 }
             });
 
+            // Add message handler for group comments
             client.addMessageHandler('group_comment', (content) => {
                 console.log('Received group comment:', content);
                 
@@ -379,7 +392,6 @@ const handleGroupImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) =>
                     });
                 }
             });
-            
 
             // Add message handler for group events
             client.addMessageHandler('group_event', (content) => {
@@ -388,6 +400,7 @@ const handleGroupImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) =>
                 }
             });
 
+            // Add message handler for event responses
             client.addMessageHandler('event_response', (content) => {
                 console.log('Received event response:', content);
 
@@ -419,7 +432,51 @@ const handleGroupImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) =>
                 }
             });
 
-
+            client.addMessageHandler('group_membership_update', (content) => {
+                console.log('Processing group membership update:', content);
+                
+                // Only process updates for the current group AND only for member_joined actions
+                if (content.group_id === groupId && content.action === 'member_joined') {
+                    console.log('New member joined group:', groupId);
+                    
+                    // Update group info including member count
+                    if (content.group) {
+                        setGroup(prev => prev ? {
+                            ...prev,
+                            ...content.group,
+                            member_count: content.member_count || prev.member_count
+                        } : null);
+                    }
+                    
+                    // Update members list
+                    if (content.members) {
+                        console.log('Updating members list:', content.members);
+                        setMembers(content.members);
+                    }
+                    
+                    console.log('New member joined the group');
+                } else if (content.group_id === groupId) {
+                    console.log('Ignoring group update for action:', content.action);
+                }
+            });
+            
+            // Add message handler for group member joined notifications
+            client.addMessageHandler('group_member_joined', (content) => {
+                console.log('Received group member joined notification:', content);
+                if (content.group_id === groupId) {
+                    // Refresh group data
+                    fetchGroupDetails();
+                }
+            });
+            
+            // Add message handler for group join approved notifications
+            client.addMessageHandler('group_join_approved', (content) => {
+                console.log('Received group join approved notification:', content);
+                if (content.group_id === groupId) {
+                    // Refresh group data
+                    fetchGroupDetails();
+                }
+            });
 
             setWsClient(client);
         }
@@ -499,6 +556,9 @@ const handleGroupImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) =>
             if (response.ok) {
                 setInviteSuccess('Invitations sent successfully!')
                 setSelectedUsers([])
+                
+                // Don't send WebSocket update here - it's already handled by the backend
+                
                 setTimeout(() => {
                     setShowInviteModal(false)
                 }, 1500)

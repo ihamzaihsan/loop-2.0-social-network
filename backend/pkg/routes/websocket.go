@@ -174,6 +174,14 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 					log.Printf("[INFO] Sent pong to user %d", userID)
 				}
 			}
+		case "group_membership_update":
+			log.Printf("[INFO] Handling group membership update from user %d", userID)
+			contentMap, ok := msg.Content.(map[string]interface{})
+			if !ok {
+				log.Printf("[ERROR] Invalid message content format")
+				continue
+			}
+			handleGroupMembershipUpdate(userID, contentMap)
 		default:
 			log.Printf("[WARN] Unknown message type from user %d (%s %s): %s",
 				userID, user.FirstName, user.LastName, msg.Type)
@@ -831,5 +839,63 @@ func handleEventResponse(userID int, content map[string]interface{}) {
 	broadcastToGroupMembers(groupID, 0, Message{
 		Type:    "event_response",
 		Content: responseData,
+	})
+}
+
+func handleGroupMembershipUpdate(userID int, content map[string]interface{}) {
+	groupIDFloat, ok := content["group_id"].(float64)
+	if !ok {
+		log.Printf("[ERROR] Invalid group_id format")
+		return
+	}
+	groupID := int(groupIDFloat)
+
+	action, ok := content["action"].(string)
+	if !ok {
+		log.Printf("[ERROR] Invalid action format")
+		return
+	}
+
+	log.Printf("[INFO] Processing group membership update for group %d, action: %s", groupID, action)
+
+	// Get updated group info
+	group, err := query.GetGroupByID(groupID, userID)
+	if err != nil {
+		log.Printf("[ERROR] Failed to get group info: %v", err)
+		return
+	}
+
+	// Get updated members list
+	members, err := query.GetGroupMembers(groupID)
+	if err != nil {
+		log.Printf("[ERROR] Failed to get group members: %v", err)
+		return
+	}
+
+	// Get active members count
+	activeCount, err := query.GetActiveGroupMembersCount(groupID)
+	if err != nil {
+		log.Printf("[ERROR] Failed to get active members count: %v", err)
+		activeCount = len(members) // fallback
+	}
+
+	// Update group member count
+	group.MemberCount = activeCount
+
+	// Create update message
+	updateData := map[string]interface{}{
+		"group_id":     groupID,
+		"action":       action,
+		"member_count": activeCount,
+		"members":      members,
+		"group":        group,
+	}
+
+	log.Printf("[INFO] Broadcasting group membership update to group %d members", groupID)
+
+	// Broadcast to all group members
+	broadcastToGroupMembers(groupID, 0, Message{
+		Type:    "group_membership_update",
+		Content: updateData,
 	})
 }

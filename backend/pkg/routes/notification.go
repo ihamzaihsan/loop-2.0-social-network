@@ -213,6 +213,8 @@ func HandleNotificationAction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Printf("[INFO] Processing notification action: notification_id=%d, user_id=%d, action=%s", notificationID, userID, req.Action)
+
 	// Get notification to determine type
 	notifications, err := query.GetUserNotifications(userID, 100)
 	if err != nil {
@@ -231,9 +233,12 @@ func HandleNotificationAction(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if notification == nil {
+		log.Printf("[ERROR] Notification not found: %d", notificationID)
 		http.Error(w, "Notification not found", http.StatusNotFound)
 		return
 	}
+
+	log.Printf("[INFO] Found notification: type=%s, related_id=%d", notification.Type, notification.RelatedID)
 
 	// Process action based on notification type
 	result := map[string]interface{}{
@@ -245,10 +250,13 @@ func HandleNotificationAction(w http.ResponseWriter, r *http.Request) {
 	case "follow_request":
 		result = handleFollowRequestAction(notification, userID, req.Action)
 	case "group_invitation":
+		log.Printf("[INFO] Processing group invitation action")
 		result = handleGroupInvitationAction(notification, userID, req.Action)
 	case "group_join_request":
 		result = handleGroupJoinRequestAction(notification, userID, req.Action)
 	}
+
+	log.Printf("[INFO] Action result: %+v", result)
 
 	// Mark notification as read after processing action
 	query.MarkNotificationAsRead(notificationID, userID)
@@ -312,6 +320,48 @@ func handleGroupInvitationAction(notification *models.Notification, userID int, 
 	result["success"] = true
 	if action == "accept" {
 		result["message"] = "Group invitation accepted"
+
+		// ADD THIS: Broadcast group membership update when invitation is accepted
+		go func() {
+			// Get updated group info
+			group, err := query.GetGroupByID(groupID, userID)
+			if err != nil {
+				log.Printf("[ERROR] Failed to get group info for broadcast: %v", err)
+				return
+			}
+
+			// Get updated ACTIVE members list only
+			members, err := query.GetActiveGroupMembers(groupID)
+			if err != nil {
+				log.Printf("[ERROR] Failed to get active group members for broadcast: %v", err)
+				return
+			}
+
+			// Get active members count
+			activeCount := len(members)
+
+			// Update group member count
+			group.MemberCount = activeCount
+
+			// Create update message
+			updateData := map[string]interface{}{
+				"group_id":      groupID,
+				"action":        "member_joined",
+				"member_count":  activeCount,
+				"members":       members,
+				"group":         group,
+				"new_member_id": userID,
+			}
+
+			log.Printf("[INFO] Broadcasting group membership update for group %d after invitation acceptance", groupID)
+
+			// Import the websocket package at the top of the file if not already imported
+			// Broadcast to all group members
+			broadcastToGroupMembers(groupID, 0, Message{
+				Type:    "group_membership_update",
+				Content: updateData,
+			})
+		}()
 	} else {
 		result["message"] = "Group invitation rejected"
 	}

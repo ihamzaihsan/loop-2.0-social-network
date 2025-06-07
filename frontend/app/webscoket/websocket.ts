@@ -383,4 +383,29 @@ export class WebSocketClient implements WebSocketClientInterface {
         }
     }
     
+    sendGroupMembershipUpdate(groupId: number, action: string): boolean {
+        if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+            console.error('WebSocket is not connected, readyState:', this.socket?.readyState);
+            return false;
+        }
+
+        try {
+            const message = {
+                type: 'group_membership_update',
+                content: {
+                    group_id: groupId,
+                    action: action
+                }
+            };
+            
+            console.log('Sending group membership update via WebSocket:', JSON.stringify(message));
+            this.socket.send(JSON.stringify(message));
+            
+            console.log('Group membership update sent successfully via WebSocket');
+            return true;
+        } catch (error) {
+            console.error('Error sending group membership update via WebSocket:', error);
+            return false;
+        }
+    }
 }
