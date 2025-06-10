@@ -232,72 +232,123 @@ input:focus, select:focus, textarea:focus {
   bottom: 0;
   width: 240px;
   background-color: white;
-  border-right: 1px solid #dbdbdb;
+  border-right: 1px solid rgba(219, 219, 219, 0.5);
   display: flex;
   flex-direction: column;
-  padding: 20px 0;
+  padding: 1.5rem 0;
   z-index: 100;
-  transition: width 0.3s ease;
+  transition: all 0.3s ease;
+  box-shadow: 1px 0 10px rgba(0, 0, 0, 0.05);
 }
 
 .sidebar-logo {
-  padding: 10px 20px 30px;
-  border-bottom: 1px solid #efefef;
-  margin-bottom: 20px;
+  padding: 0.5rem 1.5rem 2rem;
+  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 1rem;
 }
 
 .sidebar-logo h2 {
-  font-size: 24px;
+  font-size: 1.75rem;
   font-weight: 700;
-  color: var(--primary-color);
-  margin: 0;
+  background: linear-gradient(45deg, var(--primary-color), var(--primary-hover));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-align: left;
 }
 
 .sidebar-nav {
   display: flex;
   flex-direction: column;
   flex-grow: 1;
+  padding: 0.5rem;
+  gap: 0.25rem;
 }
 
 .sidebar-item {
   display: flex;
   align-items: center;
-  padding: 12px 20px;
-  color: var(--text-primary);
+  padding: 0.875rem 1.25rem;
+  color: #4b5563;
   font-weight: 500;
   transition: all 0.2s ease;
-  border-radius: 0;
-  margin: 2px 0;
+  border-radius: 0.75rem;
+  margin: 0.125rem 0;
   cursor: pointer;
 }
 
 .sidebar-item:hover {
-  background-color: #f8f8f8;
+  background-color: #f3f4f6;
+  transform: translateX(4px);
 }
 
 .sidebar-item.active {
+  background-color: var(--primary-color);
+  color: white;
   font-weight: 600;
-  color: var(--primary-color);
 }
 
 .sidebar-item svg {
-  margin-right: 12px;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin-right: 1rem;
+  transition: transform 0.2s ease;
 }
 
-/* Add these styles to your existing sidebar styles in globals.css */
+.sidebar-item:hover svg,
+.sidebar-item.active svg {
+  color: currentColor;
+}
+
+.sidebar-item span {
+  font-size: 0.9375rem;
+}
 
 .sidebar-footer {
   margin-top: auto;
-  padding-top: 20px;
-  border-top: 1px solid #efefef;
+  padding: 1.5rem 1rem;
+  border-top: 1px solid #f0f0f0;
 }
 
 .logout-item {
-  color: #e53e3e;
+  color: #dc2626;
+  border-radius: 0.75rem;
+  transition: all 0.2s ease;
 }
 
 .logout-item:hover {
-  background-color: #fff5f5;
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    width: 70px;
+    padding: 1rem 0;
+  }
+  
+  .sidebar-logo {
+    padding: 0.5rem;
+    text-align: center;
+  }
+  
+  .sidebar-logo h2 {
+    font-size: 1.5rem;
+  }
+  
+  .sidebar-item {
+    padding: 0.75rem;
+    justify-content: center;
+  }
+  
+  .sidebar-item span {
+    display: none;
+  }
+
+  .sidebar-item svg {
+    margin: 0;
+    width: 1.75rem;
+    height: 1.75rem;
+  }
 }
 
 /* Adjust main content to make room for sidebar */
@@ -341,4 +392,59 @@ input:focus, select:focus, textarea:focus {
   .main-content {
     width: calc(100% - 70px);
   }
+}
+
+.sidebar-item[href="/find-friends"].active {
+  background-color: var(--primary-color);
+  color: white;
+  font-weight: 600;
+}
+
+.sidebar-item[href="/find-friends"]:hover {
+  background-color: var(--primary-hover);
+}
+
+.sidebar-item[href="/find-friends"] {
+  display: flex;
+  align-items: center;
+  padding: 0.875rem 1.25rem;
+  color: #4b5563;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  border-radius: 0.75rem;
+  margin: 0.125rem 0;
+  cursor: pointer;
+}
+
+.sidebar-item[href="/find-friends"] svg {
+  width: 24px;
+  height: 24px;
+  margin-right: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.sidebar-item[href="/find-friends"] svg path:nth-child(1) {
+  d: path("M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2");
+}
+
+.sidebar-item[href="/find-friends"] svg circle {
+  cx: 9;
+  cy: 7;
+  r: 4;
+}
+
+.sidebar-item[href="/find-friends"] svg path:nth-child(3) {
+  d: path("M23 21v-2a4 4 0 0 0-3-3.87");
+}
+
+.sidebar-item[href="/find-friends"] svg path:nth-child(4) {
+  d: path("M16 3.13a4 4 0 0 1 0 7.75");
+}
+
+.sidebar-item[href="/find-friends"] span {
+  font-size: 0.9375rem;
 }

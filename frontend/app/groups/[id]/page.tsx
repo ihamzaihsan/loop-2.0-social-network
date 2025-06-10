@@ -907,7 +907,14 @@ const handleCreateComment = async (postId: number) => {
 
 
     if (loading) {
-        router.push(`/groups`)
+        return (
+            <div className="groups-page">
+                <Sidebar activePage="groups" />
+                <div className="group-chat-container">
+                    <div className="loading-message">Loading group...</div>
+                </div>
+            </div>
+        )
     }
 
     if (error) {
