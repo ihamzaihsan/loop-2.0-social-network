@@ -353,3 +353,19 @@
     gap: 1rem;
   }
 }
+
+.post-author {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.post-author:hover {
+  opacity: 0.8;
+}
+
+.clickable-avatar {
+  cursor: pointer;
+}

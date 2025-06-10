@@ -376,25 +376,23 @@ export default function Profile() {
                   {profile.posts.map(post => (
                     <div key={post.id} className="post-card">
                       <div className="post-header">
-                        <div className="post-author">
-                          <div className="author-avatar">
-                            {post.author.avatar ? (
-                              <img src={post.author.avatar} alt={`${post.author.firstName}'s avatar`} />
-                            ) : (
-                              <div className="avatar-placeholder">
-                                {post.author.firstName.charAt(0)}
-                              </div>
-                            )}
-                          </div>
-                          <div className="author-info">
-                            <h3 className="author-name">
-                              {post.author.nickname || `${post.author.firstName} ${post.author.lastName}`}
-                            </h3>
-                            <span className="post-date">
-                              {formatDate(post.createdAt)}
-                            </span>
-                          </div>
+                      <div className="post-author" onClick={() => router.push(`/profile/${post.userId}`)}>
+                    <div className="author-avatar">
+                      {post.author.avatar ? (
+                        <img src={post.author.avatar} alt={`${post.author.firstName}'s avatar`} />
+                      ) : (
+                        <div className="avatar-placeholder">
+                          {post.author.firstName.charAt(0)}
                         </div>
+                      )}
+                    </div>
+                    <div className="author-info">
+                      <h3 className="author-name">
+                        {post.author.nickname || `${post.author.firstName} ${post.author.lastName}`}
+                      </h3>
+                      <span className="post-date">{formatDate(post.createdAt)}</span>
+                    </div>
+                  </div>
                         
                         <div className="post-actions">
                           <button 

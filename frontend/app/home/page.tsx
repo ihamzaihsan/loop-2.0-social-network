@@ -397,7 +397,13 @@ export default function Home() {
                 posts.map(post => (
                   <div key={post.id} className="post-card">
                     <div className="post-header">
-                      <div className="post-author">
+                      <div 
+                        className="post-author" 
+                        onClick={() => router.push(`/profile/${post.userId}`)}
+                        role="button"
+                        tabIndex={0}
+                        style={{ cursor: 'pointer' }}
+                      >
                         <div className="author-avatar">
                           {post.author.avatar ? (
                             <img src={post.author.avatar} alt={`${post.author.firstName}'s avatar`} />
@@ -411,9 +417,7 @@ export default function Home() {
                           <h3 className="author-name">
                             {post.author.nickname || `${post.author.firstName} ${post.author.lastName}`}
                           </h3>
-                          <span className="post-date">
-                            {formatDate(post.createdAt)}
-                          </span>
+                          <span className="post-date">{formatDate(post.createdAt)}</span>
                         </div>
                       </div>
                       
@@ -548,4 +552,6 @@ export default function Home() {
     </div>
   )
 }
+
+
 
