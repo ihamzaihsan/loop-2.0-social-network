@@ -1,0 +1,52 @@
+.stat.clickable {
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+  
+  .stat.clickable:hover {
+    transform: translateY(-2px);
+  }
+  
+  .follow-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .follow-item {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid #e5e7eb;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  
+  .follow-item:hover {
+    background-color: #f3f4f6;
+  }
+  
+  .follow-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    overflow: hidden;
+    margin-right: 1rem;
+  }
+  
+  .follow-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  
+  .avatar-placeholder {
+    width: 100%;
+    height: 100%;
+    background-color: #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    color: #4b5563;
+  }

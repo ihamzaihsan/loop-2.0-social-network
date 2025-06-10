@@ -57,6 +57,15 @@ export default function UserProfile() {
   const [error, setError] = useState<string | null>(null)
   const [isFollowLoading, setIsFollowLoading] = useState(false)
 
+  // Add state for modals
+  const [activeModal, setActiveModal] = useState<'followers' | 'following' | null>(null);
+  const [loadingUserDetails, setLoadingUserDetails] = useState(false);
+
+  // Add modal handlers
+  const openFollowersModal = () => setActiveModal('followers');
+  const openFollowingModal = () => setActiveModal('following');
+  const closeModal = () => setActiveModal(null);
+
   useEffect(() => {
     if (userId) {
       fetchProfile()
@@ -150,6 +159,11 @@ export default function UserProfile() {
     }
   }
 
+  const navigateToProfile = (userId: number) => {
+    router.push(`/profile/${userId}`);
+    closeModal();
+  };
+
   if (loading) return <div className="profile-page">Loading profile...</div>
   if (error) return <div className="profile-page">Error: {error}</div>
 
@@ -223,11 +237,11 @@ export default function UserProfile() {
                   <span className="stat-count">{profile.postsCount}</span>
                   <span className="stat-label">Posts</span>
                 </div>
-                <div className="stat">
+                <div className="stat clickable" onClick={openFollowersModal}>
                   <span className="stat-count">{profile.followersCount}</span>
                   <span className="stat-label">Followers</span>
                 </div>
-                <div className="stat">
+                <div className="stat clickable" onClick={openFollowingModal}>
                   <span className="stat-count">{profile.followingCount}</span>
                   <span className="stat-label">Following</span>
                 </div>
@@ -296,6 +310,86 @@ export default function UserProfile() {
                 ) : (
                   <p className="empty-posts">No posts yet.</p>
                 )}
+              </div>
+            )}
+
+            {/* Add Followers Modal */}
+            {activeModal === 'followers' && profile && (
+              <div className="modal-overlay" onClick={closeModal}>
+                <div className="modal-content" onClick={e => e.stopPropagation()}>
+                  <div className="modal-header">
+                    <h3>Followers</h3>
+                    <button className="modal-close" onClick={closeModal}>×</button>
+                  </div>
+                  <div className="modal-body">
+                    {loadingUserDetails ? (
+                      <p className="loading-text">Loading followers...</p>
+                    ) : profile.followers.length === 0 ? (
+                      <p className="empty-list">No followers yet.</p>
+                    ) : (
+                      <ul className="follow-list">
+                        {profile.followers.map((follower) => (
+                          <li key={follower.id} className="follow-item" onClick={() => navigateToProfile(follower.id)}>
+                            <div className="follow-avatar">
+                              {follower.avatar ? (
+                                <img src={follower.avatar} alt={`${follower.firstName}'s avatar`} />
+                              ) : (
+                                <div className="avatar-placeholder">
+                                  {(follower.firstName?.charAt(0).toUpperCase() ?? '?')}
+                                </div>
+                              )}
+                            </div>
+                            <div className="follow-info">
+                              <p className="follow-name">
+                                {follower.nickname || `${follower.firstName} ${follower.lastName}`}
+                              </p>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Add Following Modal */}
+            {activeModal === 'following' && profile && (
+              <div className="modal-overlay" onClick={closeModal}>
+                <div className="modal-content" onClick={e => e.stopPropagation()}>
+                  <div className="modal-header">
+                    <h3>Following</h3>
+                    <button className="modal-close" onClick={closeModal}>×</button>
+                  </div>
+                  <div className="modal-body">
+                    {loadingUserDetails ? (
+                      <p className="loading-text">Loading following...</p>
+                    ) : profile.following.length === 0 ? (
+                      <p className="empty-list">Not following anyone yet.</p>
+                    ) : (
+                      <ul className="follow-list">
+                        {profile.following.map((following) => (
+                          <li key={following.id} className="follow-item" onClick={() => navigateToProfile(following.id)}>
+                            <div className="follow-avatar">
+                              {following.avatar ? (
+                                <img src={following.avatar} alt={`${following.firstName}'s avatar`} />
+                              ) : (
+                                <div className="avatar-placeholder">
+                                  {(following.firstName?.charAt(0).toUpperCase() ?? '?')}
+                                </div>
+                              )}
+                            </div>
+                            <div className="follow-info">
+                              <p className="follow-name">
+                                {following.nickname || `${following.firstName} ${following.lastName}`}
+                              </p>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
           </div>

@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	
+
 	auth "socialNetwork/pkg/auth"
 	query "socialNetwork/pkg/db/query"
 	"socialNetwork/pkg/models"
@@ -46,7 +46,7 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid URL format", http.StatusBadRequest)
 		return
 	}
-	
+
 	userIDStr := pathParts[len(pathParts)-1]
 	userID, err := strconv.Atoi(userIDStr)
 	if err != nil {
@@ -119,13 +119,47 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	postsCount, _ := query.GetUserPostsCount(userID)
-	followers, followersCount, _ := query.GetFollowers(uint(userID))
-	following, followingCount, _ := query.GetFollowing(uint(userID))
+
+	// Get followers with full user info
+	followersResult, followersCountResult, err := query.GetFollowers(uint(userID))
+	followers := []models.User{}
+	followersCount := 0
+	if err == nil {
+		for _, f := range followersResult {
+			followerInfo, err := query.GetUserInfo(int(f.FollowerID))
+			if err != nil {
+				continue
+			}
+
+			followers = append(followers, followerInfo)
+		}
+		followersCount = followersCountResult
+	} else {
+		log.Printf("Warning: Could not get followers: %v", err)
+	}
 
 	// Check if current user is following this user
 	isFollowing := false
 	if userID != currentUserID {
 		isFollowing, _ = query.CheckIfFollowing(uint(currentUserID), uint(userID))
+	}
+
+	// Get following with full user info
+	followingResult, followingCountResult, err := query.GetFollowing(uint(userID))
+	following := []models.User{}
+	followingCount := 0
+	if err == nil {
+		for _, f := range followingResult {
+			followingInfo, err := query.GetUserInfo(int(f.FollowedID))
+			if err != nil {
+				continue
+			}
+
+			following = append(following, followingInfo)
+		}
+		followingCount = followingCountResult
+	} else {
+		log.Printf("Warning: Could not get following: %v", err)
 	}
 
 	// Build profile response
