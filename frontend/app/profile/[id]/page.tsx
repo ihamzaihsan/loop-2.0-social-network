@@ -289,11 +289,7 @@ export default function UserProfile() {
                           )}
                         </div>
                         
-                        <div className="post-footer">
-                          <div className="post-stats">
-                            <span className="like-count">{post.likeCount || 0} likes</span>
-                          </div>
-                        </div>
+                    
                       </div>
                     ))}
                   </div>

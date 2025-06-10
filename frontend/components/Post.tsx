@@ -140,9 +140,7 @@ export default function Post({
                   )}
                 </div>
             <div className="post-footer">
-        <div className="post-stats">
-          <span className="like-count">{likeCount} likes</span>
-        </div>
+     
       </div>
     </div>
   )

@@ -450,7 +450,6 @@ export default function Home() {
                     
                     <div className="post-footer">
                       <div className="post-stats">
-                        <span className="like-count">{post.likeCount} likes              </span>
                         <button 
                           className="comments-toggle-btn"
                           onClick={() => toggleComments(post.id)}
