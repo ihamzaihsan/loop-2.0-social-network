@@ -38,10 +38,10 @@ const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ onClose, onNoti
       console.log('Follow request handled:', content);
       
       // Remove the handled follow request from the notifications list
-      if (content.request_id) {
+      if (content.notification_id) {
         setNotifications(prevNotifications => 
           prevNotifications.filter(notification => 
-            !(notification.type === 'follow_request' && notification.related_id === content.request_id)
+            notification.id !== content.notification_id
           )
         );
         

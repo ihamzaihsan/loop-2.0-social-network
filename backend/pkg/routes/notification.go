@@ -258,8 +258,14 @@ func HandleNotificationAction(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("[INFO] Action result: %+v", result)
 
-	// Mark notification as read after processing action
-	query.MarkNotificationAsRead(notificationID, userID)
+	// If the action was successful, delete the notification
+	if result["success"].(bool) {
+		err := query.DeleteNotification(notificationID, userID)
+		if err != nil {
+			log.Printf("[ERROR] Failed to delete notification after action: %v", err)
+			// Don't return error to client since the main action was successful
+		}
+	}
 
 	// Return response
 	w.Header().Set("Content-Type", "application/json")

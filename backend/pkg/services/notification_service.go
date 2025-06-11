@@ -11,7 +11,7 @@ import (
 // CreateNotification creates a new notification and sends it via WebSocket if the user is online
 func CreateNotification(userID, fromUserID int, notificationType string, relatedID int, content string) (int64, error) {
 	log.Printf("[INFO] Creating notification: userID=%d, fromUserID=%d, type=%s, relatedID=%d", userID, fromUserID, notificationType, relatedID)
-	
+
 	notificationID, err := query.CreateNotification(userID, fromUserID, notificationType, relatedID, content)
 	if err != nil {
 		log.Printf("[ERROR] Failed to create notification in database: %v", err)
@@ -108,6 +108,11 @@ func DeleteNotification(notificationID, userID int) error {
 	return query.DeleteNotification(notificationID, userID)
 }
 
+// DeleteNotificationAfterAction deletes a notification after it has been acted upon
+func DeleteNotificationAfterAction(notificationID, userID int) error {
+	return query.DeleteNotification(notificationID, userID)
+}
+
 // Helper function to get available actions based on notification type
 func getNotificationActions(notificationType string) []string {
 	switch notificationType {
@@ -118,7 +123,7 @@ func getNotificationActions(notificationType string) []string {
 	case "group_join_request":
 		return []string{"accept", "reject"}
 	case "group_event":
-		return []string{} 
+		return []string{}
 	default:
 		return []string{}
 	}

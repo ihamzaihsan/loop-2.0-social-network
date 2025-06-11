@@ -259,16 +259,36 @@ func AcceptFollowRequest(requestID int, followedID uint) (uint, error) {
 			},
 		})
 
-		// Also send a "follow_request_handled" message to followed user to update UI
-		websocket.SendToUser(int(followedID), websocket.Message{
-			Type: "follow_request_handled",
-			Content: map[string]interface{}{
+		// Get the notification ID for the original follow request
+		var originalNotificationID int
+		err = db.DBInstance.DB.QueryRow(`
+			SELECT id FROM notifications 
+			WHERE type = 'follow_request' 
+			AND related_id = ? 
+			AND user_id = ?
+		`, requestID, followedID).Scan(&originalNotificationID)
+
+		if err == nil {
+			// Delete the original follow request notification
+			_, err = db.DBInstance.DB.Exec(`
+				DELETE FROM notifications 
+				WHERE id = ?
+			`, originalNotificationID)
+			if err != nil {
+				log.Printf("Error deleting original notification: %v", err)
+			}
+
+			// Also send a "follow_request_handled" message to followed user to update UI
+			websocket.SendToUser(int(followedID), websocket.Message{
+				Type: "follow_request_handled",
+				Content: map[string]interface{}{
 				"request_id":    requestID,
 				"follower_id":   followerID,
 				"action":        "accept",
 				"follower_name": followerName,
-			},
-		})
+				},
+			})
+		}
 	}
 
 	return followerID, nil
@@ -302,7 +322,7 @@ func RejectFollowRequest(requestID int, followedID uint) error {
 	// Get user names for notification purposes
 	var followerFirstName, followerLastName string
 	var followedFirstName, followedLastName string
-	
+
 	// Get follower's name
 	err = db.DBInstance.DB.QueryRow(`
 		SELECT first_name, last_name FROM users WHERE id = ?
@@ -310,7 +330,7 @@ func RejectFollowRequest(requestID int, followedID uint) error {
 	if err != nil {
 		log.Printf("Error getting follower's name: %v", err)
 	}
-	
+
 	// Get followed user's name
 	err = db.DBInstance.DB.QueryRow(`
 		SELECT first_name, last_name FROM users WHERE id = ?
@@ -335,7 +355,7 @@ func RejectFollowRequest(requestID int, followedID uint) error {
 	} else {
 		// Get notification ID
 		notificationID, _ := notificationRes.LastInsertId()
-		
+
 		// Send WebSocket notification to follower
 		websocket.SendToUser(int(followerID), websocket.Message{
 			Type: "notification",
@@ -351,17 +371,37 @@ func RejectFollowRequest(requestID int, followedID uint) error {
 				"created_at": time.Now().Format(time.RFC3339),
 			},
 		})
-		
-		// Also send a "follow_request_handled" message to update the UI
-		websocket.SendToUser(int(followedID), websocket.Message{
-			Type: "follow_request_handled",
-			Content: map[string]interface{}{
+
+		// Get the notification ID for the original follow request
+		var originalNotificationID int
+		err = db.DBInstance.DB.QueryRow(`
+			SELECT id FROM notifications 
+			WHERE type = 'follow_request' 
+			AND related_id = ? 
+			AND user_id = ?
+		`, requestID, followedID).Scan(&originalNotificationID)
+
+		if err == nil {
+			// Delete the original follow request notification
+			_, err = db.DBInstance.DB.Exec(`
+				DELETE FROM notifications 
+				WHERE id = ?
+			`, originalNotificationID)
+			if err != nil {
+				log.Printf("Error deleting original notification: %v", err)
+			}
+
+			// Also send a "follow_request_handled" message to update the UI
+			websocket.SendToUser(int(followedID), websocket.Message{
+				Type: "follow_request_handled",
+				Content: map[string]interface{}{
 				"request_id": requestID,
 				"follower_id": followerID,
 				"action": "reject",
 				"follower_name": followerName,
-			},
-		})
+				},
+			})
+		}
 	}
 
 	return nil
