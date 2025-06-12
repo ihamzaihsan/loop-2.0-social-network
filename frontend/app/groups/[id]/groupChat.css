@@ -1110,8 +1110,7 @@
 }
 
 /* Loading and error states */
-.loading-message,
-.error-message {
+.loading-message {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1122,8 +1121,15 @@
   text-align: center;
 }
 
-.error-message {
+.page-error-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  font-size: 16px;
   color: #c53030;
+  padding: 0 20px;
+  text-align: center;
 }
 
 /* Responsive styles */

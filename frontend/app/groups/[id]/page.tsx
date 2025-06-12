@@ -553,18 +553,22 @@ const handleGroupImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) =>
                 }),
             })
 
+            const data = await response.json()
+
             if (response.ok) {
                 setInviteSuccess('Invitations sent successfully!')
                 setSelectedUsers([])
-                
-                // Don't send WebSocket update here - it's already handled by the backend
                 
                 setTimeout(() => {
                     setShowInviteModal(false)
                 }, 1500)
             } else {
-                const errorData = await response.json()
-                setInviteError(errorData.error || 'Failed to send invitations')
+                // Handle specific error cases
+                if (response.status === 409) {
+                    setInviteError(data.error || 'Failed to send invitations')
+                } else {
+                    setInviteError('An error occurred while sending invitations')
+                }
             }
         } catch (error) {
             console.error('Error sending invitations:', error)
@@ -922,7 +926,7 @@ const handleCreateComment = async (postId: number) => {
             <div className="groups-page">
                 <Sidebar activePage="groups" />
                 <div className="group-chat-container">
-                    <div className="error-message">{error}</div>
+                    <div className="page-error-message">{error}</div>
                 </div>
             </div>
         )
