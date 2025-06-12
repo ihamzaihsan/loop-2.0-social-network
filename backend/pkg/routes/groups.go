@@ -54,6 +54,11 @@ func CreateGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if req.Description == "" {
+		http.Error(w, "Group description is required", http.StatusBadRequest)
+		return
+	}
+
 	log.Printf("[INFO] Creating group with title: %s, description: %s, userID: %d", req.Title, req.Description, userID)
 
 	// Create group using service
@@ -336,17 +341,17 @@ func HandleGroupMembershipRequest(w http.ResponseWriter, r *http.Request) {
 			if err == nil {
 				// Get active members count
 				activeCount := len(members)
-				
+
 				// Update group member count
 				group.MemberCount = activeCount
 
 				// Create update message
 				updateData := map[string]interface{}{
-					"group_id":     req.GroupID,
-					"action":       "member_joined",
-					"member_count": activeCount,
-					"members":      members,
-					"group":        group,
+					"group_id":      req.GroupID,
+					"action":        "member_joined",
+					"member_count":  activeCount,
+					"members":       members,
+					"group":         group,
 					"new_member_id": targetUserID,
 				}
 

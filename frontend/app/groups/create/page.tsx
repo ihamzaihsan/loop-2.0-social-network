@@ -13,7 +13,7 @@ export default function CreateGroupPage() {
     const router = useRouter()
 
     interface CreateGroupResponse {
-        id: string
+        group_id: string
     }
 
     const handleSubmit = async (e: { preventDefault: () => void }) => {
@@ -46,7 +46,7 @@ export default function CreateGroupPage() {
             if (response.ok) {
                 try {
                     const data = JSON.parse(responseText) as CreateGroupResponse
-                    router.push(`/groups/${data.id}`)
+                    router.push(`/groups/${data.group_id}`)
                 } catch (parseError) {
                     console.error('Error parsing JSON response:', parseError)
                     setError('Received invalid response from server')
