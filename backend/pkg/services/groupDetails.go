@@ -31,8 +31,8 @@ func GetGroupDetailsService(groupID, userID int) (map[string]interface{}, error)
 		return result, nil
 	}
 
-	// Get members
-	members, err := query.GetGroupMembers(groupID)
+	// Get active members only
+	members, err := query.GetActiveGroupMembers(groupID)
 	if err != nil {
 		log.Printf("[ERROR] Failed to get group members: %v", err)
 	} else {

@@ -32,13 +32,29 @@ func InviteToGroupService(groupID, inviterID int, userIDs []int) error {
 	}
 	inviterName := inviterFirstName + " " + inviterLastName
 
+	// Track successful and failed invitations
+	var successfulInvites []int
+	var alreadyInvited []int
+	var alreadyMembers []int
+
 	// Invite each user
 	for _, inviteeID := range userIDs {
 		err := query.InviteUserToGroup(groupID, inviterID, inviteeID)
 		if err != nil {
-			log.Printf("[ERROR] Failed to invite user %d to group %d: %v", inviteeID, groupID, err)
-			continue
+			switch err {
+			case query.ErrUserAlreadyInvited:
+				alreadyInvited = append(alreadyInvited, inviteeID)
+				continue
+			case query.ErrUserAlreadyMember:
+				alreadyMembers = append(alreadyMembers, inviteeID)
+				continue
+			default:
+				log.Printf("[ERROR] Failed to invite user %d to group %d: %v", inviteeID, groupID, err)
+				continue
+			}
 		}
+
+		successfulInvites = append(successfulInvites, inviteeID)
 
 		// Create notification
 		notificationContent := inviterName + " invited you to join the group: " + group.Title
@@ -69,6 +85,18 @@ func InviteToGroupService(groupID, inviterID int, userIDs []int) error {
 				"actions":      []string{"accept", "reject"},
 			},
 		})
+	}
+
+	// If no successful invites and all users were either already invited or members,
+	// return an error to inform the user
+	if len(successfulInvites) == 0 && (len(alreadyInvited) > 0 || len(alreadyMembers) > 0) {
+		if len(alreadyInvited) > 0 && len(alreadyMembers) > 0 {
+			return sql.ErrNoRows // This will be handled by the route to show appropriate message
+		} else if len(alreadyInvited) > 0 {
+			return query.ErrUserAlreadyInvited
+		} else {
+			return query.ErrUserAlreadyMember
+		}
 	}
 
 	return nil

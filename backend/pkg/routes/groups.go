@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -51,11 +52,6 @@ func CreateGroup(w http.ResponseWriter, r *http.Request) {
 	// Validate request
 	if req.Title == "" {
 		http.Error(w, "Group title is required", http.StatusBadRequest)
-		return
-	}
-
-	if req.Description == "" {
-		http.Error(w, "Group description is required", http.StatusBadRequest)
 		return
 	}
 
@@ -203,8 +199,32 @@ func InviteToGroup(w http.ResponseWriter, r *http.Request) {
 	// Invite users using service
 	err = GroupServiceImpl.InviteToGroup(req.GroupID, userID, req.UserIDs)
 	if err != nil {
-		http.Error(w, "Failed to send invitations", http.StatusInternalServerError)
-		return
+		switch err {
+		case query.ErrUserAlreadyInvited:
+			w.WriteHeader(http.StatusConflict)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": false,
+				"error":   "One or more users already have pending invitations",
+			})
+			return
+		case query.ErrUserAlreadyMember:
+			w.WriteHeader(http.StatusConflict)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": false,
+				"error":   "One or more users are already members of the group",
+			})
+			return
+		case sql.ErrNoRows:
+			w.WriteHeader(http.StatusConflict)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": false,
+				"error":   "All selected users either already have pending invitations or are already members",
+			})
+			return
+		default:
+			http.Error(w, "Failed to send invitations", http.StatusInternalServerError)
+			return
+		}
 	}
 
 	// Return response
