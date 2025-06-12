@@ -55,6 +55,10 @@ func CreateGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if req.Description == "" {
+		http.Error(w, "Group description is required", http.StatusBadRequest)
+		return
+	}
 	log.Printf("[INFO] Creating group with title: %s, description: %s, userID: %d", req.Title, req.Description, userID)
 
 	// Create group using service
