@@ -136,11 +136,7 @@ export default function Register() {
   return (
     <div className="register-container">
       <div className="register-form-wrapper">
-        <div className="nav-buttons">
-          <Link href="/">
-            <button className="back-button">Back to Home</button>
-          </Link>
-        </div>
+    
 
         <h2 className="form-title">Create Account</h2>
         

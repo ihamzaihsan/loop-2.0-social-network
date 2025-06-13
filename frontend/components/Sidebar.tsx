@@ -28,7 +28,7 @@ export default function Sidebar({ activePage }: { activePage: string }) {
     return (
         <div className="sidebar">
             <div className="sidebar-logo">
-                <h2>SN</h2>
+                <h2>SOCIAL NETWORK</h2>
             </div>
             <nav className="sidebar-nav">
                 <Link href="/home">

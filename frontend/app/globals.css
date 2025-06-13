@@ -6,7 +6,7 @@
   --accent-color: #f59e0b;
   --background-light: #f8fafc;
   --background-card: #ffffff;
-  --text-primary: #1f2937;
+  --text-primary: #ffffff;
   --text-secondary: #6b7280;
   --text-muted: #9ca3af;
   --border-light: #e5e7eb;
@@ -53,7 +53,6 @@ body {
   overflow-x: hidden;
 }
 
-
 body::before {
   content: '';
   position: fixed;
@@ -61,67 +60,54 @@ body::before {
   left: 0;
   width: 200%;
   height: 100%;
-  background: linear-gradient(
-    45deg,
-    #f8fafc 0%,
-    #f1f5f9 10%,
-    #e2e8f0 20%,
-    #cbd5e1 30%,
-    #94a3b8 40%,
-    #64748b 50%,
-    #475569 60%,
-    #334155 70%,
-    #1e293b 80%,
-    #0f172a 90%,
+  background: radial-gradient(
+    circle at center,
+    #0f172a 0%,
+    #1e293b 25%,
+    #020617 50%,
+    #0f172a 75%,
     #020617 100%
   );
-  background-size: 400% 400%;
-  opacity: 0.1;
+  opacity: 0.9;
   z-index: -2;
-  animation: waveFlow 20s ease-in-out infinite;
+  animation: cosmicPulse 15s ease-in-out infinite;
 }
 
-/* Additional wave layer for more depth */
 body::after {
   content: '';
   position: fixed;
   top: 0;
   left: 0;
-  width: 200%;
+  width: 100%;
   height: 100%;
-  background: radial-gradient(
-    ellipse at center,
-    transparent 0%,
-    rgba(148, 163, 184, 0.1) 25%,
-    rgba(100, 116, 139, 0.15) 50%,
-    rgba(71, 85, 105, 0.1) 75%,
-    transparent 100%
-  );
-  background-size: 300% 300%;
+  background-image: 
+    radial-gradient(1px 1px at 10% 10%, rgba(255, 255, 255, 0.1) 0%, transparent 100%),
+    radial-gradient(1px 1px at 20% 20%, rgba(255, 255, 255, 0.15) 0%, transparent 100%),
+    radial-gradient(2px 2px at 30% 30%, rgba(255, 255, 255, 0.1) 0%, transparent 100%),
+    radial-gradient(2px 2px at 40% 40%, rgba(255, 255, 255, 0.12) 0%, transparent 100%),
+    radial-gradient(2px 2px at 50% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 100%);
+  background-size: 550px 550px;
   z-index: -1;
-  animation: waveFlow 25s ease-in-out infinite reverse;
+  animation: starField 60s linear infinite;
 }
 
-@keyframes waveFlow {
-  0% {
-    background-position: 0% 0%;
-    transform: translateX(0) rotate(0deg);
-  }
-  25% {
-    background-position: 100% 50%;
-    transform: translateX(-10%) rotate(1deg);
+@keyframes cosmicPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.9;
   }
   50% {
-    background-position: 50% 100%;
-    transform: translateX(-5%) rotate(-1deg);
+    transform: scale(1.1);
+    opacity: 0.7;
   }
-  75% {
-    background-position: 0% 50%;
-    transform: translateX(-15%) rotate(0.5deg);
+}
+
+@keyframes starField {
+  0% {
+    transform: rotate(0deg) translateZ(0);
   }
   100% {
-    background-position: 0% 0%;
-    transform: translateX(0) rotate(0deg);
+    transform: rotate(360deg) translateZ(0);
   }
 }
 
@@ -176,7 +162,6 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
-/* Floating particles effect */
 .home-container::before {
   content: '';
   position: absolute;
@@ -184,54 +169,70 @@ h1, h2, h3, h4, h5, h6 {
   left: 0;
   right: 0;
   bottom: 0;
-  background-image: 
-    radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 40% 40%, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
-  animation: floatingParticles 20s ease-in-out infinite;
+  background: 
+    radial-gradient(circle at 20% 20%, var(--bg-color-1) 0%, transparent 40%),
+    radial-gradient(circle at 80% 80%, var(--bg-color-2) 0%, transparent 40%),
+    radial-gradient(circle at 50% 50%, var(--bg-color-3) 0%, transparent 50%);
+  opacity: 0.1;
+  animation: galaxySwirl 5s ease-in-out infinite;
 }
 
-@keyframes floatingParticles {
+@keyframes galaxySwirl {
   0%, 100% {
-    transform: translateY(0px) rotate(0deg);
-    opacity: 1;
+    transform: rotate(0deg) scale(1);
   }
-  33% {
-    transform: translateY(-30px) rotate(120deg);
-    opacity: 0.8;
-  }
-  66% {
-    transform: translateY(-60px) rotate(240deg);
-    opacity: 0.6;
+  50% {
+    transform: rotate(180deg) scale(1.2);
   }
 }
 
-/* Subtle wave animation overlay */
-.home-container::after {
+.home-page {
+  position: relative;
+  overflow: hidden;
+}
+
+.home-page::before {
   content: '';
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(
-    45deg,
-    transparent 30%,
-    rgba(255, 255, 255, 0.05) 50%,
-    transparent 70%
+  width: 200%;
+  height: 100%;
+  background: radial-gradient(
+    circle at center,
+    #0f172a 0%,
+    #1e293b 25%,
+    #020617 50%,
+    #0f172a 75%,
+    #020617 100%
   );
-  background-size: 200% 200%;
-  animation: waveMove 12s linear infinite;
-  pointer-events: none;
+  opacity: 0.9;
+  z-index: -2;
+  animation: cosmicPulse 15s ease-in-out infinite;
 }
 
-@keyframes waveMove {
-  0% {
-    background-position: -200% -200%;
-  }
-  100% {
-    background-position: 200% 200%;
-  }
+.home-page::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    radial-gradient(1px 1px at 10% 10%, rgba(255, 255, 255, 0.1) 0%, transparent 100%),
+    radial-gradient(1px 1px at 20% 20%, rgba(255, 255, 255, 0.15) 0%, transparent 100%),
+    radial-gradient(2px 2px at 30% 30%, rgba(255, 255, 255, 0.1) 0%, transparent 100%),
+    radial-gradient(2px 2px at 40% 40%, rgba(255, 255, 255, 0.12) 0%, transparent 100%),
+    radial-gradient(2px 2px at 50% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 100%);
+  background-size: 550px 550px;
+  z-index: -1;
+  animation: starField 60s linear infinite;
+}
+
+/* Ensure content remains visible */
+.main-content {
+  position: relative;
+  z-index: 1;
 }
 
 .content-wrapper {
@@ -361,7 +362,7 @@ h1, h2, h3, h4, h5, h6 {
 
 
 .card, .feed-card {
-  background: var(--background-card);
+  background: rgba(255, 255, 255, 0.95);
   border-radius: var(--radius-lg);
   padding: 1.5rem;
   box-shadow: var(--shadow-sm);
@@ -469,7 +470,7 @@ input::placeholder, textarea::placeholder {
 }
 
 .sidebar-logo h2 {
-  font-size: 2rem;
+  font-size: 1.8rem;
   font-weight: 800;
   background: linear-gradient(135deg, var(--bg-color-1), var(--bg-color-3));
   -webkit-background-clip: text;
@@ -652,14 +653,14 @@ input::placeholder, textarea::placeholder {
 .home-page, .profile-page, .chat-page, .group-chat-container {
   padding-left: var(--sidebar-width); /* Use consistent sidebar width */
   min-height: 100vh;
-  background: var(--gradient-background);
+
 }
 
 Adjust main content
 .home-page, .profile-page {
   padding-left: 260px;
   min-height: 100vh;
-  background: var(--gradient-background);
+
 }
 
 .main-content {

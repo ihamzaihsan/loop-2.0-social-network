@@ -1,4 +1,3 @@
-
 .header {
   background-color: white;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -67,11 +66,51 @@
   margin: 0 auto;
 }
 
-.feed-card {
-  grid-column: 1;
-  min-height: 500px;
-  width: 100%;
+
+.feed-card::before,
+.feed-card::after {
+  content: '';
+  position: absolute;
+  width: 300%;
+  height: 300%;
+  top: -100%;
+  left: -100%;
+  pointer-events: none;
+  background: 
+    /* Layer 1 - Large stars */
+    radial-gradient(6px 6px at 15% 15%, #ffffff 100%, transparent),
+    radial-gradient(6px 6px at 35% 25%, #ffd700 100%, transparent),
+    radial-gradient(6px 6px at 55% 35%, #4169e1 100%, transparent),
+    /* Layer 2 - Medium stars */
+    radial-gradient(4px 4px at 75% 45%, #e1e1e1 100%, transparent),
+    radial-gradient(4px 4px at 85% 55%, #87ceeb 100%, transparent),
+    radial-gradient(4px 4px at 95% 65%, #f0f8ff 100%, transparent),
+    /* Layer 3 - Small stars */
+    radial-gradient(3px 3px at 25% 75%, #ffffff 100%, transparent),
+    radial-gradient(3px 3px at 45% 85%, #ffd700 100%, transparent),
+    radial-gradient(3px 3px at 65% 95%, #4169e1 100%, transparent);
+  z-index: -1;
+  opacity: 0.7;
+  animation: starFieldRotate 30s linear infinite;
+  transform-origin: center center;
 }
+
+@keyframes starFieldRotate {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    transform: rotate(180deg) scale(1.2);
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+  }
+}
+
+.feed-card:hover::before {
+  animation-duration: 20s;
+}
+
 
 .friends-card {
   grid-column: 2;

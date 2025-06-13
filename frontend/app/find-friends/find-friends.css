@@ -1,7 +1,6 @@
 
 .find-friends-page {
   min-height: 100vh;
-  background-color: var(--background-light);
   padding-left: var(--sidebar-width); 
 }
 
@@ -176,7 +175,7 @@
 
 .no-requests-message {
   text-align: center;
-  color: #6b7280;
+  color: #ffffff;
   padding: 2rem 0;
 }
 

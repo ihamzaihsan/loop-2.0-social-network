@@ -66,11 +66,7 @@ export default function Login() {
   return (
     <div className="login-container">
       <div className="login-form-wrapper">
-        <div className="nav-buttons">
-          <Link href="/">
-            <button className="back-button">Back to Home</button>
-          </Link>
-        </div>
+      
 
         <h2 className="form-title">Login</h2>
         
