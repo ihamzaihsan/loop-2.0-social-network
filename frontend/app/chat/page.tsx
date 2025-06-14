@@ -6,6 +6,7 @@ import Sidebar from '../../components/Sidebar'
 import './chat.css'
 import { WebSocketClient } from '../webscoket/websocket'
 import { fetchFollowedUsers, fetchChatContacts, fetchMessages, sendMessage } from './messageHandlers'
+
 interface User {
   id: number
   followedID?: number  // Add this optional property
@@ -56,6 +57,42 @@ export default function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const [wsClient, setWsClient] = useState<WebSocketClient | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  
+  // Add state for image modal
+  const [showImageModal, setShowImageModal] = useState(false)
+  const [selectedImage, setSelectedImage] = useState<string>('')
+
+  // Add function to handle image click
+  const handleImageClick = (imageSrc: string) => {
+    setSelectedImage(imageSrc)
+    setShowImageModal(true)
+  }
+
+  // Add function to close modal
+  const closeImageModal = () => {
+    setShowImageModal(false)
+    setSelectedImage('')
+  }
+
+  // Add keyboard event listener for ESC key
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && showImageModal) {
+        closeImageModal()
+      }
+    }
+
+    if (showImageModal) {
+      document.addEventListener('keydown', handleKeyDown)
+      // Prevent body scroll when modal is open
+      document.body.style.overflow = 'hidden'
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      document.body.style.overflow = 'unset'
+    }
+  }, [showImageModal])
 
       useEffect(() => {
         const client = WebSocketClient.getInstance();
@@ -214,7 +251,6 @@ export default function Chat() {
 
     fetchUserData();
   }, [router]);
-
 
 
   // Handle selecting a contact
@@ -572,30 +608,35 @@ export default function Chat() {
                 {messages.length > 0 ? (
                   <div className="messages-list">
                    {messages.map(message => (
-  <div 
-    key={message.id} 
-    className={`message ${message.sender_id === currentUser?.id ? 'sent' : 'received'}`}
-  >
-    <div className="message-content">
-      {typeof message.content === 'string' && message.content.match(/\.(jpeg|jpg|gif|png)$/i) ? (
-        // If the content is an image URL
-        <img src={`http://localhost:8080/${message.content}`} alt="User uploaded content" />
-      ) : typeof message.content === 'number' ? (
-        // If the content is a number
-        <span>{message.content}</span>
-      ) : typeof message.content === 'string' ? (
-        // If the content is a word or text
-        <span>{message.content}</span>
-      ) : (
-        // Fallback for unsupported content types
-        <span>Unsupported content</span>
-      )}
-    </div>
-    <div className="message-time">
-      {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-    </div>
-  </div>
-))}
+                     <div 
+                       key={message.id} 
+                       className={`message ${message.sender_id === currentUser?.id ? 'sent' : 'received'}`}
+                     >
+                       <div className="message-content">
+                         {typeof message.content === 'string' && message.content.match(/\.(jpeg|jpg|gif|png)$/i) ? (
+                           // If the content is an image URL - make it clickable
+                           <img 
+                             src={`http://localhost:8080/${message.content}`} 
+                             alt="User uploaded content" 
+                             onClick={() => handleImageClick(`http://localhost:8080/${message.content}`)}
+                             style={{ cursor: 'pointer' }}
+                           />
+                         ) : typeof message.content === 'number' ? (
+                           // If the content is a number
+                           <span>{message.content}</span>
+                         ) : typeof message.content === 'string' ? (
+                           // If the content is a word or text
+                           <span>{message.content}</span>
+                         ) : (
+                           // Fallback for unsupported content types
+                           <span>Unsupported content</span>
+                         )}
+                       </div>
+                       <div className="message-time">
+                         {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                       </div>
+                     </div>
+                   ))}
 
                     <div ref={messagesEndRef} />
                   </div>
@@ -655,6 +696,28 @@ export default function Chat() {
           )}
         </div>
       </div>
+
+      {/* Image Modal */}
+      {showImageModal && (
+        <div className="image-modal" onClick={closeImageModal}>
+          <div className="image-modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="image-modal-close" onClick={closeImageModal}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+            <img 
+              src={selectedImage} 
+              alt="Full size image" 
+              className="modal-image"
+            />
+            <div className="image-modal-info">
+              <p>Click outside or press ESC to close</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
-};
+}
