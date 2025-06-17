@@ -3,6 +3,7 @@ package routes
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"socialNetwork/pkg/auth"
@@ -299,6 +300,71 @@ func RequestToJoinGroup(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to request joining group", http.StatusInternalServerError)
 		return
 	}
+
+	// CREATE NOTIFICATION FOR GROUP OWNER
+	go func() {
+		// Get group details to find the creator
+		group, err := query.GetGroupByID(req.GroupID, userID)
+		if err != nil {
+			log.Printf("[ERROR] Failed to get group details for notification: %v", err)
+			return
+		}
+
+		log.Printf("[INFO] Creating join request notification for group owner %d", group.CreatorID)
+
+		// Create notification directly using query package
+		notificationID, err := query.CreateNotification(
+			group.CreatorID, // recipient (group owner)
+			userID,          // sender (user requesting to join)
+			"group_join_request",
+			req.GroupID, // related_id (group ID)
+			fmt.Sprintf("User wants to join your group '%s'", group.Title),
+		)
+
+		if err != nil {
+			log.Printf("[ERROR] Failed to create join request notification: %v", err)
+			return
+		}
+
+		log.Printf("[INFO] Created join request notification with ID: %d", notificationID)
+
+		// Send real-time WebSocket notification
+		// Get sender details for rich notification
+		var senderFirstName, senderLastName string
+		err = query.GetUserNames(userID, &senderFirstName, &senderLastName)
+		if err != nil {
+			log.Printf("[ERROR] Failed to get sender name: %v", err)
+			senderFirstName = "Someone"
+			senderLastName = ""
+		}
+
+		// Create notification object for WebSocket
+		notification := map[string]interface{}{
+			"id":           notificationID,
+			"user_id":      group.CreatorID,
+			"from_user_id": userID,
+			"type":         "group_join_request",
+			"related_id":   req.GroupID,
+			"content":      fmt.Sprintf("User wants to join your group '%s'", group.Title),
+			"status":       "unread",
+			"sender_name":  fmt.Sprintf("%s %s", senderFirstName, senderLastName),
+			"group_title":  group.Title,
+			"actions":      []string{"accept", "reject"},
+			"created_at":   time.Now(),
+		}
+
+		// Send WebSocket notification to group owner
+		success := SendToUser(group.CreatorID, Message{
+			Type:    "notification",
+			Content: notification,
+		})
+
+		if success {
+			log.Printf("[INFO] Sent real-time notification to group owner %d", group.CreatorID)
+		} else {
+			log.Printf("[INFO] Group owner %d is offline, notification stored for later", group.CreatorID)
+		}
+	}()
 
 	// Return response
 	w.Header().Set("Content-Type", "application/json")
