@@ -4,6 +4,7 @@ import './login.css'
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { redirectBasedOnSession } from '../../utils/session'
+import { WebSocketClient } from '../webscoket/websocket'
 
 export default function Login() {
   const router = useRouter()
@@ -48,6 +49,17 @@ export default function Login() {
         if (data.token) {
           localStorage.setItem('sessionToken', data.token);
         }
+        
+        // Initialize WebSocket connection immediately after successful login
+        console.log('Login successful, initializing WebSocket connection...');
+        const wsClient = WebSocketClient.getInstance();
+        
+        // Small delay to ensure token is properly stored
+        setTimeout(() => {
+          wsClient.connect();
+          console.log('WebSocket connection initiated after login');
+        }, 100);
+        
         router.push('/home')
       } else {
         // Display the error message from the server

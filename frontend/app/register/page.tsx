@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { redirectBasedOnSession } from '../../utils/session'
+import { WebSocketClient } from '../webscoket/websocket'
 
 export default function Register() {
   const router = useRouter()
@@ -77,6 +78,16 @@ export default function Register() {
         })
   
         if (response.ok) {
+          // Initialize WebSocket connection immediately after successful registration
+          console.log('Registration successful, initializing WebSocket connection...');
+          const wsClient = WebSocketClient.getInstance();
+          
+          // Small delay to ensure session is properly established
+          setTimeout(() => {
+            wsClient.connect();
+            console.log('WebSocket connection initiated after registration');
+          }, 100);
+          
           router.push('/home')
         } else {
           const errorText = await response.text()
@@ -110,6 +121,16 @@ export default function Register() {
         })
   
         if (response.ok) {
+          // Initialize WebSocket connection immediately after successful registration
+          console.log('Registration successful, initializing WebSocket connection...');
+          const wsClient = WebSocketClient.getInstance();
+          
+          // Small delay to ensure session is properly established
+          setTimeout(() => {
+            wsClient.connect();
+            console.log('WebSocket connection initiated after registration');
+          }, 100);
+          
           router.push('/home')
         } else {
           const errorText = await response.text()

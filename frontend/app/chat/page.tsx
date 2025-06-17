@@ -154,6 +154,7 @@ export default function Chat() {
               const contactIndex = updatedContacts.findIndex(c => c.id === content.sender_id);
           
               if (contactIndex >= 0) {
+                // Update existing contact
                 updatedContacts[contactIndex] = {
                   ...updatedContacts[contactIndex],
                   lastMessage: content.type === 'image' || content.content.match(/\.(jpeg|jpg|gif|png)$/i) 
@@ -162,28 +163,74 @@ export default function Chat() {
                   lastMessageTime: content.created_at || new Date().toISOString(),
                   unreadCount: (updatedContacts[contactIndex].unreadCount || 0) + 1
                 };
+                
+                return updatedContacts;
               } else if (content.sender_id) {
                 // If this is a new contact, fetch their info and add them
-                fetch(`http://localhost:8080/users?id=${content.sender_id}`, {
+                fetch(`http://localhost:8080/user/info?id=${content.sender_id}`, {
                   credentials: 'include'
                 })
-                .then(res => res.json())
+                .then(res => {
+                  if (!res.ok) {
+                    throw new Error(`HTTP error! status: ${res.status}`);
+                  }
+                  return res.json();
+                })
                 .then(data => {
                   if (data.success && data.user) {
                     const newContact = {
                       id: content.sender_id,
-                      firstName: data.user.firstName || data.user.first_name,
-                      lastName: data.user.lastName || data.user.last_name,
+                      firstName: data.user.firstName,
+                      lastName: data.user.lastName,
                       nickname: data.user.nickname,
                       avatar: data.user.avatar,
                       lastMessage: content.type === 'image' ? '📷 Image' : content.content || "",
                       lastMessageTime: content.created_at || new Date().toISOString(),
                       unreadCount: 1
                     };
-                    setContacts(prev => [...prev, newContact]);
+                    
+                    setContacts(prevContacts => {
+                      // Check if contact was already added by another async operation
+                      const existingIndex = prevContacts.findIndex(c => c.id === content.sender_id);
+                      if (existingIndex >= 0) {
+                        // Update existing contact
+                        const updated = [...prevContacts];
+                        updated[existingIndex] = {
+                          ...updated[existingIndex],
+                          lastMessage: newContact.lastMessage,
+                          lastMessageTime: newContact.lastMessageTime,
+                          unreadCount: (updated[existingIndex].unreadCount || 0) + 1
+                        };
+                        return updated;
+                      } else {
+                        // Add new contact
+                        return [newContact, ...prevContacts];
+                      }
+                    });
                   }
                 })
-                .catch(err => console.error('Error fetching new contact info:', err));
+                .catch(err => {
+                  console.error('Error fetching new contact info:', err);
+                  // Fallback: create contact with basic info from the message
+                  const fallbackContact = {
+                    id: content.sender_id,
+                    firstName: typeof content.sender === 'string' ? content.sender.split(' ')[0] : "Unknown",
+                    lastName: typeof content.sender === 'string' ? (content.sender.split(' ')[1] || "") : "User",
+                    lastMessage: content.type === 'image' ? '📷 Image' : content.content || "",
+                    lastMessageTime: content.created_at || new Date().toISOString(),
+                    unreadCount: 1
+                  };
+                  
+                  setContacts(prevContacts => {
+                    const existingIndex = prevContacts.findIndex(c => c.id === content.sender_id);
+                    if (existingIndex >= 0) {
+                      return prevContacts;
+                    }
+                    return [fallbackContact, ...prevContacts];
+                  });
+                });
+                
+                return updatedContacts;
               }
           
               return updatedContacts;
