@@ -629,6 +629,7 @@
   margin-top: 16px;
   border-top: 1px solid #e2e8f0;
   padding-top: 16px;
+  color: black;
 }
 
 .comment-input {
@@ -636,6 +637,7 @@
   padding: 12px;
   border: 1px solid #e2e8f0;
   border-radius: 6px;
+  color: black;
   resize: none;
   font-family: inherit;
   font-size: 14px;

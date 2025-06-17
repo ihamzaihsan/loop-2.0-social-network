@@ -1,7 +1,10 @@
 .drawer {
-  position: absolute;
+  position: flex;
+   top: 30px;
+  left: var(--sidebar-width);
   top: calc(100% + 8px);
-  width: 380px;
+  width: 280px;
+  height: 140px;
   max-height: 500px;
   background-color: white;
   border-radius: 8px;

@@ -127,7 +127,7 @@ h1, h2, h3, h4, h5, h6 {
   line-height: 1.3;
   margin-bottom: 0.5em;
   font-weight: 600;
-  color: var(--text-primary);
+  color: black;
 }
 
 /* Animated Background for Home Page */
@@ -491,7 +491,7 @@ input::placeholder, textarea::placeholder {
 .sidebar-item {
   display: flex;
   align-items: center;
-  padding: 1rem 1.25rem;
+  padding: 1rem ;
   color: var(--text-secondary);
   font-weight: 500;
   border-radius: var(--radius-lg);
@@ -553,7 +553,7 @@ input::placeholder, textarea::placeholder {
 
 .sidebar-footer {
   margin-top: auto;
-  padding: 1.5rem 1rem;
+  padding: 1rem;
   border-top: 1px solid var(--border-light);
 }
 
@@ -569,7 +569,7 @@ input::placeholder, textarea::placeholder {
   color: #dc2626;
 }
 
-/* Enhanced Badge component */
+
 .badge {
   display: inline-flex;
   align-items: center;
@@ -582,7 +582,7 @@ input::placeholder, textarea::placeholder {
   box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);
 }
 
-/* Responsive adjustments */
+
 @media (max-width: 768px) {
   .sidebar {
     width: 70px;
