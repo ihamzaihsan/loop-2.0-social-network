@@ -8,6 +8,7 @@ import (
 	"socialNetwork/pkg/auth"
 	"socialNetwork/pkg/db"
 	"socialNetwork/pkg/utils"
+	"strconv"
 )
 
 type ChatContact struct {
@@ -243,4 +244,73 @@ func UploadChatImage(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(`{"success": true, "imageUrl": "` + imagePath + `"}`))
+}
+
+// GetUserInfo handles the request to get user information by ID
+func GetUserInfo(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Get the user ID from query parameters
+	userIDStr := r.URL.Query().Get("id")
+	if userIDStr == "" {
+		http.Error(w, "User ID is required", http.StatusBadRequest)
+		return
+	}
+
+	userID, err := strconv.Atoi(userIDStr)
+	if err != nil {
+		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		return
+	}
+
+	// Get the current user ID from the session for authorization
+	currentUserID, err := auth.GetUserID(r)
+	if err != nil || currentUserID == 0 {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Get user info from database
+	var user struct {
+		ID        int     `json:"id"`
+		FirstName string  `json:"firstName"`
+		LastName  string  `json:"lastName"`
+		Nickname  *string `json:"nickname,omitempty"`
+		Avatar    *string `json:"avatar,omitempty"`
+	}
+
+	var nickname, avatar sql.NullString
+	err = db.DBInstance.DB.QueryRow(`
+		SELECT id, first_name, last_name, nickname, avatar
+		FROM users
+		WHERE id = ?
+	`, userID).Scan(&user.ID, &user.FirstName, &user.LastName, &nickname, &avatar)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, "User not found", http.StatusNotFound)
+			return
+		}
+		log.Printf("[ERROR] Failed to get user info: %v", err)
+		http.Error(w, "Failed to get user info", http.StatusInternalServerError)
+		return
+	}
+
+	if nickname.Valid {
+		user.Nickname = &nickname.String
+	}
+
+	if avatar.Valid {
+		user.Avatar = &avatar.String
+	}
+
+	// Return the user info as JSON
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"user":    user,
+	})
 }

@@ -288,9 +288,15 @@ func handlePrivateMessage(userID int, content map[string]interface{}) {
 			"sender_id":   userID,
 			"receiver_id": receiverID,
 			"sender":      sender.FirstName + " " + sender.LastName,
-			"content":     messageContent,
-			"type":        "text",
-			"created_at":  time.Now(),
+			"sender_info": map[string]interface{}{
+				"id":         sender.ID,
+				"first_name": sender.FirstName,
+				"last_name":  sender.LastName,
+				"avatar":     sender.Avatar,
+			},
+			"content":    messageContent,
+			"type":       "text",
+			"created_at": time.Now(),
 		},
 	}
 

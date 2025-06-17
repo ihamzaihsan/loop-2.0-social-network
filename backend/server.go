@@ -84,6 +84,8 @@ func main() {
 	http.HandleFunc("/notifications/read-all", auth.CorsMiddleware(auth.AuthMiddleware(routes.MarkAllNotificationsAsRead)))
 	http.HandleFunc("/notifications/action", auth.CorsMiddleware(auth.AuthMiddleware(routes.HandleNotificationAction)))
 
+	http.HandleFunc("/user/info", auth.CorsMiddleware(auth.AuthMiddleware(routes.GetUserInfo)))
+
 	fmt.Println("Server is running on http://localhost:8080")
 	err = http.ListenAndServe(":8080", nil)
 	if err != nil {
