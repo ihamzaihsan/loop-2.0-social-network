@@ -670,6 +670,7 @@ background-color: #a7a7a7;
 
 .comment-content {
   font-size: 14px;
+  color: black;
   line-height: 1.4;
 }
 
@@ -685,6 +686,7 @@ background-color: #a7a7a7;
 .comment-input {
   flex: 1;
   min-width: 0;
+  color: black;
   margin-right: 10px;
 }
 

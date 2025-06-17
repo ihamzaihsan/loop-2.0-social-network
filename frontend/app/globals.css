@@ -229,7 +229,7 @@ h1, h2, h3, h4, h5, h6 {
   animation: starField 60s linear infinite;
 }
 
-/* Ensure content remains visible */
+
 .main-content {
   position: relative;
   z-index: 1;

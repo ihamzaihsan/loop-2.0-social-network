@@ -4,10 +4,6 @@
   background-color: #f5f5f5;
 }
 
-.main-content {
-  flex: 1;
-  padding: 2rem;
-}
 
 .edit-post-container {
   max-width: 800px;
@@ -15,6 +11,8 @@
 }
 
 .edit-post-card {
+  width: var(--sidebar-width);
+  width: 700px;
   background-color: white;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -36,6 +34,7 @@
 
 .form-group {
   display: flex;
+  color: black;
   flex-direction: column;
   gap: 0.5rem;
 }
@@ -48,6 +47,7 @@
   min-height: 150px;
   padding: 0.75rem;
   border: 1px solid #ddd;
+  color: black;
   border-radius: 4px;
   resize: vertical;
 }
@@ -56,7 +56,7 @@
   padding: 0.75rem;
   border: 1px solid #ddd;
   border-radius: 4px;
-  background-color: white;
+  background-color: rgb(146, 146, 146);
 }
 
 .current-image {
@@ -79,6 +79,7 @@
 .form-actions {
   display: flex;
   justify-content: flex-end;
+  color: black;
   gap: 1rem;
   margin-top: 1rem;
 }
