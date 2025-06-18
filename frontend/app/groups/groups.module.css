@@ -1,7 +1,7 @@
 .container {
   display: flex;
   min-height: 100vh;
-  background-color: #f5f7fb;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
 .groupsContainer {
@@ -9,108 +9,141 @@
   flex: 1;
   height: 100vh;
   overflow: hidden;
-  padding-left: 240px; /* Account for sidebar width */
+  padding-left: var(--sidebar-width);
+  max-width: 1400px;
+  margin: 0 auto;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  background: white;
 }
 
 .groupsSidebar {
-  width: 320px;
-  background-color: white;
-  border-right: 1px solid #e1e4e8;
+  width: 350px;
+  min-width: 350px;
+  background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
+  border-right: 1px solid #e2e8f0;
   display: flex;
   flex-direction: column;
   height: 100%;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  transition: width 0.3s ease;
+  position: relative;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
 }
 
 .groupsSidebarHeader {
+  width: 100%;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 18px;
-  border-bottom: 1px solid #e1e4e8;
-  background-color: #f8f9fa;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  position: relative;
+  z-index: 100;
+  min-height: 80px;
+  flex-shrink: 0;
+  overflow: visible;
 }
 
 .groupsSidebarHeader h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: white;
   margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-  color: #2d3748;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  flex: 1;
 }
 
 .newGroupButton {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background-color: #3182ce;
+  background: rgba(255, 255, 255, 0.2);
   color: white;
-  border: none;
-  border-radius: 6px;
-  padding: 8px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  padding: 8px 16px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  z-index: 101;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: 12px;
 }
 
 .newGroupButton:hover {
-  background-color: #2c5282;
+  background: rgba(255, 255, 255, 0.3);
   transform: translateY(-1px);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .groupsList {
   flex: 1;
   overflow-y: auto;
-  padding: 12px;
+  padding: 1rem;
+  background: transparent;
 }
 
 .groupItem {
   display: flex;
   align-items: center;
-  padding: 14px;
-  border-radius: 8px;
+  padding: 16px;
   cursor: pointer;
-  transition: all 0.2s ease;
-  margin-bottom: 8px;
-  background-color: white;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  position: relative;
+  border-radius: 12px;
+  margin: 4px 0;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid #f1f5f9;
 }
 
 .groupItem:hover {
-  background-color: #f7fafc;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.25);
 }
 
 .groupItem.active {
-  background-color: #ebf8ff;
-  border-left: 3px solid #3182ce;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+}
+
+.groupItem.active .groupName,
+.groupItem.active .groupDescription {
+  color: white;
+}
+
+.groupItem.active .memberCount {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .groupAvatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  margin-right: 14px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
   overflow: hidden;
-  background-color: #e2e8f0;
-  flex-shrink: 0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.avatarPlaceholder {
-  width: 100%;
-  height: 100%;
-  background-color: #3182ce;
-  color: white;
+  background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  margin-right: 16px;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 3px solid white;
+}
+
+.avatarPlaceholder {
   font-weight: bold;
+  font-size: 22px;
+  color: #64748b;
+  text-transform: uppercase;
 }
 
 .groupInfo {
@@ -119,29 +152,26 @@
 }
 
 .groupName {
-  display: block;
+  font-size: 1rem;
   font-weight: 600;
-  color: #2d3748;
-  margin-bottom: 4px;
+  color: #1e293b;
+  margin: 0 0 4px 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-size: 15px;
 }
 
 .groupDescription {
-  font-size: 13px;
-  color: #718096;
+  font-size: 0.875rem;
+  color: #64748b;
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 1.4;
+  font-weight: 400;
 }
 
 .groupMeta {
-  font-size: 12px;
-  color: #a0aec0;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -150,11 +180,13 @@
 }
 
 .memberCount {
-  background-color: #edf2f7;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
   padding: 4px 8px;
   border-radius: 12px;
   font-weight: 500;
   color: #4a5568;
+  font-size: 12px;
+  border: 1px solid #e2e8f0;
 }
 
 .groupMain {
@@ -162,8 +194,8 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background-color: white;
-  box-shadow: -1px 0 3px rgba(0, 0, 0, 0.05);
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.05);
 }
 
 .groupContent {
@@ -173,23 +205,24 @@
 }
 
 .groupHeader {
-  padding: 18px 24px;
-  border-bottom: 1px solid #e1e4e8;
-  background-color: white;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e2e8f0;
+  background: white;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
 .groupHeader h1 {
   margin: 0;
-  font-size: 24px;
+  font-size: 1.5rem;
   font-weight: 600;
-  color: #2d3748;
+  color: #1e293b;
 }
 
 .groupBody {
   flex: 1;
   padding: 24px;
   overflow-y: auto;
-  background-color: #f8f9fa;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
 }
 
 .emptyGroupContent {
@@ -198,50 +231,55 @@
   justify-content: center;
   align-items: center;
   height: 100%;
-  background-color: #f8f9fa;
-  padding: 0 20px;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  padding: 40px 20px;
+  position: relative;
 }
 
 .emptyGroupMessage {
   text-align: center;
   max-width: 500px;
   padding: 40px;
-  background-color: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  position: relative;
+  z-index: 1;
 }
 
 .emptyGroupMessage h3 {
   margin-top: 0;
-  color: #2d3748;
+  color: #1e293b;
   font-size: 24px;
   margin-bottom: 16px;
+  font-weight: 700;
 }
 
 .emptyGroupMessage p {
-  color: #718096;
+  color: #64748b;
   margin-bottom: 24px;
   font-size: 16px;
   line-height: 1.6;
 }
 
 .createButtonLarge {
-  background-color: #3182ce;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 25px;
   padding: 12px 24px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  position: relative;
+  z-index: 2;
 }
 
 .createButtonLarge:hover {
-  background-color: #2c5282;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
 }
 
 .loading {
@@ -249,34 +287,38 @@
   justify-content: center;
   align-items: center;
   height: 100px;
-  color: #718096;
+  color: #64748b;
   font-size: 16px;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  border-radius: 12px;
+  margin: 20px;
 }
 
 .emptyState {
   text-align: center;
   padding: 40px 20px;
-  background-color: white;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
   margin: 20px;
 }
 
 .emptyState p {
-  color: #718096;
+  color: #64748b;
   margin-bottom: 20px;
   font-size: 16px;
 }
 
 .error {
-  background-color: #fed7d7;
+  background: linear-gradient(135deg, #fed7d7 0%, #feb2b2 100%);
   color: #c53030;
   padding: 16px;
-  border-radius: 8px;
+  border-radius: 12px;
   margin: 20px;
   font-size: 15px;
   text-align: center;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+  border: 1px solid #fc8181;
 }
 
 /* Create Group Modal */
@@ -286,22 +328,23 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.9);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  backdrop-filter: blur(5px);
 }
 
 .createGroupModal {
-  background-color: white;
-  border-radius: 12px;
+  background: white;
+  border-radius: 20px;
   width: 90%;
   max-width: 500px;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   overflow: hidden;
 }
 
@@ -309,29 +352,34 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 18px 24px;
+  padding: 20px 24px;
   border-bottom: 1px solid #e2e8f0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
 }
 
 .modalHeader h3 {
   margin: 0;
   font-size: 20px;
-  color: #2d3748;
+  color: white;
   font-weight: 600;
 }
 
 .closeButton {
-  background: none;
-  border: none;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   font-size: 24px;
-  color: #718096;
+  color: white;
   cursor: pointer;
-  padding: 0;
+  padding: 4px 8px;
   line-height: 1;
+  border-radius: 6px;
+  transition: all 0.3s ease;
 }
 
 .closeButton:hover {
-  color: #e53e3e;
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
 }
 
 .modalBody {
@@ -346,26 +394,29 @@
 .formGroup label {
   display: block;
   margin-bottom: 8px;
-  font-weight: 500;
-  color: #4a5568;
+  font-weight: 600;
+  color: #1e293b;
   font-size: 15px;
 }
 
 .formGroup input,
 .formGroup textarea {
   width: 100%;
-  padding: 12px 16px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  padding: 14px 20px;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
   font-size: 15px;
   outline: none;
-  transition: border-color 0.2s ease;
+  transition: all 0.3s ease;
+  background: #f8fafc;
+  color: black;
 }
 
 .formGroup input:focus,
 .formGroup textarea:focus {
-  border-color: #3182ce;
-  box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.2);
+  border-color: #667eea;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .formGroup textarea {
@@ -377,47 +428,48 @@
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  padding: 18px 24px;
+  padding: 20px 24px;
   border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
 }
 
 .cancelButton {
-  background-color: #edf2f7;
+  background: #e2e8f0;
   color: #4a5568;
   border: none;
-  border-radius: 8px;
-  padding: 10px 20px;
+  border-radius: 25px;
+  padding: 12px 24px;
   font-size: 15px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
 }
 
 .cancelButton:hover {
-  background-color: #e2e8f0;
+  background: #cbd5e0;
+  transform: translateY(-1px);
 }
 
 .createButton {
-  background-color: #3182ce;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
-  border-radius: 8px;
-  padding: 10px 20px;
+  border-radius: 25px;
+  padding: 12px 24px;
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
 .createButton:hover {
-  background-color: #2c5282;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
 }
 
 .createButton:disabled {
-  background-color: #cbd5e0;
+  background: #cbd5e1;
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
@@ -427,11 +479,10 @@
 .invitationsContainer {
   margin-top: 20px;
   padding: 16px;
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
-
 .invitationsHeader {
   display: flex;
   justify-content: space-between;
@@ -442,7 +493,8 @@
 .invitationsHeader h3 {
   margin: 0;
   font-size: 16px;
-  color: #2d3748;
+  color: #1e293b;
+  font-weight: 600;
 }
 
 .invitationsList {
@@ -454,15 +506,18 @@
 .invitationItem {
   display: flex;
   align-items: center;
-  padding: 12px;
-  border-radius: 6px;
+  padding: 16px;
+  border-radius: 12px;
   margin-bottom: 8px;
-  background-color: #f7fafc;
-  transition: background-color 0.2s ease;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  transition: all 0.3s ease;
+  border: 1px solid #e2e8f0;
 }
 
 .invitationItem:hover {
-  background-color: #edf2f7;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
 }
 
 .invitationInfo {
@@ -471,14 +526,15 @@
 }
 
 .invitationGroupName {
-  font-weight: 500;
-  color: #2d3748;
+  font-weight: 600;
+  color: #1e293b;
   margin-bottom: 4px;
+  font-size: 15px;
 }
 
 .invitationMeta {
   font-size: 12px;
-  color: #718096;
+  color: #64748b;
 }
 
 .invitationActions {
@@ -488,35 +544,39 @@
 }
 
 .acceptButton {
-  background-color: #38a169;
+  background: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
   color: white;
   border: none;
-  border-radius: 6px;
-  padding: 6px 12px;
+  border-radius: 20px;
+  padding: 8px 16px;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(56, 161, 105, 0.3);
 }
 
 .acceptButton:hover {
-  background-color: #2f855a;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(56, 161, 105, 0.4);
 }
 
 .rejectButton {
-  background-color: #e53e3e;
+  background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
   color: white;
   border: none;
-  border-radius: 6px;
-  padding: 6px 12px;
+  border-radius: 20px;
+  padding: 8px 16px;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(229, 62, 62, 0.3);
 }
 
 .rejectButton:hover {
-  background-color: #c53030;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(229, 62, 62, 0.4);
 }
 
 /* Responsive styles */
@@ -527,6 +587,7 @@
   
   .groupsSidebar {
     width: 280px;
+    min-width: 280px;
   }
 }
 
@@ -540,6 +601,7 @@
     width: 100%;
     height: auto;
     max-height: 40vh;
+    min-width: 0;
   }
   
   .groupMain {
