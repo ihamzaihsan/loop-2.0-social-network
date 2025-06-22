@@ -51,6 +51,7 @@
 .formGroup textarea {
   padding: 0.8rem;
   border: 1px solid #ddd;
+  color: black;
   border-radius: 8px;
   font-size: 1rem;
   transition: border-color 0.2s;

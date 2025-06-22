@@ -16,8 +16,8 @@
 }
 
 .groups-sidebar {
-  width: 350px;
-  min-width: 350px;
+  width: 450px;
+  min-width: 450px;
   background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
   border-right: 1px solid #e2e8f0;
   display: flex;
@@ -245,7 +245,9 @@
   background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
   text-align: center;
   padding: 0 20px;
+  margin-bottom: 20px;
 }
+
 
 .empty-group-message {
   max-width: 500px;
@@ -437,10 +439,6 @@
   display: flex;
   align-items: center;
   gap: 4px;
-
-
-
-
   background: rgba(255, 255, 255, 0.2);
   color: white;
   border: 1px solid rgba(255, 255, 255, 0.3);
@@ -449,7 +447,6 @@
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-
   transition: all 0.3s ease;
   backdrop-filter: blur(10px);
 }
@@ -632,10 +629,6 @@
   display: flex;
   align-items: center;
   gap: 4px;
-
-
-
-
   background: rgba(255, 255, 255, 0.2);
   color: white;
   border: 1px solid rgba(255, 255, 255, 0.3);
@@ -644,13 +637,11 @@
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-
   transition: all 0.3s ease;
   backdrop-filter: blur(10px);
 }
 
 .invitations-button:hover {
-
   background: rgba(255, 255, 255, 0.3);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
@@ -750,4 +741,14 @@
     padding: 4px 8px;
     font-size: 11px;
   }
+}
+
+
+.invitations-button,
+.discover-button,
+.new-group-button {
+  padding: 4px 10px;
+  font-size: 0.85rem;
+  min-width: 60px;
+  min-height: 28px;
 }

@@ -66,7 +66,7 @@ export default function GroupsPage() {
             <div className="groups-container">
                 <div className="groups-sidebar">
                     <div className="groups-sidebar-header">
-                        <h2>My Groups</h2>
+                        <h2>Groups</h2>
                         <div className="header-buttons">
                             <button 
                                 className="invitations-button" 
