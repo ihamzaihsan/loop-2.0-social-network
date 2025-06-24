@@ -470,7 +470,7 @@ input::placeholder, textarea::placeholder {
 }
 
 .sidebar-logo h2 {
-  font-size: 1.8rem;
+  font-size: 1.5rem;
   font-weight: 800;
   background: linear-gradient(135deg, var(--bg-color-1), var(--bg-color-3));
   -webkit-background-clip: text;
