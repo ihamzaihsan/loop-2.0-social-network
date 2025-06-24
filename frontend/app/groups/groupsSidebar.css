@@ -1,7 +1,6 @@
 .groups-page {
   min-height: 100vh;
   padding-left: var(--sidebar-width);
-  background: var(--background-light);
   position: relative;
 }
 
@@ -33,14 +32,46 @@
   width: 100%;
   height: 100%;
   background-image: 
-    radial-gradient(1px 1px at 10% 10%, rgba(255, 255, 255, 0.1) 0%, transparent 100%),
-    radial-gradient(1px 1px at 20% 20%, rgba(255, 255, 255, 0.15) 0%, transparent 100%),
-    radial-gradient(2px 2px at 30% 30%, rgba(255, 255, 255, 0.1) 0%, transparent 100%),
-    radial-gradient(2px 2px at 40% 40%, rgba(255, 255, 255, 0.12) 0%, transparent 100%),
-    radial-gradient(2px 2px at 50% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 100%);
-  background-size: 550px 550px;
+    radial-gradient(2px 2px at 20% 20%, rgba(255, 255, 255, 0.3) 0%, transparent 100%),
+    radial-gradient(2px 2px at 40% 40%, rgba(135, 206, 235, 0.3) 0%, transparent 100%),
+    radial-gradient(2px 2px at 60% 60%, rgba(147, 112, 219, 0.3) 0%, transparent 100%),
+    radial-gradient(3px 3px at 80% 80%, rgba(255, 255, 255, 0.3) 0%, transparent 100%);
+  background-size: 200px 200px;
   z-index: -1;
-  animation: starField 60s linear infinite;
+  animation: particleFlow 20s linear infinite;
+}
+
+@keyframes cosmicPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.7;
+    filter: hue-rotate(30deg);
+  }
+}
+
+@keyframes particleFlow {
+  0% {
+    background-position: 0% 0%, 0% 0%, 0% 0%, 0% 0%;
+    opacity: 0.5;
+  }
+  25% {
+    opacity: 0.8;
+  }
+  50% {
+    background-position: 100% 100%, -50% 50%, 50% -50%, -50% 100%;
+    opacity: 0.5;
+  }
+  75% {
+    opacity: 0.8;
+  }
+  100% {
+    background-position: 0% 0%, 0% 0%, 0% 0%, 0% 0%;
+    opacity: 0.5;
+  }
 }
 
 .groups-container {

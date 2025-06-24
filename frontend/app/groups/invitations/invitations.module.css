@@ -107,3 +107,130 @@
   background-color: #e0e0e0;
   transform: translateY(-2px);
 }
+
+.invitationsMainContainer {
+  margin-left: var(--sidebar-width);
+  padding: 40px 32px;
+  background: #f8fafc;
+  min-height: 100vh;
+}
+
+.invitationsHeader {
+  margin-bottom: 32px;
+}
+
+.invitationsTitle {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 8px;
+}
+
+.invitationsSubtitle {
+  font-size: 1.1rem;
+  color: #64748b;
+  margin-bottom: 0;
+}
+
+.invitationsSection {
+  margin-bottom: 36px;
+}
+
+.invitationsSectionTitle {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 10px;
+}
+
+.invitationsDescription {
+  font-size: 1rem;
+  color: #64748b;
+  margin-bottom: 18px;
+}
+
+.invitationsCardList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+
+.invitationsCard {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(102, 126, 234, 0.09);
+  padding: 24px 20px;
+  min-width: 260px;
+  max-width: 320px;
+  flex: 1 1 260px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  transition: box-shadow 0.2s;
+}
+
+.invitationsCard:hover {
+  box-shadow: 0 6px 24px rgba(102, 126, 234, 0.16);
+}
+
+.invitationsCardTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 8px;
+}
+
+.invitationsCardDesc {
+  font-size: 0.98rem;
+  color: #64748b;
+  margin-bottom: 16px;
+}
+
+.invitationsCardActions {
+  display: flex;
+  gap: 12px;
+  margin-top: auto;
+}
+
+.invitationsAcceptButton {
+  background: linear-gradient(90deg, #38a169 0%, #2f855a 100%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 22px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.invitationsAcceptButton:hover {
+  background: linear-gradient(90deg, #2f855a 0%, #38a169 100%);
+}
+
+.invitationsRejectButton {
+  background: linear-gradient(90deg, #e53e3e 0%, #c53030 100%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 22px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.invitationsRejectButton:hover {
+  background: linear-gradient(90deg, #c53030 0%, #e53e3e 100%);
+}
+
+@media (max-width: 900px) {
+  .invitationsMainContainer {
+    margin-left: 0;
+    padding: 24px 8px;
+  }
+  .invitationsCardList {
+    flex-direction: column;
+    gap: 18px;
+  }
+}

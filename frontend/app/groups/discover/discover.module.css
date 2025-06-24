@@ -1,0 +1,104 @@
+.discoverMainContainer {
+  margin-left: 200px;
+  padding: 40px 32px;
+  min-height: 100vh;
+}
+
+.discoverHeader {
+  margin-bottom: 32px;
+}
+
+.discoverTitle {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 8px;
+}
+
+.discoverSubtitle {
+  font-size: 1.1rem;
+  color: #64748b;
+  margin-bottom: 0;
+}
+
+.discoverSection {
+  margin-bottom: 36px;
+}
+
+.discoverSectionTitle {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 10px;
+}
+
+.discoverDescription {
+  font-size: 1rem;
+  color: #64748b;
+  margin-bottom: 18px;
+}
+
+.discoverCardList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+
+.discoverCard {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(102, 126, 234, 0.09);
+  padding: 24px 20px;
+  min-width: 260px;
+  max-width: 320px;
+  flex: 1 1 260px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  transition: box-shadow 0.2s;
+}
+
+.discoverCard:hover {
+  box-shadow: 0 6px 24px rgba(102, 126, 234, 0.16);
+}
+
+.discoverCardTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 8px;
+}
+
+.discoverCardDesc {
+  font-size: 0.98rem;
+  color: #64748b;
+  margin-bottom: 16px;
+}
+
+.discoverCardAction {
+  margin-top: auto;
+  background: linear-gradient(90deg, #6366f1 0%, #818cf8 100%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 22px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.discoverCardAction:hover {
+  background: linear-gradient(90deg, #818cf8 0%, #6366f1 100%);
+}
+
+@media (max-width: 900px) {
+  .discoverMainContainer {
+    margin-left: 0;
+    padding: 24px 8px;
+  }
+  .discoverCardList {
+    flex-direction: column;
+    gap: 18px;
+  }
+}

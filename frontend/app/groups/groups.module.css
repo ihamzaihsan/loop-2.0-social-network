@@ -156,39 +156,27 @@
   position: relative;
   border-radius: var(--radius-lg);
   margin: 4px 0;
-  background: rgba(255, 255, 255, 0.95);
+  background: linear-gradient(120deg, var(--bg-color-1) 0%, var(--bg-color-2) 100%);
+  color: var(--text-primary);
   backdrop-filter: blur(10px);
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border-light);
 }
 
-.groupItem:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-hover);
+.groupItem:hover, .groupItem.active {
   background: linear-gradient(135deg, var(--bg-color-1), var(--bg-color-3));
   color: white;
+  box-shadow: var(--shadow-hover);
 }
 
 .groupItem:hover .groupName,
-.groupItem:hover .groupDescription {
+.groupItem.active .groupName {
   color: white;
 }
 
-.groupItem.active {
-  background: linear-gradient(135deg, var(--bg-color-1), var(--bg-color-3));
-  color: white;
-  box-shadow: var(--shadow-hover);
-}
-
-.groupItem.active .groupName,
+.groupItem:hover .groupDescription,
 .groupItem.active .groupDescription {
-  color: white;
-}
-
-.groupItem.active .memberCount {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #f3f4f6;
 }
 
 .groupAvatar {
@@ -206,54 +194,72 @@
   border: 3px solid white;
 }
 
-.avatarPlaceholder {
+.avatar-placeholder {
+  font-size: 2rem;
   font-weight: bold;
-  font-size: 22px;
   color: white;
-  text-transform: uppercase;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 
-.groupInfo {
-  flex: 1;
-  min-width: 0;
+.member-badge, .requested-badge {
+  display: inline-block;
+  padding: 0.3em 0.8em;
+  border-radius: 999px;
+  font-size: 0.85em;
+  font-weight: 600;
+  margin-left: 8px;
+  background: var(--secondary-color);
+  color: white;
+  box-shadow: 0 2px 8px rgba(16,185,129,0.08);
+}
+
+.requested-badge {
+  background: var(--accent-color);
+  color: #fff;
+}
+
+.join-button {
+  background: var(--primary-color);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5em 1.2em;
+  font-weight: 600;
+  transition: background 0.2s;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(99,102,241,0.08);
+}
+
+.join-button:hover:enabled {
+  background: var(--primary-hover);
+}
+
+.groups-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
 }
 
 .groupName {
-  font-size: 1rem;
+  font-size: 1.15rem;
   font-weight: 600;
-  color: var(--text-primary);
-  margin: 0 0 4px 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  margin-bottom: 0.2em;
 }
 
 .groupDescription {
-  font-size: 0.875rem;
+  font-size: 0.97rem;
   color: var(--text-secondary);
-  margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-weight: 400;
+  margin-bottom: 0.2em;
 }
 
-.groupMeta {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  margin-left: 12px;
-  flex-shrink: 0;
-}
-
-.memberCount {
-  background: var(--background-light);
-  padding: 4px 8px;
-  border-radius: var(--radius-sm);
-  font-weight: 500;
-  color: var(--text-secondary);
-  font-size: 12px;
-  border: 1px solid var(--border-light);
+.member-count {
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+  border-radius: 999px;
+  padding: 0.2em 0.8em;
+  font-size: 0.85em;
+  border: 1px solid rgba(255,255,255,0.3);
+  margin-left: 8px;
 }
 
 .groupMain {
@@ -355,7 +361,7 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   position: relative;
   z-index: 2;
 }

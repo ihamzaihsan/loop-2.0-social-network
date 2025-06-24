@@ -299,62 +299,6 @@ export default function GroupInvitationsPage() {
                         )}
                     </div>
                 </div>
-
-                <div className="groups-main">
-                    <div className="invitations-content">
-                        <div className="invitations-header">
-                            <h1>Group Invitations & Requests</h1>
-                            <p>Manage your group invitations and join requests</p>
-                        </div>
-
-                        {error && <div className="error-message">{error}</div>}
-                        {success && <div className="success-message">{success}</div>}
-
-                        <div className="invitations-info">
-                            <div className="info-card">
-                                <h3>Group Invitations</h3>
-                                <p>These are invitations from other users for you to join their groups.</p>
-                                <ul>
-                                    <li>Accept an invitation to join the group immediately</li>
-                                    <li>Decline an invitation to remove it from your list</li>
-                                </ul>
-                            </div>
-
-                            <div className="info-card">
-                                <h3>Join Requests</h3>
-                                <p>These are requests from users who want to join groups you've created.</p>
-                                <ul>
-                                    <li>Approve a request to add the user to your group</li>
-                                    <li>Reject a request to deny the user access to your group</li>
-                                </ul>
-                            </div>
-
-                            <div className="groups-navigation">
-                                <h3>Group Navigation</h3>
-                                <div className="nav-buttons">
-                                    <button
-                                        className="nav-button"
-                                        onClick={() => router.push('/groups')}
-                                    >
-                                        My Groups
-                                    </button>
-                                    <button
-                                        className="nav-button"
-                                        onClick={() => router.push('/groups/discover')}
-                                    >
-                                        Discover Groups
-                                    </button>
-                                    <button
-                                        className="nav-button"
-                                        onClick={() => router.push('/groups/create')}
-                                    >
-                                        Create Group
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     )
