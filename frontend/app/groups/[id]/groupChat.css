@@ -170,10 +170,7 @@
   box-shadow: 0 8px 25px rgba(102, 126, 234, 0.25);
 }
 
-.member-item:hover .member-name,
-.member-item:hover .member-role {
-  color: white;
-}
+
 
 .member-avatar {
   width: 52px;

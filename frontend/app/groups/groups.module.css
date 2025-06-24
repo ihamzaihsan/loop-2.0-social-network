@@ -1,7 +1,66 @@
 .container {
   display: flex;
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--background-light);
+  position: relative;
+}
+
+.container::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 200%;
+  height: 100%;
+  background: radial-gradient(
+    circle at center,
+    #0f172a 0%,
+    #1e293b 25%,
+    #020617 50%,
+    #0f172a 75%,
+    #020617 100%
+  );
+  opacity: 0.9;
+  z-index: -2;
+  animation: cosmicPulse 15s ease-in-out infinite;
+}
+
+.container::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    radial-gradient(1px 1px at 10% 10%, rgba(255, 255, 255, 0.1) 0%, transparent 100%),
+    radial-gradient(1px 1px at 20% 20%, rgba(255, 255, 255, 0.15) 0%, transparent 100%),
+    radial-gradient(2px 2px at 30% 30%, rgba(255, 255, 255, 0.1) 0%, transparent 100%),
+    radial-gradient(2px 2px at 40% 40%, rgba(255, 255, 255, 0.12) 0%, transparent 100%),
+    radial-gradient(2px 2px at 50% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 100%);
+  background-size: 550px 550px;
+  z-index: -1;
+  animation: starField 60s linear infinite;
+}
+
+@keyframes cosmicPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.7;
+  }
+}
+
+@keyframes starField {
+  0% {
+    transform: rotate(0deg) translateZ(0);
+  }
+  100% {
+    transform: rotate(360deg) translateZ(0);
+  }
 }
 
 .groupsContainer {
@@ -12,31 +71,31 @@
   padding-left: var(--sidebar-width);
   max-width: 1400px;
   margin: 0 auto;
-  box-shadow: 0 0 30px rgba(0, 0, 0, 0.1);
-  border-radius: 12px;
-  background: white;
+  position: relative;
+  z-index: 1;
 }
 
 .groupsSidebar {
   width: 350px;
   min-width: 350px;
-  background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
-  border-right: 1px solid #e2e8f0;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-right: 1px solid var(--border-light);
   display: flex;
   flex-direction: column;
   height: 100%;
   position: relative;
-  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.05);
 }
 
 .groupsSidebarHeader {
   width: 100%;
   padding: 1.5rem;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--border-light);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--bg-color-1), var(--bg-color-3));
   color: white;
   position: relative;
   z-index: 100;
@@ -58,12 +117,12 @@
   background: rgba(255, 255, 255, 0.2);
   color: white;
   border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 8px 16px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
@@ -77,8 +136,8 @@
 
 .newGroupButton:hover {
   background: rgba(255, 255, 255, 0.3);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover);
 }
 
 .groupsList {
@@ -93,24 +152,32 @@
   align-items: center;
   padding: 16px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   margin: 4px 0;
-  background: white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  border: 1px solid #f1f5f9;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
 }
 
 .groupItem:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.25);
+  box-shadow: var(--shadow-hover);
+  background: linear-gradient(135deg, var(--bg-color-1), var(--bg-color-3));
+  color: white;
+}
+
+.groupItem:hover .groupName,
+.groupItem:hover .groupDescription {
+  color: white;
 }
 
 .groupItem.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--bg-color-1), var(--bg-color-3));
   color: white;
-  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+  box-shadow: var(--shadow-hover);
 }
 
 .groupItem.active .groupName,
@@ -129,7 +196,7 @@
   height: 52px;
   border-radius: 50%;
   overflow: hidden;
-  background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+  background: linear-gradient(135deg, var(--bg-color-2), var(--bg-color-4));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -142,7 +209,7 @@
 .avatarPlaceholder {
   font-weight: bold;
   font-size: 22px;
-  color: #64748b;
+  color: white;
   text-transform: uppercase;
 }
 
@@ -154,7 +221,7 @@
 .groupName {
   font-size: 1rem;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text-primary);
   margin: 0 0 4px 0;
   white-space: nowrap;
   overflow: hidden;
@@ -163,7 +230,7 @@
 
 .groupDescription {
   font-size: 0.875rem;
-  color: #64748b;
+  color: var(--text-secondary);
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -180,13 +247,13 @@
 }
 
 .memberCount {
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  background: var(--background-light);
   padding: 4px 8px;
-  border-radius: 12px;
+  border-radius: var(--radius-sm);
   font-weight: 500;
-  color: #4a5568;
+  color: var(--text-secondary);
   font-size: 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-light);
 }
 
 .groupMain {
@@ -194,7 +261,8 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
   box-shadow: -2px 0 10px rgba(0, 0, 0, 0.05);
 }
 
@@ -206,23 +274,24 @@
 
 .groupHeader {
   padding: 20px 24px;
-  border-bottom: 1px solid #e2e8f0;
-  background: white;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid var(--border-light);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-sm);
 }
 
 .groupHeader h1 {
   margin: 0;
   font-size: 1.5rem;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text-primary);
 }
 
 .groupBody {
   flex: 1;
   padding: 24px;
   overflow-y: auto;
-  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  background: transparent;
 }
 
 .emptyGroupContent {
@@ -231,7 +300,7 @@
   justify-content: center;
   align-items: center;
   height: 100%;
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  background: transparent;
   padding: 40px 20px;
   position: relative;
 }
@@ -240,46 +309,60 @@
   text-align: center;
   max-width: 500px;
   padding: 40px;
-  background: white;
-  border-radius: 20px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-light);
   position: relative;
   z-index: 1;
+  animation: fadeInUp 1s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .emptyGroupMessage h3 {
   margin-top: 0;
-  color: #1e293b;
+  color: var(--text-primary);
   font-size: 24px;
   margin-bottom: 16px;
   font-weight: 700;
 }
 
 .emptyGroupMessage p {
-  color: #64748b;
+  color: var(--text-secondary);
   margin-bottom: 24px;
   font-size: 16px;
   line-height: 1.6;
 }
 
 .createButtonLarge {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--bg-color-1), var(--bg-color-3));
   color: white;
   border: none;
-  border-radius: 25px;
+  border-radius: var(--radius-lg);
   padding: 12px 24px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
   position: relative;
   z-index: 2;
 }
 
 .createButtonLarge:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+  box-shadow: var(--shadow-hover);
 }
 
 .loading {
@@ -287,24 +370,26 @@
   justify-content: center;
   align-items: center;
   height: 100px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 16px;
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: var(--radius-lg);
   margin: 20px;
 }
 
 .emptyState {
   text-align: center;
   padding: 40px 20px;
-  background: white;
-  border-radius: 20px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
   margin: 20px;
 }
 
 .emptyState p {
-  color: #64748b;
+  color: var(--text-secondary);
   margin-bottom: 20px;
   font-size: 16px;
 }
@@ -313,7 +398,7 @@
   background: linear-gradient(135deg, #fed7d7 0%, #feb2b2 100%);
   color: #c53030;
   padding: 16px;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   margin: 20px;
   font-size: 15px;
   text-align: center;
@@ -337,8 +422,9 @@
 }
 
 .createGroupModal {
-  background: white;
-  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: var(--radius-xl);
   width: 90%;
   max-width: 500px;
   max-height: 90vh;
@@ -346,6 +432,7 @@
   flex-direction: column;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   overflow: hidden;
+  border: 1px solid var(--border-light);
 }
 
 .modalHeader {
@@ -353,8 +440,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  border-bottom: 1px solid #e2e8f0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-bottom: 1px solid var(--border-light);
+  background: linear-gradient(135deg, var(--bg-color-1), var(--bg-color-3));
   color: white;
 }
 

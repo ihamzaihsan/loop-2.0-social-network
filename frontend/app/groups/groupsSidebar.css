@@ -1,7 +1,46 @@
 .groups-page {
   min-height: 100vh;
   padding-left: var(--sidebar-width);
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--background-light);
+  position: relative;
+}
+
+.groups-page::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 200%;
+  height: 100%;
+  background: radial-gradient(
+    circle at center,
+    #0f172a 0%,
+    #1e293b 25%,
+    #020617 50%,
+    #0f172a 75%,
+    #020617 100%
+  );
+  opacity: 0.9;
+  z-index: -2;
+  animation: cosmicPulse 15s ease-in-out infinite;
+}
+
+.groups-page::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    radial-gradient(1px 1px at 10% 10%, rgba(255, 255, 255, 0.1) 0%, transparent 100%),
+    radial-gradient(1px 1px at 20% 20%, rgba(255, 255, 255, 0.15) 0%, transparent 100%),
+    radial-gradient(2px 2px at 30% 30%, rgba(255, 255, 255, 0.1) 0%, transparent 100%),
+    radial-gradient(2px 2px at 40% 40%, rgba(255, 255, 255, 0.12) 0%, transparent 100%),
+    radial-gradient(2px 2px at 50% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 100%);
+  background-size: 550px 550px;
+  z-index: -1;
+  animation: starField 60s linear infinite;
 }
 
 .groups-container {
@@ -9,32 +48,31 @@
   height: 100vh;
   max-width: 1400px;
   margin: 0 auto;
-  box-shadow: 0 0 30px rgba(0, 0, 0, 0.1);
-  border-radius: 12px;
-  overflow: hidden;
-  background: white;
+  position: relative;
+  z-index: 1;
 }
 
 .groups-sidebar {
   width: 450px;
   min-width: 450px;
-  background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
-  border-right: 1px solid #e2e8f0;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-right: 1px solid var(--border-light);
   display: flex;
   flex-direction: column;
   height: 100%;
   position: relative;
-  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.05);
 }
 
 .groups-sidebar-header {
   width: 100%;
   padding: 1.5rem;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--border-light);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--bg-color-1), var(--bg-color-3));
   color: white;
   z-index: 100;
 }
@@ -51,12 +89,12 @@
   background: rgba(255, 255, 255, 0.2);
   color: white;
   border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 8px 16px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
@@ -65,8 +103,8 @@
 
 .new-group-button:hover {
   background: rgba(255, 255, 255, 0.3);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover);
 }
 
 .groups-list-container {
@@ -90,44 +128,37 @@
   align-items: center;
   padding: 16px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   margin: 4px 0;
-  background: white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  border: 1px solid #f1f5f9;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
 }
 
 .group-item:hover {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: linear-gradient(135deg, var(--bg-color-1), var(--bg-color-3));
+  
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.25);
+  box-shadow: var(--shadow-hover);
 }
+
 
 
 .group-item.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--bg-color-1), var(--bg-color-3));
   color: white;
-  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+  box-shadow: var(--shadow-hover);
 }
 
-.group-item.active .group-name,
-.group-item.active .group-description,
-.group-item.active .member-count,
-.group-item.active .invitation-meta,
-.group-item.active .request-meta,
-.group-item.active .user-name {
-  color: white;
-}
 
 .group-avatar {
   width: 52px;
   height: 52px;
   border-radius: 50%;
   overflow: hidden;
-
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
   align-items: center;
@@ -140,7 +171,6 @@
 
 .avatar-placeholder {
   font-weight: bold;
-
   font-size: 16px;
   color: black;
   text-transform: uppercase;
@@ -164,7 +194,6 @@
 }
 
 .group-description {
-
   font-size: 12px;
   color: black;
   margin: 0;
@@ -188,7 +217,6 @@
   border-radius: 12px;
   font-weight: 500;
   color: #4a5568;
-
   font-size: 11px;
   border: 1px solid #e2e8f0;
 }
@@ -294,7 +322,6 @@
   justify-content: center;
   align-items: center;
   height: 100%;
-
   color: #64748b;
   background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
   font-size: 16px;
@@ -329,7 +356,6 @@
 
 .groups-nav {
   display: flex;
-
   border-bottom: 1px solid #e2e8f0;
   margin-bottom: 8px;
   background: white;
@@ -340,21 +366,16 @@
   flex: 1;
   background: none;
   border: none;
-
   padding: 14px 10px;
   font-size: 14px;
   font-weight: 500;
-
   color: #64748b;
   cursor: pointer;
-
   transition: all 0.3s ease;
   border-radius: 12px 12px 0 0;
 }
 
 .groups-nav-button.active {
-
-
   color: #667eea;
   background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
   border-bottom: 2px solid #667eea;
@@ -362,7 +383,6 @@
 }
 
 .groups-nav-button:hover:not(.active) {
-
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   color: #4a5568;
 }
@@ -376,30 +396,25 @@
 }
 
 .join-button {
-
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
-
   border-radius: 20px;
   padding: 6px 12px;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
-
   transition: all 0.3s ease;
   white-space: nowrap;
   box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
 }
 
 .join-button:hover {
-
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
 .join-button:disabled {
-
   background: #cbd5e1;
   cursor: not-allowed;
   transform: none;
@@ -409,22 +424,18 @@
 .member-badge, .requested-badge {
   font-size: 12px;
   padding: 4px 8px;
-
   border-radius: 12px;
   white-space: nowrap;
   font-weight: 500;
 }
 
 .member-badge {
-
-
   background: linear-gradient(135deg, #c6f6d5 0%, #9ae6b4 100%);
   color: #2f855a;
   border: 1px solid #68d391;
 }
 
 .requested-badge {
-
   background: linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%);
   color: #f57c00;
   border: 1px solid #ffcc02;
@@ -452,7 +463,6 @@
 }
 
 .discover-button:hover {
-
   background: rgba(255, 255, 255, 0.3);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
@@ -467,7 +477,6 @@
 .section-title {
   font-size: 14px;
   font-weight: 600;
-
   color: #4a5568;
   padding: 0 16px;
   margin: 16px 0 8px;
@@ -479,10 +488,6 @@
   display: flex;
   align-items: center;
   gap: 4px;
-
-
-
-
   background: rgba(255, 255, 255, 0.2);
   color: white;
   border: 1px solid rgba(255, 255, 255, 0.3);
@@ -491,13 +496,11 @@
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-
   transition: all 0.3s ease;
   backdrop-filter: blur(10px);
 }
 
 .back-button:hover {
-
   background: rgba(255, 255, 255, 0.3);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
@@ -505,7 +508,6 @@
 
 .invitation-meta, .request-meta {
   font-size: 12px;
-
   color: #64748b;
   margin: 4px 0 0;
 }
@@ -518,46 +520,38 @@
 
 .accept-button, .decline-button {
   border: none;
-
   border-radius: 20px;
   padding: 6px 12px;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
-
   transition: all 0.3s ease;
   white-space: nowrap;
 }
 
 .accept-button {
-
   background: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
   color: white;
   box-shadow: 0 2px 8px rgba(56, 161, 105, 0.3);
 }
 
 .accept-button:hover {
-
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(56, 161, 105, 0.4);
 }
 
 .decline-button {
-
-
   background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
   color: white;
   box-shadow: 0 2px 8px rgba(229, 62, 62, 0.3);
 }
 
 .decline-button:hover {
-
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(229, 62, 62, 0.4);
 }
 
 .accept-button:disabled, .decline-button:disabled {
-
   background: #cbd5e1;
   cursor: not-allowed;
   transform: none;
@@ -565,41 +559,32 @@
 }
 
 .discover-groups-button {
-
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
-
-
   border-radius: 25px;
   padding: 12px 24px;
   font-size: 14px;
   margin-top: 12px;
   cursor: pointer;
-
   transition: all 0.3s ease;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
 .discover-groups-button:hover {
-
   transform: translateY(-2px);
   box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
 }
 
 .user-avatar {
-
-
   width: 52px;
   height: 52px;
   border-radius: 50%;
   overflow: hidden;
-
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-
   margin-right: 16px;
   flex-shrink: 0;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -613,8 +598,6 @@
 }
 
 .user-name {
-
-
   font-size: 1rem;
   font-weight: 600;
   color: #1e293b;
