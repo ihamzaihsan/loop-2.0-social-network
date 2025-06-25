@@ -38,8 +38,25 @@ export default function Register() {
     redirectBasedOnSession(router, false).finally(() => setLoading(false))
   }, [router])
 
+  const validInputRegex = /^[a-zA-Z0-9!@#$%^&*(),.?\" ':{}|<>/\\\s]+$/
+
+  function isValidInput(value: string) {
+    return validInputRegex.test(value)
+  }
+
   const handleNext = (e: React.FormEvent) => {
     e.preventDefault()
+    if (
+      !isValidInput(formData.firstName) ||
+      !isValidInput(formData.lastName) ||
+      (formData.nickname && !isValidInput(formData.nickname)) ||
+      !isValidInput(formData.password)
+    ) {
+      setErrorMessage(
+        "Only letters, numbers, spaces, and these symbols are allowed: !@#$%^&*(),.?\" ':{}|<>/\\."
+      )
+      return
+    }
     setStep(2)
   }
 
@@ -49,68 +66,35 @@ export default function Register() {
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setErrorMessage(null)
+   e.preventDefault()
+  setErrorMessage(null)
+  if (
+    !isValidInput(formData.firstName) ||
+    !isValidInput(formData.lastName) ||
+    (formData.nickname && !isValidInput(formData.nickname)) ||
+    !isValidInput(formData.password)
+  ) {
+    setErrorMessage(
+      "Only letters, numbers, spaces, and these symbols are allowed: !@#$%^&*(),.?\" ':{}|<>/\\"
+    )
+    return
+  }
     try {
-      if (formData.avatar) {
-        const form = new FormData()
-        form.append('email', formData.email)
-        form.append('password', formData.password)
-        form.append('firstName', formData.firstName)
-        form.append('lastName', formData.lastName)
-        form.append('dob', formData.dob)
-        if (formData.nickname) form.append('nickname', formData.nickname)
-        if (formData.aboutMe) form.append('aboutMe', formData.aboutMe)
-        form.append('avatar', formData.avatar)
-        form.append('isPrivate', formData.isPrivate ? 'true' : 'false')
-        const response = await fetch('http://localhost:8080/register', {
-          method: 'POST',
-          body: form,
-          credentials: 'include'
-        })
-        if (response.ok) {
-          const wsClient = WebSocketClient.getInstance()
-          setTimeout(() => wsClient.connect(), 100)
-          router.push('/home')
-        } else {
-          const errorText = await response.text()
-          if (response.status === 409) {
-            setErrorMessage('This email is already registered. Please use a different email or login.')
-          } else {
-            setErrorMessage(`Registration failed: ${errorText}`)
-          }
-        }
-      } else {
-        const response = await fetch('http://localhost:8080/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: formData.email,
-            password: formData.password,
-            firstName: formData.firstName,
-            lastName: formData.lastName,
-            dob: formData.dob,
-            nickname: formData.nickname || null,
-            aboutMe: formData.aboutMe || null,
-            isPrivate: formData.isPrivate
-          }),
-          credentials: 'include'
-        })
-        if (response.ok) {
-          const wsClient = WebSocketClient.getInstance()
-          setTimeout(() => wsClient.connect(), 100)
-          router.push('/home')
-        } else {
-          const errorText = await response.text()
-          if (response.status === 409) {
-            setErrorMessage('This email is already registered. Please use a different email or login.')
-          } else {
-            setErrorMessage(`Registration failed: ${errorText}`)
-          }
-        }
+      const response = await fetch('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        setErrorMessage(data.error || "Registration failed. Please check your input.")
+        return
       }
-    } catch (error) {
-      setErrorMessage('An unexpected error occurred. Please try again.')
+      const wsClient = WebSocketClient.getInstance()
+      setTimeout(() => wsClient.connect(), 100)
+      router.push('/home')
+    } catch (err) {
+      setErrorMessage("Registration failed. Please try again.")
     }
   }
 

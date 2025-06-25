@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"socialNetwork/pkg/db"
 	"socialNetwork/pkg/models"
 	"strings"
@@ -14,6 +15,8 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 )
+
+var validInputRegex = regexp.MustCompile(`^[a-zA-Z0-9!@#$%^&*(),.?" ' ':{}|<>/\s]+$`)
 
 func Register(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
@@ -134,6 +137,14 @@ func Register(w http.ResponseWriter, r *http.Request) {
 
 	if email == "" || password == "" || firstName == "" || lastName == "" || dob == "" {
 		http.Error(w, "Missing required fields", http.StatusBadRequest)
+		return
+	}
+
+	if !validInputRegex.MatchString(firstName) ||
+		!validInputRegex.MatchString(lastName) ||
+		(nickname != "" && !validInputRegex.MatchString(nickname)) ||
+		!validInputRegex.MatchString(password) {
+		http.Error(w, "Only letters, numbers, spaces, and these symbols are allowed: !@#$%^&*(),.?\" ':{}|<>/\\", http.StatusBadRequest)
 		return
 	}
 
