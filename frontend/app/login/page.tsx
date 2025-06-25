@@ -1,12 +1,12 @@
 'use client'
 import Link from 'next/link'
 import './login.css'
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { redirectBasedOnSession } from '../../utils/session'
 import { WebSocketClient } from '../webscoket/websocket'
 
-function LoginContent() {
+export default function Login() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [formData, setFormData] = useState({
@@ -15,11 +15,6 @@ function LoginContent() {
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-
-  // Prevent server-side rendering
-  if (typeof window === 'undefined') {
-    return <div>Loading...</div>
-  }
 
   useEffect(() => {
     // Check if redirected due to session invalidation
@@ -53,18 +48,19 @@ function LoginContent() {
         // Get the token from the response
         if (data.token) {
           localStorage.setItem('sessionToken', data.token);
-          // Initialize WebSocket connection immediately after successful login
-          console.log('Login successful, initializing WebSocket connection...');
-          const wsClient = WebSocketClient.getInstance();
-          
-          // Small delay to ensure token is properly stored
-          setTimeout(() => {
-            wsClient.connect();
-            console.log('WebSocket connection initiated after login');
-          }, 100);
-          
-          router.push('/home')
         }
+        
+        // Initialize WebSocket connection immediately after successful login
+        console.log('Login successful, initializing WebSocket connection...');
+        const wsClient = WebSocketClient.getInstance();
+        
+        // Small delay to ensure token is properly stored
+        setTimeout(() => {
+          wsClient.connect();
+          console.log('WebSocket connection initiated after login');
+        }, 100);
+        
+        router.push('/home')
       } else {
         // Display the error message from the server
         setError(data.error || 'Login failed. Please try again.');
@@ -81,44 +77,48 @@ function LoginContent() {
 
   return (
     <div className="login-container">
-      <form onSubmit={handleSubmit} className="login-form">
-        <h2>Login</h2>
-        {error && <div className="error-message">{error}</div>}
-        <div className="form-group">
-          <label htmlFor="email">Email</label>
-          <input
-            type="email"
-            id="email"
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            required
-          />
-        </div>
-        <div className="form-group">
-          <label htmlFor="password">Password</label>
-          <input
-            type="password"
-            id="password"
-            value={formData.password}
-            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            required
-          />
-        </div>
-        <button type="submit" disabled={loading}>
-          {loading ? 'Loading...' : 'Login'}
-        </button>
-        <div className="register-link">
-          <Link href="/register">Don't have an account? Register</Link>
-        </div>
-      </form>
-    </div>
-  )
-}
+      <div className="login-form-wrapper">
+      
 
-export default function Login() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <LoginContent />
-    </Suspense>
-  )
+        <h2 className="form-title">Login</h2>
+        
+        {/* Display error message if there is one */}
+        {error && <div className="error-message">{error}</div>}
+        
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label className="form-label">Email</label>
+            <input 
+              type="email" 
+              required 
+              className="form-input" 
+              placeholder="Enter your email"
+              value={formData.email}
+              onChange={(e) => setFormData({...formData, email: e.target.value})}
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Password</label>
+            <input 
+              type="password" 
+              required 
+              className="form-input" 
+              placeholder="Enter your password"
+              value={formData.password}
+              onChange={(e) => setFormData({...formData, password: e.target.value})}
+            />
+          </div>
+
+          <button type="submit" className="submit-button">
+            Login
+          </button>
+
+          <div className="register-link">
+            Don't have an account? <Link href="/register" className="text-link">Register</Link>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
 }
