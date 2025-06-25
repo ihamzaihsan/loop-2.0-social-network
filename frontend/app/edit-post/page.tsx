@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import './edit-post.css'
 import Sidebar from '../../components/Sidebar'
 import { redirectBasedOnSession } from '../../utils/session'
@@ -14,17 +14,21 @@ interface Post {
   privacy: string
 }
 
-export default function EditPost() {
+function EditPostContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const postId = searchParams.get('id')
-  
   const [post, setPost] = useState<Post | null>(null)
   const [content, setContent] = useState('')
   const [privacy, setPrivacy] = useState('public')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+
+  // Prevent server-side rendering
+  if (typeof window === 'undefined') {
+    return <div>Loading...</div>
+  }
 
   useEffect(() => {
     if (!postId) {
@@ -182,5 +186,13 @@ export default function EditPost() {
         </div>
       </main>
     </div>
+  )
+}
+
+export default function EditPost() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <EditPostContent />
+    </Suspense>
   )
 }
