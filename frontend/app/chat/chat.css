@@ -500,6 +500,36 @@
   position: relative;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   backdrop-filter: blur(10px);
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.message-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.message-avatar .avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.message-avatar .avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .message.sent {
@@ -508,6 +538,7 @@
   color: white;
   border-bottom-right-radius: 6px;
   margin-left: 20%;
+  flex-direction: row-reverse;
 }
 
 .message.received {

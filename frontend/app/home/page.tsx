@@ -240,8 +240,16 @@ export default function Home() {
   };
 
   const handleAddComment = async (postId: number) => {
-    if ((!newComments[postId] || newComments[postId].trim() === '') && !commentImageFiles[postId]) {
+    const commentText = newComments[postId] || ''
+
+    if (commentText.trim() === '' && !commentImageFiles[postId]) {
       return; // Don't submit empty comments without images
+    }
+
+    // Validate comment length
+    if (commentText.length > 500) {
+      alert('Comment exceeds maximum length of 500 characters')
+      return
     }
 
     try {
@@ -406,7 +414,11 @@ export default function Home() {
                       >
                         <div className="author-avatar">
                           {post.author.avatar ? (
-                            <img src={post.author.avatar} alt={`${post.author.firstName}'s avatar`} />
+                            <img
+                              src={post.author.avatar.startsWith('http') ? post.author.avatar : `http://localhost:8080${post.author.avatar.replace(/\\/g, '/')}`}
+                              alt={`${post.author.firstName}'s avatar`}
+                              className="avatar-img"
+                            />
                           ) : (
                             <div className="avatar-placeholder">
                               {post.author.firstName.charAt(0)}
@@ -444,9 +456,18 @@ export default function Home() {
                       {post.image && (
                         <div className="post-image-container">
                           <img
-                            src={post.image.startsWith('http') ? post.image : `http://localhost:8080${post.image}`}
+                            src={post.image.startsWith('http') ? post.image : `http://localhost:8080/${post.image.replace(/\\/g, '/')}`}
                             alt="Post image"
                             className="post-image"
+                            onError={(e) => {
+                              console.error('Failed to load image:', post.image);
+                              const normalizedPath = post.image.replace(/\\/g, '/');
+                              const constructedURL = post.image.startsWith('http') ? post.image : `http://localhost:8080${normalizedPath}`;
+                              console.error('Constructed URL:', constructedURL);
+                            }}
+                            onLoad={() => {
+                              console.log('Successfully loaded image:', post.image);
+                            }}
                           />
                         </div>
                       )}
@@ -467,20 +488,35 @@ export default function Home() {
                           <h4>Comments</h4>
                           {post.comments && post.comments.map((comment, index) => (
                             <div key={comment.id || index} className="comment">
-                              <div className="comment-author">
-                                {comment.author?.firstName || 'Anonymous'} {comment.author?.lastName || ''}
-                              </div>
-                              <div className="comment-content">
-                                {comment.content}
-                                {comment.image && (
-                                  <div className="comment-image-container">
-                                    <img
-                                      src={comment.image.startsWith('http') ? comment.image : `http://localhost:8080${comment.image}`}
-                                      alt="Comment image"
-                                      className="comment-image"
-                                    />
+                              <div className="comment-avatar">
+                                {comment.author?.avatar ? (
+                                  <img
+                                    src={comment.author.avatar.startsWith('http') ? comment.author.avatar : `http://localhost:8080${comment.author.avatar.replace(/\\/g, '/')}`}
+                                    alt={`${comment.author.firstName}'s avatar`}
+                                    className="avatar-img"
+                                  />
+                                ) : (
+                                  <div className="avatar-placeholder">
+                                    {comment.author?.firstName?.charAt(0) || 'A'}
                                   </div>
                                 )}
+                              </div>
+                              <div className="comment-body">
+                                <div className="comment-author">
+                                  {comment.author?.firstName || 'Anonymous'} {comment.author?.lastName || ''}
+                                </div>
+                                <div className="comment-content">
+                                  {comment.content}
+                                  {comment.image && (
+                                    <div className="comment-image-container">
+                                      <img
+                                        src={comment.image.startsWith('http') ? comment.image : `http://localhost:8080${comment.image.replace(/\\/g, '/')}`}
+                                        alt="Comment image"
+                                        className="comment-image"
+                                      />
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           ))}

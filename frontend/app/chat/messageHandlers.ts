@@ -394,7 +394,55 @@ export const sendMessage = async (
         }
         };
         
-        // Create a group post
+        // Create a group post with file upload
+        export const createGroupPostWithFile = async (
+        groupId: number,
+        content: string,
+        imageFile?: File,
+        currentUser?: User | null
+        ): Promise<any | null> => {
+            try {
+                console.log('Creating group post with file upload');
+
+                const formData = new FormData()
+                formData.append('group_id', groupId.toString())
+                formData.append('content', content)
+                if (imageFile) {
+                    formData.append('image', imageFile)
+                }
+
+                const response = await fetch('http://localhost:8080/groups/posts/create', {
+                    method: 'POST',
+                    credentials: 'include',
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text()
+                    throw new Error(`Failed to create group post: ${errorText}`)
+                }
+
+                const data = await response.json();
+                if (data.success) {
+                    return {
+                        id: data.post_id,
+                        content: content,
+                        image: imageFile ? URL.createObjectURL(imageFile) : null,
+                        created_at: new Date().toISOString(),
+                        first_name: currentUser?.firstName || 'Unknown',
+                        last_name: currentUser?.lastName || '',
+                        avatar: currentUser?.avatar || null,
+                        comment_count: 0
+                    };
+                }
+                return null;
+            } catch (error) {
+                console.error('Error creating group post with file:', error);
+                throw error;
+            }
+        };
+
+        // Create a group post (legacy function for URL-based images)
         export const createGroupPost = async (
         groupId: number,
         content: string,
@@ -405,7 +453,7 @@ export const sendMessage = async (
                 // Try to send via WebSocket first
                 const wsClient = WebSocketClient.getInstance();
                 let sentViaWebSocket = false;
-                
+
                 if (wsClient && wsClient.socket && wsClient.socket.readyState === WebSocket.OPEN) {
                     console.log('Attempting to send group post via WebSocket');
                     sentViaWebSocket = wsClient.sendGroupPost(groupId, content, image);
@@ -413,7 +461,7 @@ export const sendMessage = async (
                 } else {
                     console.log('WebSocket not available, using HTTP');
                 }
-                
+
                 // If WebSocket failed or not available, use HTTP
                 if (!sentViaWebSocket) {
                     console.log('Sending group post via HTTP');
@@ -429,7 +477,7 @@ export const sendMessage = async (
                             image: image
                         }),
                     });
-                    
+
                     if (!response.ok) {
                         throw new Error('Failed to create group post');
                     }

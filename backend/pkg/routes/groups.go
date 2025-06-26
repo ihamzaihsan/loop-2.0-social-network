@@ -9,6 +9,7 @@ import (
 	"socialNetwork/pkg/auth"
 	query "socialNetwork/pkg/db/query"
 	"socialNetwork/pkg/models"
+	"socialNetwork/pkg/utils"
 	"strconv"
 	"strings"
 	"time"
@@ -503,15 +504,100 @@ func CreateGroupPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse request body
+	// Try to parse as multipart form first (for file uploads)
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		// If parsing multipart form fails, try to parse as JSON
+		if strings.Contains(r.Header.Get("Content-Type"), "application/json") {
+			var jsonRequest struct {
+				GroupID int    `json:"group_id"`
+				Content string `json:"content"`
+				Image   string `json:"image,omitempty"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&jsonRequest); err != nil {
+				http.Error(w, "Invalid request format", http.StatusBadRequest)
+				return
+			}
+
+			// Validate content length
+			if len(jsonRequest.Content) > 1000 {
+				http.Error(w, "Post content exceeds maximum length of 1000 characters", http.StatusBadRequest)
+				return
+			}
+
+			// Validate that post has content
+			if strings.TrimSpace(jsonRequest.Content) == "" {
+				http.Error(w, "Post must contain text content", http.StatusBadRequest)
+				return
+			}
+
+			// Check if user is a member of the group
+			isMember, err := query.IsGroupMember(jsonRequest.GroupID, userID)
+			if err != nil {
+				log.Printf("[ERROR] Failed to check group membership: %v", err)
+				http.Error(w, "Internal server error", http.StatusInternalServerError)
+				return
+			}
+
+			if !isMember {
+				log.Printf("[INFO] User %d attempted to post in group %d without permission", userID, jsonRequest.GroupID)
+				http.Error(w, "Access denied", http.StatusForbidden)
+				return
+			}
+
+			// Create post using service
+			postID, err := GroupServiceImpl.CreateGroupPost(jsonRequest.GroupID, userID, jsonRequest.Content, jsonRequest.Image)
+			if err != nil {
+				http.Error(w, "Failed to create post", http.StatusInternalServerError)
+				return
+			}
+
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": true,
+				"post_id": postID,
+			})
+			return
+		}
+
+		http.Error(w, "Invalid request format or file too large", http.StatusBadRequest)
+		return
+	}
+
+	// Handle multipart form (with potential file upload)
 	var req struct {
 		GroupID int    `json:"group_id"`
 		Content string `json:"content"`
 		Image   string `json:"image,omitempty"`
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	// Parse form values
+	groupIDStr := r.FormValue("group_id")
+	if groupIDStr == "" {
+		http.Error(w, "Group ID is required", http.StatusBadRequest)
+		return
+	}
+
+	groupID, err := strconv.Atoi(groupIDStr)
+	if err != nil {
+		http.Error(w, "Invalid group ID", http.StatusBadRequest)
+		return
+	}
+
+	req.GroupID = groupID
+	req.Content = r.FormValue("content")
+
+	// Validate content length
+	if len(req.Content) > 1000 {
+		http.Error(w, "Post content exceeds maximum length of 1000 characters", http.StatusBadRequest)
+		return
+	}
+
+	// Check if image will be provided
+	_, _, imageErr := r.FormFile("image")
+	hasImage := imageErr == nil
+
+	// Validate that post has content or image
+	if strings.TrimSpace(req.Content) == "" && !hasImage {
+		http.Error(w, "Post must contain either text content or an image", http.StatusBadRequest)
 		return
 	}
 
@@ -527,6 +613,18 @@ func CreateGroupPost(w http.ResponseWriter, r *http.Request) {
 		log.Printf("[INFO] User %d attempted to post in group %d without permission", userID, req.GroupID)
 		http.Error(w, "Access denied", http.StatusForbidden)
 		return
+	}
+
+	// Handle image upload if present
+	file, header, err := r.FormFile("image")
+	if err == nil {
+		defer file.Close()
+		imagePath, err := utils.HandleImageUpload(file, header)
+		if err != nil {
+			http.Error(w, "Failed to upload image: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+		req.Image = imagePath
 	}
 
 	// Create post using service

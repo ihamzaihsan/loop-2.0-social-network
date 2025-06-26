@@ -25,25 +25,53 @@ export default function CreatePost() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [followers, setFollowers] = useState<Follower[]>([])
-  const [showFollowerSelector, setShowFollowerSelector] = useState(false)
-  const [selectedFollowers, setSelectedFollowers] = useState<number[]>([])
-  const [isLoadingFollowers, setIsLoadingFollowers] = useState(false)
+  const [allUsers, setAllUsers] = useState<any[]>([])
+  const [showUserSelector, setShowUserSelector] = useState(false)
+  const [selectedUsers, setSelectedUsers] = useState<number[]>([])
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false)
+  const [userSelectorMode, setUserSelectorMode] = useState<'followers' | 'all'>('followers')
+  const [currentUser, setCurrentUser] = useState<any>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Effect to fetch followers when privacy is set to private
+  // Effect to fetch current user profile
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const response = await fetch('http://localhost:8080/profile', {
+          method: 'GET',
+          credentials: 'include',
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          setCurrentUser(data.user)
+        }
+      } catch (error) {
+        console.error('Error fetching current user:', error)
+      }
+    }
+
+    fetchCurrentUser()
+  }, [])
+
+  // Effect to fetch users when privacy is set to private
   useEffect(() => {
     if (privacy === 'private') {
-      setShowFollowerSelector(true)
-      fetchFollowers()
+      setShowUserSelector(true)
+      if (userSelectorMode === 'followers') {
+        fetchFollowers()
+      } else {
+        fetchAllUsers()
+      }
     } else {
-      setShowFollowerSelector(false)
-      setSelectedFollowers([])
+      setShowUserSelector(false)
+      setSelectedUsers([])
     }
-  }, [privacy])
+  }, [privacy, userSelectorMode])
 
   // Function to fetch followers
   const fetchFollowers = async () => {
-    setIsLoadingFollowers(true)
+    setIsLoadingUsers(true)
     try {
       // Get the current user ID first (this should be available from the session)
       const userProfileResponse = await fetch('http://localhost:8080/profile', {
@@ -58,8 +86,8 @@ export default function CreatePost() {
       const userProfileData = await userProfileResponse.json();
       const userId = userProfileData.user.id;
       
-      // Now fetch followers using the user connections endpoint
-      const response = await fetch(`http://localhost:8080/user/${userId}/connections/followers`, {
+      // Now fetch following users (people the current user follows) for private post sharing
+      const response = await fetch(`http://localhost:8080/user/${userId}/connections/following`, {
         method: 'GET',
         credentials: 'include',
       })
@@ -78,8 +106,8 @@ export default function CreatePost() {
       // Map the response to our Follower interface
       const mappedFollowers = followersData.map((follower: any) => ({
         id: follower.id,
-        followerId: follower.followerId, // Person who follows the user
-        followedId: follower.followedId, // User being followed
+        followerId: follower.follower_id, // Current user (who is following)
+        followedId: follower.followed_id, // Person being followed (who we want to share with)
         status: follower.status,
         username: follower.username || '',
         avatar: follower.avatar,
@@ -91,24 +119,94 @@ export default function CreatePost() {
       console.error('Error fetching followers:', err)
       setError('Failed to load followers. Please try again.')
     } finally {
-      setIsLoadingFollowers(false)
+      setIsLoadingUsers(false)
     }
   }
-  
-  // Toggle selection of a follower
-  const toggleFollowerSelection = (followerId: number) => {
-    if (selectedFollowers.includes(followerId)) {
-      setSelectedFollowers(selectedFollowers.filter(id => id !== followerId))
-    } else {
-      setSelectedFollowers([...selectedFollowers, followerId])
+
+  // Function to fetch all users
+  const fetchAllUsers = async () => {
+    setIsLoadingUsers(true)
+    try {
+      const response = await fetch('http://localhost:8080/users', {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.users) {
+          // Map users to a consistent format
+          const mappedUsers = data.users.map((user: any) => ({
+            id: user.id,
+            followerId: user.id, // Use user ID as followerId for consistency
+            followedId: user.id,
+            status: 'available',
+            username: user.nickname || `${user.first_name} ${user.last_name}`,
+            firstName: user.first_name,
+            lastName: user.last_name,
+            avatar: user.avatar,
+            selected: false
+          }))
+          setAllUsers(mappedUsers)
+        } else {
+          console.error('Failed to fetch users:', data.message)
+          setError('Failed to load users')
+        }
+      } else {
+        console.error('Failed to fetch users')
+        setError('Failed to load users')
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error)
+      setError('Failed to load users')
+    } finally {
+      setIsLoadingUsers(false)
     }
+  }
+
+  // Toggle selection of a user
+  const toggleUserSelection = (userId: number) => {
+    if (selectedUsers.includes(userId)) {
+      setSelectedUsers(selectedUsers.filter(id => id !== userId))
+    } else {
+      setSelectedUsers([...selectedUsers, userId])
+    }
+  }
+
+  const validateImage = (file: File): string | null => {
+    // Check file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
+    if (!allowedTypes.includes(file.type)) {
+      return 'Invalid image format. Only JPEG, PNG, and GIF files are allowed.'
+    }
+
+    // Check file size (5MB limit)
+    const maxSize = 5 * 1024 * 1024 // 5MB in bytes
+    if (file.size > maxSize) {
+      return 'Image file size exceeds 5MB limit.'
+    }
+
+    return null
   }
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0]
+
+      // Validate the image
+      const validationError = validateImage(file)
+      if (validationError) {
+        setError(validationError)
+        e.target.value = '' // Clear the input
+        return
+      }
+
       setImage(file)
-      
+      setError(null) // Clear any previous errors
+
       // Create preview
       const reader = new FileReader()
       reader.onload = (e) => {
@@ -128,15 +226,21 @@ export default function CreatePost() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!content.trim() && !image) {
       setError('Please add some content or an image to your post')
       return
     }
-    
+
+    // Validate content length
+    if (content.length > 1000) {
+      setError('Post content exceeds maximum length of 1000 characters')
+      return
+    }
+
     // Validate viewer selection for private posts
-    if (privacy === 'private' && selectedFollowers.length === 0) {
-      setError('Please select at least one follower who can view this post')
+    if (privacy === 'private' && selectedUsers.length === 0) {
+      setError('Please select at least one user who can view this post')
       return
     }
     
@@ -145,11 +249,11 @@ export default function CreatePost() {
     
     try {
       // For private posts with selected viewers, we need to send JSON
-      if (privacy === 'private' && selectedFollowers.length > 0) {
+      if (privacy === 'private' && selectedUsers.length > 0) {
         const postData = {
           content: content,
           privacy: privacy,
-          viewerIds: selectedFollowers
+          viewerIds: selectedUsers
         }
         
         if (image) {
@@ -160,7 +264,7 @@ export default function CreatePost() {
           formData.append('image', image)
           
           // Add viewer IDs as JSON string
-          formData.append('viewerIds', JSON.stringify(selectedFollowers))
+          formData.append('viewerIds', JSON.stringify(selectedUsers))
           
           const response = await fetch('http://localhost:8080/posts', {
             method: 'POST',
@@ -169,7 +273,8 @@ export default function CreatePost() {
           })
           
           if (!response.ok) {
-            throw new Error('Failed to create post')
+            const errorText = await response.text()
+            throw new Error(`Failed to create post: ${errorText}`)
           }
         } else {
           // If no image, we can use JSON directly
@@ -183,7 +288,8 @@ export default function CreatePost() {
           })
           
           if (!response.ok) {
-            throw new Error('Failed to create post')
+            const errorText = await response.text()
+            throw new Error(`Failed to create post: ${errorText}`)
           }
         }
       } else {
@@ -202,7 +308,8 @@ export default function CreatePost() {
         })
         
         if (!response.ok) {
-          throw new Error('Failed to create post')
+          const errorText = await response.text()
+          throw new Error(`Failed to create post: ${errorText}`)
         }
       }
       
@@ -221,7 +328,32 @@ export default function CreatePost() {
       <div className="create-post-container">
         <div className="create-post-card">
           <h1 className="create-post-title">Create a New Post</h1>
-          
+
+          {/* Current user profile section */}
+          {currentUser && (
+            <div className="current-user-section">
+              <div className="current-user-avatar">
+                {currentUser.avatar ? (
+                  <img
+                    src={currentUser.avatar.startsWith('http') ? currentUser.avatar : `http://localhost:8080${currentUser.avatar.replace(/\\/g, '/')}`}
+                    alt={`${currentUser.firstName}'s avatar`}
+                    className="avatar-img"
+                  />
+                ) : (
+                  <div className="avatar-placeholder">
+                    {currentUser.firstName?.charAt(0) || 'U'}
+                  </div>
+                )}
+              </div>
+              <div className="current-user-info">
+                <span className="current-user-name">
+                  {currentUser.nickname || `${currentUser.firstName} ${currentUser.lastName}`}
+                </span>
+                <span className="posting-as">What's on your mind?</span>
+              </div>
+            </div>
+          )}
+
           {error && <div className="error-message">{error}</div>}
           
           <form onSubmit={handleSubmit} className="create-post-form">
@@ -234,7 +366,11 @@ export default function CreatePost() {
                 placeholder="Share your thoughts..."
                 rows={5}
                 className="content-textarea"
+                maxLength={1000}
               />
+              <div className={`character-counter ${content.length > 1000 ? 'over-limit' : ''}`}>
+                {content.length}/1000 characters
+              </div>
             </div>
             
             {imagePreview && (
@@ -276,18 +412,23 @@ export default function CreatePost() {
               </select>
             </div>
             
-            {showFollowerSelector && (
+            {showUserSelector && (
               <div className="form-group follower-selector">
-                <label>Select followers who can see this post:</label>
-                {isLoadingFollowers ? (
+                <label>Select people who can see this post:</label>
+                {selectedUsers.length > 0 && (
+                  <div className="selected-count">
+                    {selectedUsers.length} user{selectedUsers.length !== 1 ? 's' : ''} selected
+                  </div>
+                )}
+                {isLoadingUsers ? (
                   <div className="loading-followers">Loading followers...</div>
                 ) : followers.length > 0 ? (
                   <div className="followers-list">
                     {followers.map(follower => (
                       <div 
-                        key={follower.id} 
-                        className={`follower-item ${selectedFollowers.includes(follower.followerId) ? 'selected' : ''}`}
-                        onClick={() => toggleFollowerSelection(follower.followerId)}
+                        key={follower.id}
+                        className={`follower-item ${selectedUsers.includes(follower.followedId) ? 'selected' : ''}`}
+                        onClick={() => toggleUserSelection(follower.followedId)}
                       >
                         <div className="follower-avatar">
                           {follower.avatar ? (
@@ -300,7 +441,7 @@ export default function CreatePost() {
                         <div className="follower-checkbox">
                           <input 
                             type="checkbox" 
-                            checked={selectedFollowers.includes(follower.followerId)}
+                            checked={selectedUsers.includes(follower.followedId)}
                             onChange={() => {}} // Handled by the div click
                           />
                         </div>

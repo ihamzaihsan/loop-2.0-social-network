@@ -9,6 +9,7 @@ import {
     fetchGroupMessages,
     sendGroupMessage,
     createGroupPost,
+    createGroupPostWithFile,
     createGroupComment,
     createGroupEvent,
     respondToEvent,
@@ -108,7 +109,8 @@ export default function GroupChatPage() {
 
     // For posts functionality
     const [newPostContent, setNewPostContent] = useState('')
-    const [newPostImage, setNewPostImage] = useState<string | null>(null)
+    const [newPostImage, setNewPostImage] = useState<File | null>(null)
+    const [newPostImagePreview, setNewPostImagePreview] = useState<string | null>(null)
     const [selectedPost, setSelectedPost] = useState<number | null>(null)
     const [newComment, setNewComment] = useState('')
 
@@ -635,13 +637,71 @@ const handleGroupImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) =>
         }
     };
 
+    // Image validation function
+    const validateImage = (file: File): string | null => {
+        // Check file type
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
+        if (!allowedTypes.includes(file.type)) {
+            return 'Invalid image format. Only JPEG, PNG, and GIF files are allowed.'
+        }
+
+        // Check file size (5MB limit)
+        const maxSize = 5 * 1024 * 1024 // 5MB in bytes
+        if (file.size > maxSize) {
+            return 'Image file size exceeds 5MB limit.'
+        }
+
+        return null
+    }
+
+    // Handle image selection
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0]
+
+            // Validate the image
+            const validationError = validateImage(file)
+            if (validationError) {
+                alert(validationError)
+                e.target.value = '' // Clear the input
+                return
+            }
+
+            setNewPostImage(file)
+
+            // Create preview
+            const reader = new FileReader()
+            reader.onload = (e) => {
+                setNewPostImagePreview(e.target?.result as string)
+            }
+            reader.readAsDataURL(file)
+        }
+    }
+
+    // Remove image
+    const handleRemoveImage = () => {
+        setNewPostImage(null)
+        setNewPostImagePreview(null)
+    }
+
     // Handle creating a post
     const handleCreatePost = async () => {
-        if (!newPostContent.trim() || !groupId) return;
+        if (!newPostContent.trim() && !newPostImage) {
+            alert('Please add some content or an image to your post')
+            return
+        }
+
+        if (!groupId) return
+
+        // Validate content length
+        if (newPostContent.length > 1000) {
+            alert('Post content exceeds maximum length of 1000 characters')
+            return
+        }
 
         try {
             console.log(currentUser);
-            const newPost = await createGroupPost(groupId, newPostContent, newPostImage || undefined, currentUser);
+            const newPost = await createGroupPostWithFile(groupId, newPostContent, newPostImage || undefined, currentUser);
             if (newPost) {
                 // Only add to posts if it's not already there (might be added by WebSocket)
                 setPosts(prev => {
@@ -659,9 +719,11 @@ const handleGroupImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) =>
 
                 setNewPostContent('');
                 setNewPostImage(null);
+                setNewPostImagePreview(null);
             }
         } catch (error) {
             console.error('Error creating post:', error);
+            alert('Failed to create post. Please try again.');
         }
     };
 
@@ -1136,19 +1198,41 @@ const handleCreateComment = async (postId: number) => {
                                     rows={3}
                                     value={newPostContent}
                                     onChange={(e) => setNewPostContent(e.target.value)}
+                                    maxLength={1000}
                                 ></textarea>
+                                <div className={`character-counter ${newPostContent.length > 1000 ? 'over-limit' : ''}`}>
+                                    {newPostContent.length}/1000 characters
+                                </div>
+
+                                {newPostImagePreview && (
+                                    <div className="image-preview-container">
+                                        <img src={newPostImagePreview} alt="Preview" className="image-preview" />
+                                        <button
+                                            type="button"
+                                            onClick={handleRemoveImage}
+                                            className="remove-image-button"
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
+                                )}
+
                                 <div className="post-image-upload">
                                     <input
-                                        type="text"
-                                        placeholder="Image URL (optional)"
-                                        value={newPostImage || ''}
-                                        onChange={(e) => setNewPostImage(e.target.value || null)}
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleImageChange}
+                                        style={{ display: 'none' }}
+                                        id="group-post-image-input"
                                     />
+                                    <label htmlFor="group-post-image-input" className="image-upload-button">
+                                        📷 Add Image
+                                    </label>
                                 </div>
                                 <button
                                     className="post-button"
                                     onClick={handleCreatePost}
-                                    disabled={!newPostContent.trim()}
+                                    disabled={!newPostContent.trim() && !newPostImage}
                                 >
                                     Post
                                 </button>
@@ -1157,12 +1241,12 @@ const handleCreateComment = async (postId: number) => {
                             {posts.length > 0 ? (
                                 <div className="posts-list">
                                     {posts.map(post => (
-                                        <div key={post.id} className="post-item">
+                                        <div key={post.id} className="post-card">
                                             <div className="post-header">
                                                 <div className="post-author">
                                                     <div className="author-avatar">
                                                         {post.avatar ? (
-                                                            <img src={post.avatar} alt={`${post.first_name}'s avatar`} />
+                                                            <img src={post.avatar.startsWith('http') ? post.avatar : `http://localhost:8080${post.avatar}`} alt={`${post.first_name}'s avatar`} />
                                                         ) : (
                                                             <div className="avatar-placeholder">
                                                                 {post.first_name ? post.first_name.charAt(0) : 'U'}
@@ -1170,78 +1254,92 @@ const handleCreateComment = async (postId: number) => {
                                                         )}
                                                     </div>
                                                     <div className="author-info">
-                                                        <span className="author-name">{post.first_name || 'Unknown'} {post.last_name || ''}</span>
-                                                        <span className="post-time">{post.created_at ? new Date(post.created_at).toLocaleString() : 'Unknown date'}</span>
+                                                        <h3 className="author-name">{post.first_name || 'Unknown'} {post.last_name || ''}</h3>
+                                                        <span className="post-date">{post.created_at ? new Date(post.created_at).toLocaleDateString('en-US', {
+                                                            year: 'numeric',
+                                                            month: 'short',
+                                                            day: 'numeric',
+                                                            hour: '2-digit',
+                                                            minute: '2-digit'
+                                                        }) : 'Unknown date'}</span>
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div className="post-content">{post.content || ''}</div>
-                                            {post.image && (
-                                                <div className="post-image">
-                                                    <img src={post.image} alt="Post attachment" />
-                                                </div>
-                                            )}
+
+                                            <div className="post-content">
+                                                {post.content && <p className="post-text">{post.content}</p>}
+                                                {post.image && (
+                                                    <div className="post-image-container">
+                                                        <img
+                                                            src={post.image.startsWith('http') ? post.image : `http://localhost:8080${post.image.replace(/\\/g, '/')}`}
+                                                            alt="Post content"
+                                                            className="post-image"
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
+
                                             <div className="post-footer">
                                                 <button
-                                                    className="comment-button"
+                                                    className="comments-toggle-btn"
                                                     onClick={() => setSelectedPost(selectedPost === post.id ? null : post.id)}
                                                 >
-                                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                                                    </svg>
-                                                    {post.comment_count || 0} Comments
+                                                    {selectedPost === post.id ? 'Hide Comments' : 'Show Comments'} ({post.comment_count || 0})
                                                 </button>
                                             </div>
 
-                                            {/* Comment section */}
                                             {selectedPost === post.id && (
                                                 <div className="comments-section">
-                                                    {/* Comment form */}
-                                                    <div className="comment-form">
-                                                        <textarea
-                                                            className="comment-input"
-                                                            placeholder="Write a comment..."
-                                                            value={newComment}
-                                                            onChange={(e) => setNewComment(e.target.value)}
-                                                        ></textarea>
-                                                        <button
-                                                            className="comment-submit-button"
-                                                            onClick={() => handleCreateComment(post.id)}
-                                                            disabled={!newComment.trim()}
-                                                        >
-                                                            Comment
-                                                        </button>
-                                                    </div>
-                                                    
-                                                    {/* Comments list */}
-                                                    <div className="comments-list">
-                                                        {loadingComments[post.id] ? (
-                                                            <div className="loading-comments">Loading comments...</div>
-                                                        ) : postComments[post.id]?.length > 0 ? (
-                                                            postComments[post.id].map(comment => (
-                                                                <div key={comment.id} className="comment-item">
-                                                                    <div className="comment-author">
-                                                                        <div className="author-avatar">
-                                                                            {comment.avatar ? (
-                                                                                <img src={comment.avatar} alt={`${comment.first_name}'s avatar`} />
-                                                                            ) : (
-                                                                                <div className="avatar-placeholder">
-                                                                                    {comment.first_name ? comment.first_name.charAt(0) : 'U'}
-                                                                                </div>
-                                                                            )}
+                                                    <h4>Comments</h4>
+                                                    {loadingComments[post.id] ? (
+                                                        <div className="loading-comments">Loading comments...</div>
+                                                    ) : postComments[post.id]?.length > 0 ? (
+                                                        postComments[post.id].map(comment => (
+                                                            <div key={comment.id} className="comment">
+                                                                <div className="comment-avatar">
+                                                                    {comment.avatar ? (
+                                                                        <img
+                                                                            src={comment.avatar.startsWith('http') ? comment.avatar : `http://localhost:8080${comment.avatar}`}
+                                                                            alt={`${comment.first_name}'s avatar`}
+                                                                            className="avatar-img"
+                                                                        />
+                                                                    ) : (
+                                                                        <div className="avatar-placeholder">
+                                                                            {comment.first_name ? comment.first_name.charAt(0) : 'U'}
                                                                         </div>
-                                                                        <span className="author-name">{comment.first_name} {comment.last_name}</span>
+                                                                    )}
+                                                                </div>
+                                                                <div className="comment-body">
+                                                                    <div className="comment-author">
+                                                                        {comment.first_name} {comment.last_name}
                                                                     </div>
-                                                                    <div className="comment-content">{comment.content}</div>
-                                                                    <div className="comment-time">
-                                                                        {new Date(comment.created_at).toLocaleString()}
+                                                                    <div className="comment-content">
+                                                                        {comment.content}
                                                                     </div>
                                                                 </div>
-                                                            ))
-                                                        ) : (
-                                                            <div className="no-comments">No comments yet. Be the first to comment!</div>
-                                                        )}
-                                                    </div>
+                                                            </div>
+                                                        ))
+                                                    ) : (
+                                                        <div className="no-comments">No comments yet. Be the first to comment!</div>
+                                                    )}
+
+                                                    <form onSubmit={(e) => {
+                                                        e.preventDefault();
+                                                        handleCreateComment(post.id);
+                                                    }} className="comment-form">
+                                                        <input
+                                                            type="text"
+                                                            value={newComment}
+                                                            onChange={(e) => setNewComment(e.target.value)}
+                                                            placeholder="Write a comment..."
+                                                            className="comment-input"
+                                                        />
+                                                        <div className="comment-form-actions">
+                                                            <button type="submit" className="comment-submit" disabled={!newComment.trim()}>
+                                                                Post
+                                                            </button>
+                                                        </div>
+                                                    </form>
                                                 </div>
                                             )}
                                         </div>

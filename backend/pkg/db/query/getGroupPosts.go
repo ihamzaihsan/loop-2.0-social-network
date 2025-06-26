@@ -5,6 +5,7 @@ import (
 	"log"
 	"socialNetwork/pkg/db"
 	"socialNetwork/pkg/models"
+	"strings"
 )
 
 // GetGroupPosts returns all posts in a group
@@ -47,6 +48,21 @@ func GetGroupPosts(groupID int) ([]models.GroupPost, error) {
 
 		if avatar.Valid {
 			post.Avatar = &avatar.String
+		}
+
+		// Fix image path for proper URL construction
+		if post.Image != "" {
+			if strings.HasPrefix(post.Image, "./uploads") {
+				post.Image = strings.Replace(post.Image, "./uploads", "/uploads", 1)
+			}
+		}
+
+		// Fix avatar path as well
+		if post.Avatar != nil && *post.Avatar != "" {
+			if strings.HasPrefix(*post.Avatar, "./uploads") {
+				fixed := strings.Replace(*post.Avatar, "./uploads", "/uploads", 1)
+				post.Avatar = &fixed
+			}
 		}
 
 		posts = append(posts, post)

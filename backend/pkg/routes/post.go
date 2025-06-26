@@ -50,6 +50,18 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
+			// Validate content length
+			if len(jsonRequest.Content) > 1000 {
+				http.Error(w, "Post content exceeds maximum length of 1000 characters", http.StatusBadRequest)
+				return
+			}
+
+			// Validate that post has content
+			if strings.TrimSpace(jsonRequest.Content) == "" {
+				http.Error(w, "Post must contain text content", http.StatusBadRequest)
+				return
+			}
+
 			// Create post using the JSON data
 			post, err := query.CreatePostQuery(userID, jsonRequest)
 			if err != nil {
@@ -71,6 +83,22 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 	var request models.PostRequest
 	request.Content = r.FormValue("content")
 	request.Privacy = r.FormValue("privacy")
+
+	// Validate content length
+	if len(request.Content) > 1000 {
+		http.Error(w, "Post content exceeds maximum length of 1000 characters", http.StatusBadRequest)
+		return
+	}
+
+	// Check if image will be provided
+	_, _, imageErr := r.FormFile("image")
+	hasImage := imageErr == nil
+
+	// Validate that post has content or image
+	if strings.TrimSpace(request.Content) == "" && !hasImage {
+		http.Error(w, "Post must contain either text content or an image", http.StatusBadRequest)
+		return
+	}
 
 	// Parse viewer IDs for private posts
 	if request.Privacy == "private" {

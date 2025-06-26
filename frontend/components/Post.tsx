@@ -78,7 +78,11 @@ export default function Post({
         <div className="post-author">
           <div className="author-avatar">
             {author.avatar ? (
-              <img src={author.avatar} alt={`${author.firstName}'s avatar`} />
+              <img
+                src={author.avatar.startsWith('http') ? author.avatar : `http://localhost:8080${author.avatar.replace(/\\/g, '/')}`}
+                alt={`${author.firstName}'s avatar`}
+                className="avatar-img"
+              />
             ) : (
               <div className="avatar-placeholder">
                 {author.firstName.charAt(0)}
@@ -89,7 +93,14 @@ export default function Post({
             <h3 className="author-name">
               {author.nickname || `${author.firstName} ${author.lastName}`}
             </h3>
-            <span className="post-date">{formatDate(createdAt)}</span>
+            <div className="post-meta">
+              <span className="post-date">{formatDate(createdAt)}</span>
+              {privacy !== 'public' && (
+                <span className={`privacy-indicator ${privacy}`}>
+                  {privacy === 'private' ? '🔒 Private' : privacy === 'almost_private' ? '👥 Followers' : privacy}
+                </span>
+              )}
+            </div>
           </div>
         </div>
         
@@ -115,7 +126,7 @@ export default function Post({
                       >
                         {!isImageLoaded && <div className="image-loading-spinner"></div>}
                         <img
-                          src={image.startsWith('http') ? image : `http://localhost:8080${image}`}
+                          src={image.startsWith('http') ? image : `http://localhost:8080${image.replace(/\\/g, '/')}`}
                           alt="Post content"
                           className={`post-image ${isLandscape ? 'landscape' : ''}`}
                           onLoad={handleImageLoad}
@@ -126,7 +137,7 @@ export default function Post({
                         <div className="image-modal" onClick={() => setShowFullImage(false)}>
                           <div className="modal-content">
                             <img
-                              src={image.startsWith('http') ? image : `http://localhost:8080${image}`}
+                              src={image.startsWith('http') ? image : `http://localhost:8080${image.replace(/\\/g, '/')}`}
                               alt="Full size post content"
                               className="full-size-image"
                             />

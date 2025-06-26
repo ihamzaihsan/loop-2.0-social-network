@@ -70,9 +70,33 @@
   color: #333;
 }
 
+.post-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+
 .post-date {
   font-size: 12px;
   color: #777;
+}
+
+.privacy-indicator {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.privacy-indicator.private {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+.privacy-indicator.almost_private {
+  background-color: #fef3c7;
+  color: #d97706;
 }
 
 .post-actions {

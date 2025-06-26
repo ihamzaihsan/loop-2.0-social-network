@@ -654,17 +654,33 @@ export default function Chat() {
                 {messages.length > 0 ? (
                   <div className="messages-list">
                    {messages.map(message => (
-                     <div 
-                       key={message.id} 
+                     <div
+                       key={message.id}
                        className={`message ${message.sender_id === currentUser?.id ? 'sent' : 'received'}`}
                      >
+                       {/* Add avatar for received messages */}
+                       {message.sender_id !== currentUser?.id && (
+                         <div className="message-avatar">
+                           {message.sender?.avatar ? (
+                             <img
+                               src={message.sender.avatar.startsWith('http') ? message.sender.avatar : `http://localhost:8080${message.sender.avatar.replace(/\\/g, '/')}`}
+                               alt={`${message.sender.first_name}'s avatar`}
+                               className="avatar-img"
+                             />
+                           ) : (
+                             <div className="avatar-placeholder">
+                               {message.sender?.first_name?.charAt(0) || 'U'}
+                             </div>
+                           )}
+                         </div>
+                       )}
                        <div className="message-content">
                          {typeof message.content === 'string' && message.content.match(/\.(jpeg|jpg|gif|png)$/i) ? (
                            // If the content is an image URL - make it clickable
-                           <img 
-                             src={`http://localhost:8080/${message.content}`} 
-                             alt="User uploaded content" 
-                             onClick={() => handleImageClick(`http://localhost:8080/${message.content}`)}
+                           <img
+                             src={`http://localhost:8080${message.content.replace(/\\/g, '/')}`}
+                             alt="User uploaded content"
+                             onClick={() => handleImageClick(`http://localhost:8080${message.content.replace(/\\/g, '/')}`)}
                              style={{ cursor: 'pointer' }}
                            />
                          ) : typeof message.content === 'number' ? (

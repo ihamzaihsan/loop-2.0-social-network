@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"socialNetwork/pkg/db"
 	"socialNetwork/pkg/models"
+	"strings"
 )
 
 // GetGroupPost returns a specific post by ID
@@ -37,6 +38,21 @@ func GetGroupPost(postID int) (*models.GroupPost, error) {
 
 	if avatar.Valid {
 		post.Avatar = &avatar.String
+	}
+
+	// Fix image path for proper URL construction
+	if post.Image != "" {
+		if strings.HasPrefix(post.Image, "./uploads") {
+			post.Image = strings.Replace(post.Image, "./uploads", "/uploads", 1)
+		}
+	}
+
+	// Fix avatar path as well
+	if post.Avatar != nil && *post.Avatar != "" {
+		if strings.HasPrefix(*post.Avatar, "./uploads") {
+			fixed := strings.Replace(*post.Avatar, "./uploads", "/uploads", 1)
+			post.Avatar = &fixed
+		}
 	}
 
 	return &post, nil
