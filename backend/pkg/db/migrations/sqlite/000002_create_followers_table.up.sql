@@ -3,5 +3,5 @@ CREATE TABLE followers (
     follower_id INTEGER NOT NULL,
     following_id INTEGER NOT NULL,
     status TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );

@@ -8,7 +8,7 @@ import (
 func GetUserInfo(userID int) (models.User, error) {
 	var user models.User
 	query := `
-	SELECT id,email,first_name,last_name,dob,avatar,nickname,about_me,is_private,created_at
+	SELECT id,email,first_name,last_name,dob,avatar,nickname,about_me,isprivate,created_at
 	FROM users
 	WHERE id = ?
 	`

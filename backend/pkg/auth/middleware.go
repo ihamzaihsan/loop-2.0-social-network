@@ -35,7 +35,26 @@ func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 
 func CorsMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+		// Allow multiple frontend origins for both Docker (3000) and direct execution (3001)
+		origin := r.Header.Get("Origin")
+		allowedOrigins := []string{
+			"http://localhost:3000",
+			"http://localhost:3001",
+		}
+
+		// Check if the origin is in our allowed list
+		for _, allowedOrigin := range allowedOrigins {
+			if origin == allowedOrigin {
+				w.Header().Set("Access-Control-Allow-Origin", origin)
+				break
+			}
+		}
+
+		// If no origin header (like direct API calls), allow localhost:3000 as default
+		if origin == "" {
+			w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+		}
+
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 		w.Header().Set("Access-Control-Allow-Credentials", "true")

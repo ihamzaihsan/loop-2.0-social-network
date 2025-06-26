@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"os"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/sqlite3"
@@ -18,7 +19,14 @@ var DBInstance Database
 
 func InitDB() error {
 	var err error
-	DBInstance.DB, err = sql.Open("sqlite3", "social-network.db")
+
+	// Get database path from environment variable or use default
+	dbPath := os.Getenv("DB_PATH")
+	if dbPath == "" {
+		dbPath = "social-network.db"
+	}
+
+	DBInstance.DB, err = sql.Open("sqlite3", dbPath)
 	if err != nil {
 		return fmt.Errorf("error opening database: %v", err)
 	}
@@ -36,11 +44,11 @@ func InitDB() error {
 	// Check if comments table has image column
 	var hasImageColumn bool
 	err = DBInstance.DB.QueryRow(`
-		SELECT COUNT(*) > 0 
-		FROM pragma_table_info('comments') 
+		SELECT COUNT(*) > 0
+		FROM pragma_table_info('comments')
 		WHERE name = 'image'
 	`).Scan(&hasImageColumn)
-	
+
 	if err == nil && !hasImageColumn {
 		// Add image column if it doesn't exist
 		fmt.Println("Adding image column to comments table...")
@@ -50,6 +58,26 @@ func InitDB() error {
 			// Continue anyway, as migrations might handle this
 		} else {
 			fmt.Println("Image column added successfully")
+		}
+	}
+
+	// Check if users table has isprivate column
+	var hasIsPrivateColumn bool
+	err = DBInstance.DB.QueryRow(`
+		SELECT COUNT(*) > 0
+		FROM pragma_table_info('users')
+		WHERE name = 'isprivate'
+	`).Scan(&hasIsPrivateColumn)
+
+	if err == nil && !hasIsPrivateColumn {
+		// Add isprivate column if it doesn't exist
+		fmt.Println("Adding isprivate column to users table...")
+		_, err = DBInstance.DB.Exec(`ALTER TABLE users ADD COLUMN isprivate BOOLEAN DEFAULT 0`)
+		if err != nil {
+			fmt.Printf("Error adding isprivate column: %v\n", err)
+			// Continue anyway, as migrations might handle this
+		} else {
+			fmt.Println("IsPrivate column added successfully")
 		}
 	}
 
@@ -91,4 +119,3 @@ func CloseDB() error {
 	}
 	return nil
 }
-

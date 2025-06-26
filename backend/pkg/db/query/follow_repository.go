@@ -27,7 +27,7 @@ func RequestFollow(followerID, followedID uint) (string, error) {
 			// Need to determine if the followed user has a private account
 			var isPrivate bool
 			err := db.DBInstance.DB.QueryRow(`
-				SELECT is_private FROM users WHERE id = ?
+				SELECT isprivate FROM users WHERE id = ?
 			`, followedID).Scan(&isPrivate)
 			if err != nil {
 				return "", err
@@ -282,10 +282,10 @@ func AcceptFollowRequest(requestID int, followedID uint) (uint, error) {
 			websocket.SendToUser(int(followedID), websocket.Message{
 				Type: "follow_request_handled",
 				Content: map[string]interface{}{
-				"request_id":    requestID,
-				"follower_id":   followerID,
-				"action":        "accept",
-				"follower_name": followerName,
+					"request_id":    requestID,
+					"follower_id":   followerID,
+					"action":        "accept",
+					"follower_name": followerName,
 				},
 			})
 		}
@@ -360,15 +360,15 @@ func RejectFollowRequest(requestID int, followedID uint) error {
 		websocket.SendToUser(int(followerID), websocket.Message{
 			Type: "notification",
 			Content: map[string]interface{}{
-				"id": notificationID,
-				"type": "follow_reject",
-				"user_id": followerID,
+				"id":           notificationID,
+				"type":         "follow_reject",
+				"user_id":      followerID,
 				"from_user_id": followedID,
-				"sender_name": followedName,
-				"content": notificationContent,
-				"related_id": requestID,
-				"status": "unread",
-				"created_at": time.Now().Format(time.RFC3339),
+				"sender_name":  followedName,
+				"content":      notificationContent,
+				"related_id":   requestID,
+				"status":       "unread",
+				"created_at":   time.Now().Format(time.RFC3339),
 			},
 		})
 
@@ -395,10 +395,10 @@ func RejectFollowRequest(requestID int, followedID uint) error {
 			websocket.SendToUser(int(followedID), websocket.Message{
 				Type: "follow_request_handled",
 				Content: map[string]interface{}{
-				"request_id": requestID,
-				"follower_id": followerID,
-				"action": "reject",
-				"follower_name": followerName,
+					"request_id":    requestID,
+					"follower_id":   followerID,
+					"action":        "reject",
+					"follower_name": followerName,
 				},
 			})
 		}

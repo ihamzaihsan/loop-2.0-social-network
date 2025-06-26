@@ -17,11 +17,8 @@ type LoginRequest struct {
 }
 
 func Login(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
-	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-	w.Header().Set("Access-Control-Allow-Credentials", "true")
-
+	// CORS headers are now handled by CorsMiddleware, so we don't need to duplicate them here
+	// But we'll keep the OPTIONS handling for safety
 	if r.Method == "OPTIONS" {
 		w.WriteHeader(http.StatusOK)
 		return
@@ -42,7 +39,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 	var user models.User
 	err := db.DBInstance.DB.QueryRow(
-		"SELECT * FROM users WHERE email = ?",
+		"SELECT id, email, password, first_name, last_name, dob, avatar, nickname, about_me, isprivate, created_at FROM users WHERE email = ?",
 		loginReq.Email,
 	).Scan(&user.ID, &user.Email, &user.Password, &user.FirstName, &user.LastName, &user.DOB, &user.Avatar, &user.Nickname, &user.AboutMe, &user.IsPrivate, &user.CreatedAt)
 

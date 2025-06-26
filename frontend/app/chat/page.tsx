@@ -127,113 +127,112 @@ export default function Chat() {
                 const currentPath = window.location.pathname;
                 const isInChatPage = currentPath === '/chat';
                 
-                if (isInChatPage) {
-                    // Get the current selected contact from state
-                    setSelectedContact(currentSelected => {
-                        if (currentSelected && content.sender_id === currentSelected.id) {
-                            // We're viewing this contact's chat, add the message
-                            return currentSelected;
-                        }
-                        return currentSelected;
-                    });
-                    
-                    // Add message if it's from the currently selected contact
-                    const shouldAddMessage = prev.length === 0 || 
-                        prev.some(msg => msg.sender_id === content.sender_id || msg.receiver_id === content.sender_id);
-                    
-                    if (shouldAddMessage) {
-                        return [...prev, newMessage];
-                    }
+                if (isInChatPage && selectedContact && content.sender_id === selectedContact.id) {
+                    // We're viewing this contact's chat, add the message
+                    return [...prev, newMessage];
                 }
                 return prev;
             });
         
             // Update the contact's last message in the contacts list
             setContacts(prev => {
-              const updatedContacts = [...prev];
-              const contactIndex = updatedContacts.findIndex(c => c.id === content.sender_id);
+                const updatedContacts = [...prev];
+                const contactIndex = updatedContacts.findIndex(c => c.id === content.sender_id);
           
-              if (contactIndex >= 0) {
-                // Update existing contact
-                updatedContacts[contactIndex] = {
-                  ...updatedContacts[contactIndex],
-                  lastMessage: content.type === 'image' || content.content.match(/\.(jpeg|jpg|gif|png)$/i) 
-                    ? '📷 Image' 
-                    : content.content || "",
-                  lastMessageTime: content.created_at || new Date().toISOString(),
-                  unreadCount: (updatedContacts[contactIndex].unreadCount || 0) + 1
-                };
-                
-                return updatedContacts;
-              } else if (content.sender_id) {
-                // If this is a new contact, fetch their info and add them
-                fetch(`http://localhost:8080/user/info?id=${content.sender_id}`, {
-                  credentials: 'include'
-                })
-                .then(res => {
-                  if (!res.ok) {
-                    throw new Error(`HTTP error! status: ${res.status}`);
-                  }
-                  return res.json();
-                })
-                .then(data => {
-                  if (data.success && data.user) {
-                    const newContact = {
-                      id: content.sender_id,
-                      firstName: data.user.firstName,
-                      lastName: data.user.lastName,
-                      nickname: data.user.nickname,
-                      avatar: data.user.avatar,
-                      lastMessage: content.type === 'image' ? '📷 Image' : content.content || "",
-                      lastMessageTime: content.created_at || new Date().toISOString(),
-                      unreadCount: 1
+                if (contactIndex >= 0) {
+                    // Update existing contact
+                    updatedContacts[contactIndex] = {
+                        ...updatedContacts[contactIndex],
+                        lastMessage: content.type === 'image' || content.content.match(/\.(jpeg|jpg|gif|png)$/i) 
+                            ? '📷 Image' 
+                            : content.content || "",
+                        lastMessageTime: content.created_at || new Date().toISOString(),
+                        unreadCount: selectedContact && selectedContact.id === content.sender_id ? 0 : (updatedContacts[contactIndex].unreadCount || 0) + 1
                     };
                     
-                    setContacts(prevContacts => {
-                      // Check if contact was already added by another async operation
-                      const existingIndex = prevContacts.findIndex(c => c.id === content.sender_id);
-                      if (existingIndex >= 0) {
-                        // Update existing contact
-                        const updated = [...prevContacts];
-                        updated[existingIndex] = {
-                          ...updated[existingIndex],
-                          lastMessage: newContact.lastMessage,
-                          lastMessageTime: newContact.lastMessageTime,
-                          unreadCount: (updated[existingIndex].unreadCount || 0) + 1
+                    // Move this contact to the top of the list
+                    const updatedContact = updatedContacts.splice(contactIndex, 1)[0];
+                    return [updatedContact, ...updatedContacts];
+                } else if (content.sender_id) {
+                    // This is a new contact, fetch their info and add them
+                    console.log('New contact detected, fetching user info for ID:', content.sender_id);
+                    
+                    fetch(`http://localhost:8080/user/info?id=${content.sender_id}`, {
+                        credentials: 'include'
+                    })
+                    .then(res => {
+                        if (!res.ok) {
+                            throw new Error(`HTTP error! status: ${res.status}`);
+                        }
+                        return res.json();
+                    })
+                    .then(data => {
+                        if (data.success && data.user) {
+                            const newContact = {
+                                id: content.sender_id,
+                                firstName: data.user.firstName,
+                                lastName: data.user.lastName,
+                                nickname: data.user.nickname,
+                                avatar: data.user.avatar,
+                                lastMessage: content.type === 'image' ? '📷 Image' : content.content || "",
+                                lastMessageTime: content.created_at || new Date().toISOString(),
+                                unreadCount: 1
+                            };
+                            
+                            setContacts(prevContacts => {
+                                // Check if contact was already added by another async operation
+                                const existingIndex = prevContacts.findIndex(c => c.id === content.sender_id);
+                                if (existingIndex >= 0) {
+                                    // Update existing contact
+                                    const updated = [...prevContacts];
+                                    updated[existingIndex] = {
+                                        ...updated[existingIndex],
+                                        lastMessage: newContact.lastMessage,
+                                        lastMessageTime: newContact.lastMessageTime,
+                                        unreadCount: (updated[existingIndex].unreadCount || 0) + 1
+                                    };
+                                    // Move to top
+                                    const updatedContact = updated.splice(existingIndex, 1)[0];
+                                    return [updatedContact, ...updated];
+                                } else {
+                                    // Add new contact at the top
+                                    return [newContact, ...prevContacts];
+                                }
+                            });
+                            
+                            // If we're currently on the chat page and don't have a selected contact,
+                            // and this is the first message from this user, we might want to show it
+                            if (window.location.pathname === '/chat' && !selectedContact) {
+                                console.log('First message from new contact, consider auto-selecting');
+                            }
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Error fetching new contact info:', err);
+                        // Fallback: create contact with basic info from the message
+                        const fallbackContact = {
+                            id: content.sender_id,
+                            firstName: typeof content.sender === 'string' ? content.sender.split(' ')[0] : "Unknown",
+                            lastName: typeof content.sender === 'string' ? (content.sender.split(' ')[1] || "") : "User",
+                            lastMessage: content.type === 'image' ? '📷 Image' : content.content || "",
+                            lastMessageTime: content.created_at || new Date().toISOString(),
+                            unreadCount: 1
                         };
-                        return updated;
-                      } else {
-                        // Add new contact
-                        return [newContact, ...prevContacts];
-                      }
+                        
+                        setContacts(prevContacts => {
+                            const existingIndex = prevContacts.findIndex(c => c.id === content.sender_id);
+                            if (existingIndex >= 0) {
+                                return prevContacts;
+                            }
+                            return [fallbackContact, ...prevContacts];
+                        });
                     });
-                  }
-                })
-                .catch(err => {
-                  console.error('Error fetching new contact info:', err);
-                  // Fallback: create contact with basic info from the message
-                  const fallbackContact = {
-                    id: content.sender_id,
-                    firstName: typeof content.sender === 'string' ? content.sender.split(' ')[0] : "Unknown",
-                    lastName: typeof content.sender === 'string' ? (content.sender.split(' ')[1] || "") : "User",
-                    lastMessage: content.type === 'image' ? '📷 Image' : content.content || "",
-                    lastMessageTime: content.created_at || new Date().toISOString(),
-                    unreadCount: 1
-                  };
-                  
-                  setContacts(prevContacts => {
-                    const existingIndex = prevContacts.findIndex(c => c.id === content.sender_id);
-                    if (existingIndex >= 0) {
-                      return prevContacts;
-                    }
-                    return [fallbackContact, ...prevContacts];
-                  });
-                });
-                
-                return updatedContacts;
-              }
+                    
+                    // Return the current contacts for now, the async operation will update it
+                    return updatedContacts;
+                }
           
-              return updatedContacts;
+                return updatedContacts;
             });
           });
       
@@ -241,7 +240,7 @@ export default function Chat() {
         }
     
         // No cleanup needed as we want to keep the connection alive
-      }, [currentUser]); // Keep only currentUser as dependency
+      }, [currentUser, selectedContact]); // Add selectedContact as dependency
 
       // Add a separate effect to handle message updates when selectedContact changes
       useEffect(() => {

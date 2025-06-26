@@ -443,10 +443,10 @@ export default function Home() {
                       {post.content && <p className="post-text">{post.content}</p>}
                       {post.image && (
                         <div className="post-image-container">
-                          <img 
-                            src={post.image.startsWith('http') ? post.image : `http://localhost:8080/${post.image}`} 
-                            alt="Post image" 
-                            className="post-image" 
+                          <img
+                            src={post.image.startsWith('http') ? post.image : `http://localhost:8080${post.image}`}
+                            alt="Post image"
+                            className="post-image"
                           />
                         </div>
                       )}
@@ -474,10 +474,10 @@ export default function Home() {
                                 {comment.content}
                                 {comment.image && (
                                   <div className="comment-image-container">
-                                    <img 
-                                      src={comment.image.startsWith('http') ? comment.image : `http://localhost:8080/${comment.image}`} 
-                                      alt="Comment image" 
-                                      className="comment-image" 
+                                    <img
+                                      src={comment.image.startsWith('http') ? comment.image : `http://localhost:8080${comment.image}`}
+                                      alt="Comment image"
+                                      className="comment-image"
                                     />
                                   </div>
                                 )}

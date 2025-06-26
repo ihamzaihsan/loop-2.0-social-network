@@ -9,11 +9,13 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - ./backend:/app
       - ./data:/app/data
+      - ./backend/uploads:/app/uploads
     environment:
       - DB_PATH=/app/data/social-network.db
     restart: unless-stopped
+    networks:
+      - social-network
 
   frontend:
     build:
@@ -27,3 +29,12 @@ services:
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8080
     restart: unless-stopped
+    networks:
+      - social-network
+
+networks:
+  social-network:
+    driver: bridge
+
+volumes:
+  social-data:

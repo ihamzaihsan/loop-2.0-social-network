@@ -12,8 +12,11 @@ RUN CGO_ENABLED=1 GOOS=linux go build -o server server.go
 FROM alpine:latest
 RUN apk --no-cache add ca-certificates
 WORKDIR /app
-COPY --from=builder /app/server /server
+COPY --from=builder /app/server ./server
 COPY --from=builder /app/pkg/db/migrations ./pkg/db/migrations
 
+# Create data directory
+RUN mkdir -p /app/data
+
 EXPOSE 8080
-CMD ["/server"]
+CMD ["./server"]

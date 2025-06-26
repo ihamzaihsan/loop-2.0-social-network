@@ -198,7 +198,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	result, err := db.DBInstance.DB.Exec(`
-    INSERT INTO users (email, password, first_name, last_name, dob, avatar, nickname, about_me, is_private)
+    INSERT INTO users (email, password, first_name, last_name, dob, avatar, nickname, about_me, isprivate)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		user.Email, hashedPassword, user.FirstName, user.LastName, user.DOB, user.Avatar, user.Nickname, user.AboutMe, user.IsPrivate)
 	if err != nil {
@@ -220,5 +220,6 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"message": "User registered successfully",
 		"user":    user,
+		"token":   session.ID,
 	})
 }

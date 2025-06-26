@@ -25,27 +25,25 @@ func GetVisiblePosts(userID, limit, offset int) ([]models.PostResponse, int, err
 	}
 
 	query := `
-        SELECT 
+        SELECT
             p.id, p.user_id, p.content, p.image, p.privacy, p.created_at,
-            u.first_name, u.last_name, u.nickname, u.avatar,
-            (SELECT COUNT(*) FROM likes WHERE post_id = p.id) as like_count,
-            EXISTS(SELECT 1 FROM likes WHERE post_id = p.id AND user_id = ?) as is_liked
+            u.first_name, u.last_name, u.nickname, u.avatar
         FROM posts p
         JOIN users u ON p.user_id = u.id
         WHERE p.privacy = 'public'
         OR (p.privacy = 'almost_private' AND EXISTS (
-            SELECT 1 FROM followers 
+            SELECT 1 FROM followers
             WHERE follower_id = ? AND following_id = p.user_id
         ))
         OR (p.privacy = 'private' AND EXISTS (
-            SELECT 1 FROM post_viewers 
+            SELECT 1 FROM post_viewers
             WHERE viewer_id = ? AND post_id = p.id
         ))
         ORDER BY p.created_at DESC
         LIMIT ? OFFSET ?
     `
 
-	rows, err := db.DBInstance.DB.Query(query, userID, userID, userID, limit, offset)
+	rows, err := db.DBInstance.DB.Query(query, userID, userID, limit, offset)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -57,11 +55,15 @@ func GetVisiblePosts(userID, limit, offset int) ([]models.PostResponse, int, err
 		err := rows.Scan(
 			&post.ID, &post.UserID, &post.Content, &post.Image, &post.Privacy, &post.CreatedAt,
 			&post.Author.FirstName, &post.Author.LastName, &post.Author.Nickname, &post.Author.Avatar,
-			&post.LikeCount, &post.IsLiked,
 		)
 		if err != nil {
 			return nil, 0, err
 		}
+
+		// Set default values for like count and isLiked since we don't have the likes table
+		post.LikeCount = 0
+		post.IsLiked = false
+
 		posts = append(posts, post)
 	}
 

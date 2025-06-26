@@ -80,20 +80,61 @@ export default function Register() {
     return
   }
     try {
-      const response = await fetch('/api/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      })
+      let response;
+
+      if (formData.avatar) {
+        // Use FormData for file upload
+        const formDataToSend = new FormData()
+        formDataToSend.append('email', formData.email)
+        formDataToSend.append('password', formData.password)
+        formDataToSend.append('firstName', formData.firstName)
+        formDataToSend.append('lastName', formData.lastName)
+        formDataToSend.append('dob', formData.dob)
+        formDataToSend.append('nickname', formData.nickname)
+        formDataToSend.append('aboutMe', formData.aboutMe)
+        formDataToSend.append('isPrivate', formData.isPrivate.toString())
+        formDataToSend.append('avatar', formData.avatar)
+
+        response = await fetch('http://localhost:8080/register', {
+          method: 'POST',
+          body: formDataToSend,
+          credentials: 'include'
+        })
+      } else {
+        // Use JSON for simple registration
+        response = await fetch('http://localhost:8080/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: formData.email,
+            password: formData.password,
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            dob: formData.dob,
+            nickname: formData.nickname || null,
+            aboutMe: formData.aboutMe || null,
+            isPrivate: formData.isPrivate
+          }),
+          credentials: 'include'
+        })
+      }
+
       const data = await response.json()
       if (!response.ok) {
         setErrorMessage(data.error || "Registration failed. Please check your input.")
         return
       }
+
+      // Store session token if provided
+      if (data.token) {
+        localStorage.setItem('sessionToken', data.token)
+      }
+
       const wsClient = WebSocketClient.getInstance()
       setTimeout(() => wsClient.connect(), 100)
       router.push('/home')
     } catch (err) {
+      console.error('Registration error:', err)
       setErrorMessage("Registration failed. Please try again.")
     }
   }

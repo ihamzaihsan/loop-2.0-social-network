@@ -292,6 +292,7 @@ func handlePrivateMessage(userID int, content map[string]interface{}) {
 				"id":         sender.ID,
 				"first_name": sender.FirstName,
 				"last_name":  sender.LastName,
+				"nickname":   sender.Nickname,
 				"avatar":     sender.Avatar,
 			},
 			"content":    messageContent,

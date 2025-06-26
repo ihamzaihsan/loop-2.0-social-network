@@ -45,7 +45,7 @@ func UpdatePrivacy(w http.ResponseWriter, r *http.Request) {
 
 	// Update the user's privacy setting in the database
 	_, err = db.DBInstance.DB.Exec(
-		"UPDATE users SET is_private = ? WHERE id = ?",
+		"UPDATE users SET isprivate = ? WHERE id = ?",
 		requestData.IsPrivate, userID,
 	)
 
@@ -57,8 +57,8 @@ func UpdatePrivacy(w http.ResponseWriter, r *http.Request) {
 
 	// Return success response
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success": true,
-		"message": "Privacy setting updated successfully",
+		"success":   true,
+		"message":   "Privacy setting updated successfully",
 		"isPrivate": requestData.IsPrivate,
 	})
 }

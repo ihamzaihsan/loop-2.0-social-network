@@ -114,9 +114,9 @@ export default function Post({
                         onClick={() => setShowFullImage(true)}
                       >
                         {!isImageLoaded && <div className="image-loading-spinner"></div>}
-                        <img 
-                          src={`http://localhost:8080${image}`} 
-                          alt="Post content" 
+                        <img
+                          src={image.startsWith('http') ? image : `http://localhost:8080${image}`}
+                          alt="Post content"
                           className={`post-image ${isLandscape ? 'landscape' : ''}`}
                           onLoad={handleImageLoad}
                         />
@@ -125,9 +125,9 @@ export default function Post({
                       {showFullImage && (
                         <div className="image-modal" onClick={() => setShowFullImage(false)}>
                           <div className="modal-content">
-                            <img 
-                              src={`http://localhost:8080${image}`} 
-                              alt="Full size post content" 
+                            <img
+                              src={image.startsWith('http') ? image : `http://localhost:8080${image}`}
+                              alt="Full size post content"
                               className="full-size-image"
                             />
                             <button className="close-modal-btn" onClick={() => setShowFullImage(false)}>
