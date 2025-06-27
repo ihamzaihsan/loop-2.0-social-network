@@ -1,13 +1,21 @@
 /* ...existing code... */
 
 .formContainer {
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 4px 24px rgba(74, 118, 168, 0.08);
+  background: linear-gradient(135deg,
+    rgba(255, 255, 255, 0.98) 0%,
+    rgba(248, 250, 252, 0.95) 100%);
+  border-radius: 24px;
+  box-shadow:
+    0 16px 48px rgba(102, 126, 234, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(226, 232, 240, 0.6);
+  backdrop-filter: blur(20px);
   padding: 2.5rem 2rem;
   margin: 2rem auto;
-  max-width: 480px;
-  transition: box-shadow 0.2s;
+  max-width: 600px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
 }
 
 .formContainer:focus-within {
@@ -98,24 +106,97 @@
   box-shadow: 0 2px 8px rgba(211, 47, 47, 0.08);
 }
 
-/* Responsive design */
-@media (max-width: 768px) {
+/* Enhanced Mobile Responsive Design */
+@media (max-width: 767px) {
   .main {
     padding: 1rem;
+    padding-top: 80px; /* Space for hamburger menu */
+    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+    min-height: 100vh;
   }
-  
+
   .formContainer {
-    padding: 1.5rem;
+    padding: 2rem 1.5rem;
     max-width: 100%;
+    margin: 1rem auto;
+    border-radius: 20px;
   }
-  
+
+  .formTitle {
+    font-size: 1.75rem;
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .formGroup {
+    margin-bottom: 1.5rem;
+  }
+
+  .label {
+    font-size: 0.95rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .input,
+  .textarea {
+    padding: 1rem;
+    font-size: 1rem;
+    border-radius: 12px;
+    min-height: 44px; /* Touch-friendly */
+  }
+
+  .textarea {
+    min-height: 120px;
+  }
+
   .buttonGroup {
     flex-direction: column-reverse;
-    gap: 0.8rem;
+    gap: 1rem;
+    margin-top: 2rem;
   }
-  
+
   .cancelButton,
   .createButton {
     width: 100%;
+    padding: 1rem 1.5rem;
+    font-size: 1rem;
+    min-height: 48px;
+    border-radius: 12px;
+  }
+
+  .error {
+    padding: 1rem;
+    font-size: 0.9rem;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+  }
+}
+
+/* Small screen optimizations */
+@media (max-width: 480px) {
+  .main {
+    padding: 0.75rem;
+    padding-top: 70px;
+  }
+
+  .formContainer {
+    padding: 1.5rem 1rem;
+    border-radius: 16px;
+  }
+
+  .formTitle {
+    font-size: 1.5rem;
+  }
+
+  .input,
+  .textarea {
+    padding: 0.875rem;
+    font-size: 0.95rem;
+  }
+
+  .cancelButton,
+  .createButton {
+    padding: 0.875rem 1.25rem;
+    font-size: 0.95rem;
   }
 }

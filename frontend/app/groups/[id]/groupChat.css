@@ -78,29 +78,40 @@ padding-left: var(--sidebar-width);
   position: relative;
 }
 
-/* Sidebar Enhancements */
+/* Enhanced Group Chat Sidebar */
 .group-chat-sidebar {
   width: 380px;
   min-width: 380px;
-  background: var(--glass-bg);
+  background: linear-gradient(135deg,
+    rgba(99, 102, 241, 0.95) 0%,
+    rgba(79, 70, 229, 0.95) 50%,
+    rgba(67, 56, 202, 0.95) 100%);
   backdrop-filter: blur(20px);
-  border-right: 1px solid var(--glass-border);
+  border-right: 1px solid rgba(255, 255, 255, 0.2);
   display: flex;
   flex-direction: column;
   height: 100%;
   position: relative;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 8px 32px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .group-chat-sidebar-header {
-  padding: 2rem;
-  border-bottom: 1px solid var(--glass-border);
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: var(--primary-gradient);
+  background: linear-gradient(135deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.05) 100%);
   color: white;
   position: relative;
   overflow: hidden;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 }
 
 .group-chat-sidebar-header::before {
@@ -217,24 +228,31 @@ padding-left: var(--sidebar-width);
 /* Enhanced Tabs */
 .group-tabs {
   display: flex;
-  background: var(--glass-bg);
+  background: linear-gradient(135deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.05) 100%);
   backdrop-filter: blur(20px);
-  border-bottom: 1px solid var(--glass-border);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
   position: relative;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .group-tab {
   flex: 1;
-  padding: 16px 12px;
+  padding: 1rem 0.75rem;
   background: none;
   border: none;
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.7);
   cursor: pointer;
-  transition: var(--transition);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
+  min-height: 44px; /* Touch-friendly */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .group-tab::before {
@@ -244,40 +262,115 @@ padding-left: var(--sidebar-width);
   left: 50%;
   width: 0;
   height: 3px;
-  background: var(--primary-gradient);
-  transition: var(--transition);
+  background: linear-gradient(90deg,
+    rgba(255, 255, 255, 0.8) 0%,
+    rgba(255, 255, 255, 1) 50%,
+    rgba(255, 255, 255, 0.8) 100%);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   transform: translateX(-50%);
+  border-radius: 2px 2px 0 0;
 }
 
 .group-tab:hover {
   color: white;
   background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
 }
 
 .group-tab.active {
   color: white;
   background: rgba(255, 255, 255, 0.15);
+  font-weight: 700;
 }
 
 .group-tab.active::before {
   width: 80%;
 }
 
-/* Members List Improvements */
+/* Enhanced Mobile responsive tabs */
+@media (max-width: 767px) {
+  .group-tabs {
+    border-radius: 12px 12px 0 0;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: linear-gradient(135deg,
+      rgba(99, 102, 241, 0.95) 0%,
+      rgba(79, 70, 229, 0.95) 50%,
+      rgba(67, 56, 202, 0.95) 100%);
+    backdrop-filter: blur(20px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  }
+
+  .group-tab {
+    padding: 1rem 0.5rem;
+    font-size: 0.85rem;
+    min-height: 48px; /* Increased for better touch targets */
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    border-radius: 8px 8px 0 0;
+    transition: all 0.3s ease;
+  }
+
+  .group-tab:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    transform: none; /* Remove translateY for mobile */
+  }
+
+  .group-tab.active {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    font-weight: 700;
+  }
+
+  .group-tab::before {
+    height: 3px;
+    background: rgba(255, 255, 255, 0.9);
+  }
+
+  .group-tab.active::before {
+    width: 90%;
+  }
+}
+
+/* Enhanced Members List */
 .group-members-container {
   padding: 1.5rem;
   overflow-y: auto;
   background: transparent;
+  flex: 1;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+}
+
+.group-members-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.group-members-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.group-members-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+.group-members-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
 }
 
 .group-members-container h3 {
-  font-size: 20px;
+  font-size: 1.25rem;
   font-weight: 700;
   color: white;
-  margin-bottom: 24px;
-  padding-bottom: 12px;
-  border-bottom: 2px solid var(--glass-border);
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.15);
   position: relative;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  letter-spacing: 0.5px;
 }
 
 .group-members-container h3::after {
@@ -285,24 +378,32 @@ padding-left: var(--sidebar-width);
   position: absolute;
   bottom: -2px;
   left: 0;
-  width: 60px;
+  width: 50px;
   height: 2px;
-  background: var(--primary-gradient);
+  background: linear-gradient(90deg,
+    rgba(255, 255, 255, 0.8) 0%,
+    rgba(255, 255, 255, 0.4) 100%);
+  border-radius: 1px;
 }
 
 .member-item {
   display: flex;
   align-items: center;
-  padding: 20px;
-  margin: 12px 0;
-  background: var(--glass-bg);
+  padding: 1rem 1.25rem;
+  margin: 0.75rem 0;
+  background: linear-gradient(135deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.05) 100%);
   backdrop-filter: blur(20px);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--border-radius);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
   cursor: pointer;
-  transition: var(--transition);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .member-item::before {
@@ -319,13 +420,18 @@ padding-left: var(--sidebar-width);
 
 .member-item:hover::before {
   left: 0;
-  opacity: 0.1;
+  opacity: 0.15;
 }
 
 .member-item:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-hover);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
   border-color: rgba(255, 255, 255, 0.3);
+  background: linear-gradient(135deg,
+    rgba(255, 255, 255, 0.15) 0%,
+    rgba(255, 255, 255, 0.08) 100%);
 }
 
 .member-avatar {
@@ -1607,26 +1713,104 @@ padding-left: var(--sidebar-width);
   }
 }
 
-@media (max-width: 768px) {
+/* Mobile responsive styles for group chat */
+@media (max-width: 767px) {
   .group-chat-page {
-    padding-left: var(--sidebar-width-mobile);
+    padding-left: 0;
+    padding-top: 80px; /* Space for hamburger menu */
   }
 
   .group-chat-container {
     flex-direction: column;
-    height: auto;
+    height: calc(100vh - 90px);
+    width: 100%;
+    margin: 0;
+    padding: 0 0.5rem;
+    box-sizing: border-box;
   }
-  
+
   .group-chat-sidebar {
     width: 100%;
-    height: auto;
-    max-height: 50vh;
+    height: 180px;
+    min-height: 180px;
+    max-height: 180px;
     overflow-y: auto;
     min-width: 0;
+    border-radius: 12px 12px 0 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(135deg,
+      rgba(99, 102, 241, 0.9) 0%,
+      rgba(79, 70, 229, 0.9) 50%,
+      rgba(67, 56, 202, 0.9) 100%);
   }
-  
+
+  /* Mobile responsive sidebar header */
+  .group-chat-sidebar-header {
+    padding: 1rem 1.25rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .group-chat-sidebar-header h2 {
+    font-size: 1.1rem;
+    margin: 0;
+  }
+
+  /* Mobile responsive members container */
+  .group-members-container {
+    padding: 1rem;
+    max-height: 120px;
+  }
+
+  .group-members-container h3 {
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+  }
+
+  /* Mobile responsive member items */
+  .member-item {
+    padding: 0.75rem;
+    margin: 0.5rem 0;
+    border-radius: 8px;
+    flex-direction: row;
+    gap: 0.75rem;
+  }
+
+  .member-item:hover {
+    transform: translateY(-1px) scale(1.01);
+  }
+
+  /* Member avatar sizing for mobile */
+  .member-item .member-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+  }
+
+  .member-item .member-info {
+    flex: 1;
+  }
+
+  .member-item .member-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: white;
+    margin: 0;
+  }
+
+  .member-item .member-status {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 0;
+  }
+
   .group-chat-main {
-    height: 50vh;
+    height: calc(100vh - 280px);
+    flex: 1;
+    border-radius: 0 0 12px 12px;
+    overflow: hidden;
   }
   
   .group-members-container {
@@ -1656,27 +1840,142 @@ padding-left: var(--sidebar-width);
     width: 100%;
     justify-content: space-between;
   }
-}
 
-@media (max-width: 576px) {
-  .group-chat-page {
-    padding-left: 0;
+  /* Ensure group tabs are visible and functional on mobile */
+  .group-tabs {
+    display: flex;
+    width: 100%;
+    position: relative;
+    z-index: 5;
+    overflow: hidden;
+    flex-shrink: 0;
   }
 
-  .group-chat-container {
+  .group-tab {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Mobile responsive styles for events */
+  .event-form {
+    padding: 1rem;
+    margin: 1rem 0;
+  }
+
+  .event-form .form-group {
+    margin-bottom: 1rem;
+  }
+
+  .event-form input,
+  .event-form textarea {
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 1rem;
+    border-radius: 8px;
+    box-sizing: border-box;
+  }
+
+  .event-item {
     flex-direction: column;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 12px;
+    gap: 1rem;
+  }
+
+  .event-date {
+    align-self: center;
+    margin-bottom: 0.5rem;
+  }
+
+  .event-details {
+    text-align: center;
+  }
+
+  .event-actions {
+    flex-direction: row;
+    justify-content: center;
+    gap: 0.75rem;
+    width: 100%;
+  }
+
+  .event-action-button {
+    flex: 1;
+    padding: 0.75rem;
+    min-height: 44px;
+    font-size: 0.9rem;
+    border-radius: 8px;
+  }
+
+  .create-event-button {
+    width: 100%;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    font-size: 1rem;
+    min-height: 44px;
+  }
+}
+
+/* Additional mobile optimizations for very small screens */
+@media (max-width: 480px) {
+  .group-chat-container {
+    padding: 0 0.25rem;
   }
 
   .group-chat-sidebar {
-    width: 100%;
-    height: auto;
-    max-height: 40vh;
-    min-width: 0;
+    height: 160px;
+    min-height: 160px;
+    max-height: 160px;
   }
 
   .group-chat-main {
-    height: 60vh;
+    height: calc(100vh - 250px);
   }
+
+  /* Ultra-compact member items for small screens */
+  .member-item {
+    padding: 0.5rem 0.75rem;
+    margin: 0.25rem 0;
+  }
+
+  .member-item .member-avatar {
+    width: 28px;
+    height: 28px;
+  }
+
+  .member-item .member-name {
+    font-size: 0.8rem;
+  }
+
+  .member-item .member-status {
+    font-size: 0.7rem;
+  }
+
+  .group-members-container {
+    padding: 0.75rem;
+    max-height: 100px;
+  }
+
+  .group-members-container h3 {
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .group-tabs {
+    border-radius: 8px 8px 0 0;
+  }
+
+  .group-tab {
+    padding: 0.6rem 0.4rem;
+    font-size: 0.75rem;
+  }
+}
 
   .group-chat-header {
     flex-direction: column;
@@ -1716,7 +2015,7 @@ padding-left: var(--sidebar-width);
   .message.received {
     margin-right: 10%;
   }
-}
+
 
 .group-members-container {
   width: 720px !important;

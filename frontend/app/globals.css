@@ -446,6 +446,68 @@ input::placeholder, textarea::placeholder {
   color: var(--text-muted);
 }
 
+/* Mobile hamburger menu */
+.mobile-menu-toggle {
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  z-index: 1001;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  padding: 12px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.mobile-menu-toggle:hover {
+  background: rgba(255, 255, 255, 1);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.hamburger {
+  width: 24px;
+  height: 18px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.hamburger span {
+  display: block;
+  height: 2px;
+  width: 100%;
+  background: var(--primary-color);
+  border-radius: 1px;
+  transition: all 0.3s ease;
+}
+
+.hamburger.active span:nth-child(1) {
+  transform: rotate(45deg) translate(6px, 6px);
+}
+
+.hamburger.active span:nth-child(2) {
+  opacity: 0;
+}
+
+.hamburger.active span:nth-child(3) {
+  transform: rotate(-45deg) translate(6px, -6px);
+}
+
+.mobile-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  backdrop-filter: blur(4px);
+}
+
 /* Enhanced Sidebar styles */
 .sidebar {
   position: fixed;
@@ -459,8 +521,9 @@ input::placeholder, textarea::placeholder {
   display: flex;
   flex-direction: column;
   padding: 1.5rem 0;
-  z-index: 100;
+  z-index: 1000;
   box-shadow: 4px 0 20px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s ease;
 }
 
 .sidebar-logo {
@@ -583,32 +646,39 @@ input::placeholder, textarea::placeholder {
 }
 
 
+/* Mobile responsive styles */
 @media (max-width: 768px) {
   .sidebar {
-    width: 70px;
-    padding: 1rem 0;
+    transform: translateX(-100%);
+    width: 280px;
+    box-shadow: none;
   }
-  
+
+  .sidebar.mobile-open {
+    transform: translateX(0);
+    box-shadow: 8px 0 32px rgba(0, 0, 0, 0.2);
+  }
+
   .sidebar-logo {
-    padding: 0.5rem;
-    text-align: center;
+    padding: 1rem 1.5rem 2rem;
+    text-align: left;
   }
-  
+
   .sidebar-logo h2 {
-    font-size: 1.25rem;
+    font-size: 1.5rem;
   }
-  
+
   .sidebar-item {
-    padding: 0.875rem;
-    justify-content: center;
+    padding: 1rem 1.5rem;
+    justify-content: flex-start;
   }
-  
+
   .sidebar-item span {
-    display: none;
+    display: inline;
   }
 
   .sidebar-item svg {
-    margin: 0;
+    margin-right: 1rem;
     width: 1.5rem;
     height: 1.5rem;
   }
@@ -622,17 +692,19 @@ input::placeholder, textarea::placeholder {
     margin: 1rem;
   }
 
-  .home-page, .profile-page, .chat-page, .group-chat-container {
-    padding-left: 70px; /* Match collapsed sidebar width */
+  .home-page, .profile-page, .chat-page, .group-chat-container, .find-friends-page {
+    padding-left: 0 !important;
+    padding-top: 80px; /* Space for hamburger menu */
   }
-  
+
   .feed-card {
     margin: 1rem;
   }
-  
+
   .chat-container,
   .group-chat-container {
     flex-direction: column;
+    height: calc(100vh - 80px);
   }
 
   .chat-sidebar,
@@ -641,42 +713,61 @@ input::placeholder, textarea::placeholder {
     min-width: 0;
     height: auto;
     max-height: 40vh;
+    border-right: none;
+    border-bottom: 1px solid var(--border-light);
   }
 
   .chat-main,
   .group-chat-main {
     height: 60vh;
+    flex: 1;
+  }
+}
+
+/* Tablet responsive styles */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .sidebar {
+    width: 240px;
+  }
+
+  .home-page, .profile-page, .chat-page, .group-chat-container, .find-friends-page {
+    padding-left: 240px;
+  }
+
+  .main-content {
+    width: calc(100% - 240px);
+    padding: 1.5rem;
+  }
+
+  .feed-card {
+    margin: 1.5rem auto;
+    max-width: 600px;
   }
 }
 
 /* Adjust main content areas */
-.home-page, .profile-page, .chat-page, .group-chat-container {
-  padding-left: var(--sidebar-width); /* Use consistent sidebar width */
+.home-page, .profile-page, .chat-page, .group-chat-container, .find-friends-page {
+  padding-left: var(--sidebar-width);
   min-height: 100vh;
-
-}
-
-Adjust main content
-.home-page, .profile-page {
-  padding-left: 260px;
-  min-height: 100vh;
-
+  transition: padding-left 0.3s ease;
 }
 
 .main-content {
-  width: calc(100% - 260px);
+  width: calc(100% - var(--sidebar-width));
   margin-left: auto;
   padding: 2rem;
+  transition: all 0.3s ease;
 }
 
-@media (max-width: 768px) {
-  .home-page, .profile-page {
-    padding-left: 70px;
+/* Desktop specific adjustments */
+@media (min-width: 1025px) {
+  .home-page, .profile-page, .chat-page, .group-chat-container, .find-friends-page {
+    padding-left: var(--sidebar-width);
   }
-  
+
   .main-content {
-    width: calc(100% - 70px);
-    padding: 1rem;
+    width: calc(100% - var(--sidebar-width));
+    padding: 2rem;
   }
 }
 
@@ -721,4 +812,138 @@ Adjust main content
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-secondary);
+}
+
+/* Mobile touch optimization */
+@media (max-width: 767px) {
+  /* Ensure all interactive elements are touch-friendly (minimum 44px) */
+  button,
+  .button,
+  .btn,
+  input[type="button"],
+  input[type="submit"],
+  .sidebar-item,
+  .action-button,
+  .send-button,
+  .image-button,
+  .comment-submit,
+  .mobile-menu-toggle {
+    min-height: 44px;
+    min-width: 44px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+  }
+
+  /* Improve touch targets for links */
+  a {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    touch-action: manipulation;
+  }
+
+  /* Better spacing for touch interfaces */
+  .sidebar-item {
+    padding: 12px 16px;
+    margin: 4px 8px;
+  }
+
+  /* Larger text inputs for mobile */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  textarea {
+    min-height: 44px;
+    font-size: 16px; /* Prevents zoom on iOS */
+    padding: 12px 16px;
+  }
+
+  /* Better form spacing */
+  .form-group {
+    margin-bottom: 20px;
+  }
+
+  /* Improved button spacing */
+  .post-actions {
+    gap: 16px;
+    padding: 16px 0;
+  }
+
+  .action-button {
+    padding: 12px 16px;
+    border-radius: 8px;
+  }
+
+  /* Better modal touch targets */
+  .modal-close,
+  .close-modal-btn {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 12px;
+  }
+
+  /* Improved scroll areas */
+  .chat-messages,
+  .content,
+  .notification-list {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Better image interaction */
+  .post-image,
+  .comment-image {
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  /* Improved dropdown/select styling */
+  select {
+    min-height: 44px;
+    font-size: 16px;
+    padding: 12px 16px;
+  }
+
+  /* Prevent text selection on touch elements */
+  .sidebar-item,
+  .action-button,
+  .mobile-menu-toggle,
+  .notification-container {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+
+  /* Better focus states for accessibility */
+  button:focus,
+  input:focus,
+  textarea:focus,
+  select:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+  }
+
+  /* Ensure no horizontal overflow on mobile */
+  body {
+    overflow-x: hidden;
+  }
+
+  /* Fix content width issues */
+  .main-content,
+  .users-container,
+  .dashboard,
+  .feed-card,
+  .user-card {
+    max-width: 100% !important;
+    box-sizing: border-box;
+  }
+
+  /* Ensure proper spacing */
+  .home-page .main-content,
+  .profile-page .main-content,
+  .find-friends-page .users-container {
+    margin-left: 0;
+    margin-right: 0;
+    width: 100%;
+  }
 }

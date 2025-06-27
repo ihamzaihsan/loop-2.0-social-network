@@ -1,24 +1,52 @@
 .discoverMainContainer {
   margin-left: 200px;
-  padding: 40px 32px;
+  padding: 2.5rem 2rem;
   min-height: 100vh;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  transition: margin-left 0.3s ease;
 }
 
 .discoverHeader {
-  margin-bottom: 32px;
+  margin-bottom: 2rem;
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.discoverHeader h1 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 1rem;
+  letter-spacing: -1px;
+}
+
+.discoverHeader p {
+  font-size: 1.125rem;
+  color: #64748b;
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6;
 }
 
 .discoverTitle {
-  font-size: 2.2rem;
-  font-weight: 700;
-  color: #334155;
-  margin-bottom: 8px;
+  font-size: 2.5rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 1rem;
+  letter-spacing: -1px;
 }
 
 .discoverSubtitle {
-  font-size: 1.1rem;
+  font-size: 1.125rem;
   color: #64748b;
   margin-bottom: 0;
+  line-height: 1.6;
 }
 
 .discoverSection {
@@ -45,16 +73,25 @@
 }
 
 .discoverCard {
-  background: #fff;
-  border-radius: 14px;
-  box-shadow: 0 2px 12px rgba(102, 126, 234, 0.09);
-  padding: 24px 20px;
-  min-width: 260px;
-  max-width: 320px;
-  flex: 1 1 260px;
+  background: linear-gradient(135deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(248, 250, 252, 0.9) 100%);
+  border-radius: 20px;
+  box-shadow:
+    0 8px 32px rgba(102, 126, 234, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(226, 232, 240, 0.6);
+  backdrop-filter: blur(20px);
+  padding: 2rem 1.5rem;
+  min-width: 280px;
+  max-width: 350px;
+  flex: 1 1 280px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
   transition: box-shadow 0.2s;
 }
 
@@ -90,15 +127,107 @@
 
 .discoverCardAction:hover {
   background: linear-gradient(90deg, #818cf8 0%, #6366f1 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
 
-@media (max-width: 900px) {
+/* Enhanced card hover effects */
+.discoverCard:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow:
+    0 16px 48px rgba(102, 126, 234, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  border-color: rgba(102, 126, 234, 0.3);
+}
+
+/* Comprehensive Mobile Responsive Styles */
+@media (max-width: 767px) {
   .discoverMainContainer {
     margin-left: 0;
-    padding: 24px 8px;
+    padding: 1rem;
+    padding-top: 80px; /* Space for hamburger menu */
   }
+
+  .discoverHeader {
+    padding: 1.5rem 0;
+    text-align: center;
+  }
+
+  .discoverTitle {
+    font-size: 2rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .discoverSubtitle {
+    font-size: 1rem;
+    padding: 0 1rem;
+  }
+
+  .discoverSection {
+    margin-bottom: 2rem;
+  }
+
+  .discoverSectionTitle {
+    font-size: 1.125rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .discoverDescription {
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+  }
+
   .discoverCardList {
     flex-direction: column;
-    gap: 18px;
+    gap: 1rem;
+  }
+
+  .discoverCard {
+    min-width: 100%;
+    max-width: 100%;
+    padding: 1.5rem;
+    border-radius: 16px;
+  }
+
+  .discoverCard:hover {
+    transform: translateY(-2px) scale(1.01);
+  }
+
+  .discoverCardAction {
+    width: 100%;
+    padding: 0.875rem 1.5rem;
+    font-size: 1rem;
+    min-height: 44px;
+    border-radius: 12px;
+  }
+}
+
+/* Small screen optimizations */
+@media (max-width: 480px) {
+  .discoverMainContainer {
+    padding: 0.75rem;
+    padding-top: 70px;
+  }
+
+  .discoverHeader {
+    padding: 1rem 0;
+  }
+
+  .discoverTitle {
+    font-size: 1.75rem;
+  }
+
+  .discoverSubtitle {
+    font-size: 0.9rem;
+  }
+
+  .discoverCard {
+    padding: 1.25rem;
+    border-radius: 14px;
+  }
+
+  .discoverCardAction {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.9rem;
   }
 }

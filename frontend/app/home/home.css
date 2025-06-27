@@ -56,6 +56,7 @@
   max-width: 800px;
   margin: 2rem auto;
   padding: 0 1rem;
+  transition: all 0.3s ease;
 }
 
 .dashboard {
@@ -64,6 +65,89 @@
   gap: 1.5rem;
   max-width: 800px;
   margin: 0 auto;
+}
+
+/* Mobile responsive styles for home page */
+@media (max-width: 767px) {
+  .header {
+    padding: 0.75rem 1rem;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+  }
+
+  .header-content {
+    max-width: none;
+    padding: 0;
+  }
+
+  .site-title {
+    font-size: 1.25rem;
+  }
+
+  .user-actions {
+    gap: 0.5rem;
+  }
+
+  .welcome-message {
+    display: none; /* Hide on very small screens */
+  }
+
+  .main-content {
+    margin: 80px auto 1rem; /* Add top margin for fixed header */
+    padding: 0 1rem;
+    max-width: 100%;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .dashboard {
+    gap: 1rem;
+    margin: 0;
+    width: 100%;
+  }
+
+  .feed-card {
+    margin: 1rem 0;
+    padding: 1rem;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+}
+
+/* Tablet responsive styles */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .main-content {
+    max-width: 700px;
+    margin: 1.5rem auto;
+    padding: 0 1.5rem;
+  }
+
+  .dashboard {
+    gap: 1.25rem;
+  }
+
+  .feed-card {
+    margin: 1.5rem auto;
+    max-width: 650px;
+  }
+}
+
+/* Desktop responsive styles */
+@media (min-width: 1025px) {
+  .main-content {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 0 2rem;
+  }
+
+  .dashboard {
+    gap: 1.5rem;
+  }
 }
 
 

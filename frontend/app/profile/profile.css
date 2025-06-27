@@ -5,6 +5,7 @@
     min-height: 100vh;
     overflow: hidden;
     padding-left: var(--sidebar-width);
+    transition: padding-left 0.3s ease;
 }
 
 .main-content {
@@ -469,4 +470,349 @@
 
 .clickable-avatar {
   cursor: pointer;
+}
+
+/* Mobile responsive styles for profile page */
+@media (max-width: 767px) {
+  .profile-page {
+    padding-left: 0;
+    padding-top: 80px; /* Space for hamburger menu */
+  }
+
+  .main-content {
+    padding: 1rem;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .profile-header {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+
+  .profile-avatar {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto;
+  }
+
+  .profile-info {
+    align-items: center;
+  }
+
+  .profile-info h1 {
+    font-size: 1.5rem;
+    margin: 0.5rem 0;
+  }
+
+  .profile-info p {
+    font-size: 0.9rem;
+    margin: 0.25rem 0;
+  }
+
+  .profile-stats {
+    justify-content: center;
+    gap: 1.5rem;
+    margin: 0.75rem 0;
+  }
+
+  .stat {
+    text-align: center;
+  }
+
+  .stat-number {
+    font-size: 1.25rem;
+    font-weight: 700;
+  }
+
+  .stat-label {
+    font-size: 0.8rem;
+    color: #666;
+  }
+
+  .profile-actions {
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0.75rem 0;
+  }
+
+  .profile-actions button {
+    min-width: 100px;
+    padding: 0.6rem 0.8rem;
+    font-size: 0.85rem;
+    min-height: 44px;
+  }
+
+  .posts-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    margin-top: 1rem;
+  }
+
+  .post-card {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 1rem; /* Match home page mobile padding */
+    margin-bottom: 1rem; /* Match home page mobile margin */
+    border-radius: 8px; /* Match home page mobile border radius */
+  }
+
+  /* Match home page mobile post header styles */
+  .post-header {
+    margin-bottom: 1rem;
+  }
+
+  .author-avatar {
+    width: 36px;
+    height: 36px;
+  }
+
+  .author-info h4 {
+    font-size: 0.9rem;
+  }
+
+  .author-info span {
+    font-size: 0.75rem;
+  }
+
+  /* Match home page mobile post content styles */
+  .post-content {
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+
+  .post-image {
+    width: 100%;
+    height: auto;
+    max-width: 100%;
+    object-fit: cover;
+    border-radius: 8px;
+    margin: 0.75rem 0; /* Match home page mobile image margin */
+  }
+
+  /* Match home page mobile post actions styles */
+  .post-actions {
+    gap: 1rem;
+    padding: 0.75rem 0;
+  }
+
+  .action-button {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+    min-height: 44px; /* Touch-friendly */
+  }
+
+  /* Match home page mobile comments section */
+  .comments-section {
+    margin-top: 1rem;
+  }
+
+  .comment {
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .comment-author {
+    gap: 0.5rem;
+  }
+
+  .comment-avatar {
+    width: 32px;
+    height: 32px;
+  }
+
+  .comment-content {
+    font-size: 0.85rem;
+  }
+
+  .comment-form {
+    gap: 0.5rem;
+  }
+
+  .comment-input {
+    padding: 0.75rem;
+    font-size: 0.9rem;
+  }
+
+  .comment-submit {
+    padding: 0.75rem 1rem;
+    min-height: 44px;
+  }
+
+  /* Ensure no content overflow on mobile - match Post component */
+  .post-content {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
+  }
+
+  .comment-content {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
+  }
+
+  /* Reduce content sizes for mobile */
+  .post-content {
+    font-size: 0.9rem;
+    line-height: 1.4;
+    margin: 0.5rem 0;
+  }
+
+  .post-author {
+    gap: 0.5rem;
+  }
+
+  .post-author img {
+    width: 32px;
+    height: 32px;
+  }
+
+  .post-author h4 {
+    font-size: 0.9rem;
+  }
+
+  .post-author span {
+    font-size: 0.75rem;
+  }
+
+  /* Profile Card Mobile Optimization */
+  .profile-card {
+    width: 100%;
+    max-width: 100%;
+    padding: 1.25rem; /* Reduced from 2.5rem */
+    margin: 0.5rem 0; /* Reduced margins */
+    border-radius: 12px; /* Slightly smaller radius */
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08); /* Lighter shadow */
+  }
+
+  .profile-card:hover {
+    transform: translateY(-1px); /* Reduced hover effect */
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  }
+
+  /* Profile posts within card scaling - match general post styles */
+  .profile-card .post-card {
+    padding: 1rem; /* Match general post mobile padding */
+    margin-bottom: 1rem; /* Match general post mobile margin */
+    border-radius: 8px;
+  }
+
+  .profile-card .post-header {
+    margin-bottom: 1rem; /* Match general post mobile header margin */
+  }
+
+  .profile-card .author-avatar {
+    width: 36px;
+    height: 36px;
+  }
+
+  .profile-card .author-info h4 {
+    font-size: 0.9rem;
+  }
+
+  .profile-card .author-info span {
+    font-size: 0.75rem;
+  }
+
+  .profile-card .post-content {
+    font-size: 0.9rem; /* Match general post mobile font size */
+    line-height: 1.5; /* Match general post mobile line height */
+    margin: 0.5rem 0;
+  }
+
+  .profile-card .post-image {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    object-fit: cover;
+    border-radius: 8px;
+    margin: 0.75rem 0; /* Match general post mobile image margin */
+  }
+
+  .profile-card .post-actions {
+    gap: 1rem; /* Match general post mobile gap */
+    padding: 0.75rem 0; /* Match general post mobile padding */
+  }
+
+  .profile-card .action-button {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem; /* Match general post mobile font size */
+    min-height: 44px; /* Maintain touch-friendly size */
+  }
+
+  /* Profile card comments consistency */
+  .profile-card .comments-section {
+    margin-top: 1rem;
+  }
+
+  .profile-card .comment {
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .profile-card .comment-avatar {
+    width: 32px;
+    height: 32px;
+  }
+
+  .profile-card .comment-content {
+    font-size: 0.85rem;
+  }
+
+  /* Ensure no content overflow in profile card posts */
+  .profile-card .post-content {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
+  }
+
+  .profile-card .comment-content {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
+  }
+
+  /* Additional mobile optimizations */
+  .main-content {
+    padding: 0.5rem; /* Further reduced for mobile */
+  }
+
+  /* Ensure no content overflow */
+  * {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Compact spacing for mobile */
+  .profile-page {
+    padding-top: 70px; /* Reduced from 80px */
+  }
+
+  /* Better button sizing */
+  button {
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+}
+
+/* Tablet responsive styles for profile page */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .profile-page {
+    padding-left: 240px;
+  }
+
+  .main-content {
+    padding: 1.5rem;
+    max-width: 800px;
+  }
+
+  .posts-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
 }

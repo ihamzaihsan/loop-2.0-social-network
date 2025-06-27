@@ -1,12 +1,27 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import NotificationBell from '../app/components/NotificationBell'
 
 export default function Sidebar({ activePage }: { activePage: string }) {
     const router = useRouter()
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+    const [isMobile, setIsMobile] = useState(false)
+
+    useEffect(() => {
+        const checkScreenSize = () => {
+            setIsMobile(window.innerWidth < 768)
+            if (window.innerWidth >= 768) {
+                setIsMobileMenuOpen(false)
+            }
+        }
+
+        checkScreenSize()
+        window.addEventListener('resize', checkScreenSize)
+        return () => window.removeEventListener('resize', checkScreenSize)
+    }, [])
 
     const handleLogout = async () => {
         try {
@@ -25,13 +40,42 @@ export default function Sidebar({ activePage }: { activePage: string }) {
         }
     }
 
+    const toggleMobileMenu = () => {
+        setIsMobileMenuOpen(!isMobileMenuOpen)
+    }
+
+    const closeMobileMenu = () => {
+        setIsMobileMenuOpen(false)
+    }
+
     return (
-        <div className="sidebar">
-            <div className="sidebar-logo">
-                <h2>SOCIAL NETWORK</h2>
-            </div>
+        <>
+            {/* Mobile hamburger button */}
+            {isMobile && (
+                <button
+                    className="mobile-menu-toggle"
+                    onClick={toggleMobileMenu}
+                    aria-label="Toggle navigation menu"
+                >
+                    <div className={`hamburger ${isMobileMenuOpen ? 'active' : ''}`}>
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </button>
+            )}
+
+            {/* Mobile overlay */}
+            {isMobile && isMobileMenuOpen && (
+                <div className="mobile-overlay" onClick={closeMobileMenu}></div>
+            )}
+
+            <div className={`sidebar ${isMobile && isMobileMenuOpen ? 'mobile-open' : ''}`}>
+                <div className="sidebar-logo">
+                    <h2>SOCIAL NETWORK</h2>
+                </div>
             <nav className="sidebar-nav">
-                <Link href="/home">
+                <Link href="/home" onClick={closeMobileMenu}>
                     <div className={`sidebar-item ${activePage === 'home' ? 'active' : ''}`}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
@@ -41,7 +85,7 @@ export default function Sidebar({ activePage }: { activePage: string }) {
                     </div>
                 </Link>
 
-                <Link href="/profile">
+                <Link href="/profile" onClick={closeMobileMenu}>
                     <div className={`sidebar-item ${activePage === 'profile' ? 'active' : ''}`}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
@@ -51,7 +95,7 @@ export default function Sidebar({ activePage }: { activePage: string }) {
                     </div>
                 </Link>
 
-                <Link href="/find-friends">
+                <Link href="/find-friends" onClick={closeMobileMenu}>
                     <div className={`sidebar-item ${activePage === 'friends' ? 'active' : ''}`}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
@@ -63,7 +107,7 @@ export default function Sidebar({ activePage }: { activePage: string }) {
                     </div>
                 </Link>
 
-                <Link href="/chat">
+                <Link href="/chat" onClick={closeMobileMenu}>
                     <div className={`sidebar-item ${activePage === 'chat' ? 'active' : ''}`}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
@@ -72,7 +116,7 @@ export default function Sidebar({ activePage }: { activePage: string }) {
                     </div>
                 </Link>
 
-                <Link href="/groups">
+                <Link href="/groups" onClick={closeMobileMenu}>
                     <div className={`sidebar-item ${activePage === 'groups' ? 'active' : ''}`}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path>
@@ -90,7 +134,7 @@ export default function Sidebar({ activePage }: { activePage: string }) {
                 </div>
 
                 <div className="sidebar-footer">
-                    <div className="sidebar-item logout-item" onClick={handleLogout}>
+                    <div className="sidebar-item logout-item" onClick={() => { handleLogout(); closeMobileMenu(); }}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
                             <polyline points="16 17 21 12 16 7"></polyline>
@@ -101,5 +145,6 @@ export default function Sidebar({ activePage }: { activePage: string }) {
                 </div>
             </nav>
         </div>
+        </>
     )
 }
