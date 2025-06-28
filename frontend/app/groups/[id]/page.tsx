@@ -136,6 +136,10 @@ export default function GroupChatPage() {
     // Add these to your existing state variables
 const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // Image modal state
+    const [showImageModal, setShowImageModal] = useState(false)
+    const [selectedImage, setSelectedImage] = useState<string>('')
+
 // ADD THIS NEW FUNCTION HERE - right after all your useState declarations
 const fetchGroupDetails = async () => {
     if (!groupId) return;
@@ -684,6 +688,17 @@ const handleGroupImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) =>
         setNewPostImagePreview(null)
     }
 
+    // Image modal functions
+    const handleImageClick = (imageSrc: string) => {
+        setSelectedImage(imageSrc)
+        setShowImageModal(true)
+    }
+
+    const closeImageModal = () => {
+        setShowImageModal(false)
+        setSelectedImage('')
+    }
+
     // Handle creating a post
     const handleCreatePost = async () => {
         if (!newPostContent.trim() && !newPostImage) {
@@ -904,6 +919,26 @@ const handleCreateComment = async (postId: number) => {
         }
     }, [groupId, activeTab]);
 
+    // Image modal keyboard event listener
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape' && showImageModal) {
+                closeImageModal()
+            }
+        }
+
+        if (showImageModal) {
+            document.addEventListener('keydown', handleKeyDown)
+            // Prevent body scroll when modal is open
+            document.body.style.overflow = 'hidden'
+        }
+
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown)
+            document.body.style.overflow = 'unset'
+        }
+    }, [showImageModal]);
+
 
 
 
@@ -995,354 +1030,359 @@ const handleCreateComment = async (postId: number) => {
     }
 
     return (
-        <div className="groups-page">
+        <div className="home-page">
             <Sidebar activePage="groups" />
 
-            <div className="group-chat-container">
-                <div className="group-chat-sidebar">
-                    <div className="group-chat-sidebar-header">
-                        <h2>{group?.title}</h2>
-                        <button
-                            className="back-button"
-                            onClick={() => router.push('/groups')}
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M19 12H5M12 19l-7-7 7-7" />
-                            </svg>
-                            Back
-                        </button>
-                    </div>
-
-                    <div className="group-info">
-                        <p className="group-description">{group?.description}</p>
-                        <div className="group-meta">
-                            <span className="member-count">{group?.member_count || 0} members</span>
-                            <span className="created-date">Created {new Date(group?.created_at || '').toLocaleDateString()}</span>
+            <main className="main-content">
+                <div className="group-layout">
+                    {/* Left Members Sidebar */}
+                    <aside className="group-members-sidebar">
+                        <div className="members-sidebar-header">
+                            <h3 className="members-title">Members ({group?.member_count || 0})</h3>
                         </div>
-                    </div>
-
-                    <div className="group-tabs">
-                        <button
-                            className={`group-tab ${activeTab === 'chat' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('chat')}
-                        >
-                            Chat
-                        </button>
-                        <button
-                            className={`group-tab ${activeTab === 'posts' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('posts')}
-                        >
-                            Posts
-                        </button>
-                        <button
-                            className={`group-tab ${activeTab === 'events' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('events')}
-                        >
-                            Events
-                        </button>
-                    </div>
-
-                    <div className="group-members-container">
-                        <h3>Members</h3>
-                        {members.length > 0 ? (
-                            <ul className="group-members-list">
-                                {members.map(member => (
-                                    <li key={member.id} className="member-item">
-                                        <div className="member-avatar">
-                                            {member.avatar ? (
-                                                <img src={member.avatar} alt={`${member.first_name}'s avatar`} />
-                                            ) : (
-                                                <div className="avatar-placeholder">
-                                                    {member.first_name.charAt(0)}
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="member-info">
-                                            <span className="member-name">{member.first_name} {member.last_name}</span>
-                                            <span className="member-role">{member.role}</span>
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : (
-                            <p className="empty-list-message">No members found</p>
-                        )}
-                    </div>
-                </div>
-
-                <div className="group-chat-main">
-                    <div className="group-chat-header">
-                        <div className="group-chat-info">
-                            <h2>{group?.title}</h2>
-                            <span className="member-count">{group?.member_count || 0} members</span>
-                        </div>
-                        <div className="group-actions">
-                            <button
-                                className="invite-button"
-                                onClick={() => {
-                                    fetchUsers()
-                                    setShowInviteModal(true)
-                                }}
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                    <circle cx="8.5" cy="7" r="4"></circle>
-                                    <line x1="20" y1="8" x2="20" y2="14"></line>
-                                    <line x1="23" y1="11" x2="17" y2="11"></line>
-                                </svg>
-                                Invite Users
-                            </button>
-                            {/* <button className="group-action-button">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <circle cx="12" cy="12" r="1"></circle>
-                                    <circle cx="19" cy="12" r="1"></circle>
-                                    <circle cx="5" cy="12" r="1"></circle>
-                                </svg>
-                            </button> */}
-                        </div>
-                    </div>
-
-                    {activeTab === 'chat' && (
-                        <>
-                            <div className="group-chat-messages">
-                                {messages.length > 0 ? (
-                                    <div className="messages-list">
-                                        {messages.map(message => (
-                                            <div
-                                                key={message.id}
-                                                className={`message ${message.sender_id === currentUser?.id ? 'sent' : 'received'}`}
-                                            >
-                                                {message.sender_id !== currentUser?.id && (
-                                                    <div className="message-sender">
-                                                        <div className="sender-avatar">
-                                                            {message.sender.avatar ? (
-                                                                <img src={message.sender.avatar} alt={`${message.sender.firstName}'s avatar`} />
-                                                            ) : (
-                                                                <div className="avatar-placeholder">
-                                                                    {message.sender.firstName.charAt(0)}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                        <span className="sender-name">{message.sender.firstName} {message.sender.lastName}</span>
+                        <div className="members-list-container">
+                            {members.length > 0 ? (
+                                <div className="members-list">
+                                    {members.map(member => (
+                                        <div key={member.id} className="member-item">
+                                            <div className="member-avatar">
+                                                {member.avatar ? (
+                                                    <img
+                                                        src={member.avatar}
+                                                        alt={`${member.first_name}'s avatar`}
+                                                        onClick={() => handleImageClick(member.avatar!)}
+                                                        style={{ cursor: 'pointer' }}
+                                                    />
+                                                ) : (
+                                                    <div className="avatar-placeholder">
+                                                        {member.first_name.charAt(0)}
                                                     </div>
                                                 )}
-
-                                        <div className="message-content">
-                                                 {message.content.match(/\.(jpeg|jpg|gif|png)$/i) ? (
-                                                  // If the content is an image URL
-                                             <img src={`http://localhost:8080${encodeURI(message.content)}`} alt="User uploaded content" />
-                                             ) : (
-  
-                                                      message.content
-                                                                )}
-                                                </div>
-
-                                                <div className="message-time">
-                                                    {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                </div>
                                             </div>
-                                        ))}
-                                        <div ref={messagesEndRef} />
-                                    </div>
-                                ) : (
-                                    <div className="empty-messages">
-                                        <p>No messages in this group yet. Be the first to say hello!</p>
-                                    </div>
-                                )}
+                                            <div className="member-info">
+                                                <span className="member-name">
+                                                    {member.user_id === currentUser?.id ? 'You' : `${member.first_name} ${member.last_name}`}
+                                                </span>
+                                                <span className="member-role">{member.role}</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="empty-members-message">No members found</p>
+                            )}
+                        </div>
+                    </aside>
+
+                    {/* Right Main Content */}
+                    <div className="group-main-content">
+                        <div className="card feed-card">
+                        <div className="feed-header">
+                            <div className="group-header-info">
+                                <h2 className="card-title">{group?.title}</h2>
+                                <p className="group-description">{group?.description}</p>
+                                <div className="group-meta">
+                                    <span className="member-count">{group?.member_count || 0} members</span>
+                                    <span className="created-date">Created {new Date(group?.created_at || '').toLocaleDateString()}</span>
+                                </div>
                             </div>
-
-                            <form className="group-message-input-container" onSubmit={handleSendMessage}>
-  <input
-    type="text"
-    className="message-input"
-    placeholder="Type a message..."
-    value={newMessage}
-    onChange={(e) => setNewMessage(e.target.value)}
-  />
-  <button
-    type="submit"
-    className="send-button"
-    disabled={!newMessage.trim()}
-  >
-    Send
-  </button>
-  <input
-    type="file"
-    accept="image/*"
-    style={{ display: 'none' }}
-    ref={fileInputRef}
-    onChange={handleGroupImageUpload}
-  />
-  <button 
-    type="button"
-    className="image-button"
-    onClick={() => fileInputRef.current?.click()}
-  >
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-      <circle cx="8.5" cy="8.5" r="1.5"></circle>
-      <polyline points="21 15 16 10 5 21"></polyline>
-    </svg>
-  </button>
-</form>
-
-                        </>
-                    )}
-
-                    {activeTab === 'posts' && (
-                        <div className="group-posts">
-                            <div className="create-post">
-                                <textarea
-                                    className="post-input"
-                                    placeholder="Write a post..."
-                                    rows={3}
-                                    value={newPostContent}
-                                    onChange={(e) => setNewPostContent(e.target.value)}
-                                    maxLength={1000}
-                                ></textarea>
-                                <div className={`character-counter ${newPostContent.length > 1000 ? 'over-limit' : ''}`}>
-                                    {newPostContent.length}/1000 characters
-                                </div>
-
-                                {newPostImagePreview && (
-                                    <div className="image-preview-container">
-                                        <img src={newPostImagePreview} alt="Preview" className="image-preview" />
-                                        <button
-                                            type="button"
-                                            onClick={handleRemoveImage}
-                                            className="remove-image-button"
-                                        >
-                                            ×
-                                        </button>
-                                    </div>
-                                )}
-
-                                <div className="post-image-upload">
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={handleImageChange}
-                                        style={{ display: 'none' }}
-                                        id="group-post-image-input"
-                                    />
-                                    <label htmlFor="group-post-image-input" className="image-upload-button">
-                                        📷 Add Image
-                                    </label>
-                                </div>
+                            <div className="group-actions">
                                 <button
-                                    className="post-button"
-                                    onClick={handleCreatePost}
-                                    disabled={!newPostContent.trim() && !newPostImage}
+                                    className="secondary-button"
+                                    onClick={() => router.push('/groups')}
                                 >
-                                    Post
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M19 12H5M12 19l-7-7 7-7" />
+                                    </svg>
+                                    Back to Groups
+                                </button>
+                                <button
+                                    className="primary-button"
+                                    onClick={() => {
+                                        fetchUsers()
+                                        setShowInviteModal(true)
+                                    }}
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                        <circle cx="8.5" cy="7" r="4"></circle>
+                                        <line x1="20" y1="8" x2="20" y2="14"></line>
+                                        <line x1="23" y1="11" x2="17" y2="11"></line>
+                                    </svg>
+                                    Invite Users
                                 </button>
                             </div>
+                        </div>
 
-                            {posts.length > 0 ? (
-                                <div className="posts-list">
-                                    {posts.map(post => (
-                                        <div key={post.id} className="post-card">
-                                            <div className="post-header">
-                                                <div className="post-author">
-                                                    <div className="author-avatar">
-                                                        {post.avatar ? (
-                                                            <img src={post.avatar.startsWith('http') ? post.avatar : `http://localhost:8080${encodeURI(post.avatar)}`} alt={`${post.first_name}'s avatar`} />
-                                                        ) : (
-                                                            <div className="avatar-placeholder">
-                                                                {post.first_name ? post.first_name.charAt(0) : 'U'}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    <div className="author-info">
-                                                        <h3 className="author-name">{post.first_name || 'Unknown'} {post.last_name || ''}</h3>
-                                                        <span className="post-date">{post.created_at ? new Date(post.created_at).toLocaleDateString('en-US', {
-                                                            year: 'numeric',
-                                                            month: 'short',
-                                                            day: 'numeric',
-                                                            hour: '2-digit',
-                                                            minute: '2-digit'
-                                                        }) : 'Unknown date'}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
+                        <div className="group-tabs">
+                            <button
+                                className={`tab-button ${activeTab === 'chat' ? 'active' : ''}`}
+                                onClick={() => setActiveTab('chat')}
+                            >
+                                Chat
+                            </button>
+                            <button
+                                className={`tab-button ${activeTab === 'posts' ? 'active' : ''}`}
+                                onClick={() => setActiveTab('posts')}
+                            >
+                                Posts
+                            </button>
+                            <button
+                                className={`tab-button ${activeTab === 'events' ? 'active' : ''}`}
+                                onClick={() => setActiveTab('events')}
+                            >
+                                Events
+                            </button>
+                        </div>
 
-                                            <div className="post-content">
-                                                {post.content && <p className="post-text">{post.content}</p>}
-                                                {post.image && (
-                                                    <div className="post-image-container">
-                                                        <img
-                                                            src={post.image.startsWith('http') ? post.image : `http://localhost:8080${encodeURI(post.image.replace(/\\/g, '/'))}`}
-                                                            alt="Post content"
-                                                            className="post-image"
-                                                        />
-                                                    </div>
-                                                )}
-                                            </div>
+                        <div className="group-content">
 
-                                            <div className="post-footer">
-                                                <button
-                                                    className="comments-toggle-btn"
-                                                    onClick={() => setSelectedPost(selectedPost === post.id ? null : post.id)}
-                                                >
-                                                    {selectedPost === post.id ? 'Hide Comments' : 'Show Comments'} ({post.comment_count || 0})
-                                                </button>
-                                            </div>
-
-                                            {selectedPost === post.id && (
-                                                <div className="comments-section">
-                                                    <h4>Comments</h4>
-                                                    {loadingComments[post.id] ? (
-                                                        <div className="loading-comments">Loading comments...</div>
-                                                    ) : postComments[post.id]?.length > 0 ? (
-                                                        postComments[post.id].map(comment => (
-                                                            <div key={comment.id} className="comment">
-                                                                <div className="comment-avatar">
-                                                                    {comment.avatar ? (
-                                                                        <img
-                                                                            src={comment.avatar.startsWith('http') ? comment.avatar : `http://localhost:8080${comment.avatar}`}
-                                                                            alt={`${comment.first_name}'s avatar`}
-                                                                            className="avatar-img"
-                                                                        />
+                            {activeTab === 'chat' && (
+                                <div className="chat-section">
+                                    <div className="chat-messages">
+                                        {messages.length > 0 ? (
+                                            <div className="messages-list">
+                                                {messages.map(message => (
+                                                    <div
+                                                        key={message.id}
+                                                        className={`message ${message.sender_id === currentUser?.id ? 'sent' : 'received'}`}
+                                                    >
+                                                        {message.sender_id !== currentUser?.id && (
+                                                            <div className="message-sender">
+                                                                <div className="sender-avatar">
+                                                                    {message.sender.avatar ? (
+                                                                        <img src={message.sender.avatar} alt={`${message.sender.firstName}'s avatar`} />
                                                                     ) : (
                                                                         <div className="avatar-placeholder">
-                                                                            {comment.first_name ? comment.first_name.charAt(0) : 'U'}
+                                                                            {message.sender.firstName.charAt(0)}
                                                                         </div>
                                                                     )}
                                                                 </div>
-                                                                <div className="comment-body">
-                                                                    <div className="comment-author">
-                                                                        {comment.first_name} {comment.last_name}
-                                                                    </div>
-                                                                    <div className="comment-content">
-                                                                        {comment.content}
-                                                                    </div>
-                                                                </div>
+                                                                <span className="sender-name">{message.sender.firstName} {message.sender.lastName}</span>
                                                             </div>
-                                                        ))
-                                                    ) : (
-                                                        <div className="no-comments">No comments yet. Be the first to comment!</div>
-                                                    )}
+                                                        )}
 
-                                                    <form onSubmit={(e) => {
-                                                        e.preventDefault();
-                                                        handleCreateComment(post.id);
-                                                    }} className="comment-form">
-                                                        <input
-                                                            type="text"
-                                                            value={newComment}
-                                                            onChange={(e) => setNewComment(e.target.value)}
-                                                            placeholder="Write a comment..."
-                                                            className="comment-input"
-                                                        />
-                                                        <div className="comment-form-actions">
-                                                            <button type="submit" className="comment-submit" disabled={!newComment.trim()}>
-                                                                Post
-                                                            </button>
+                                                        <div className="message-content">
+                                                            {message.content.match(/\.(jpeg|jpg|gif|png)$/i) ? (
+                                                                <img
+                                                                    src={`http://localhost:8080${encodeURI(message.content)}`}
+                                                                    alt="User uploaded content"
+                                                                    onClick={() => handleImageClick(`http://localhost:8080${encodeURI(message.content)}`)}
+                                                                    style={{ cursor: 'pointer' }}
+                                                                />
+                                                            ) : (
+                                                                message.content
+                                                            )}
                                                         </div>
-                                                    </form>
-                                                </div>
-                                            )}
+
+                                                        <div className="message-time">
+                                                            {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                                <div ref={messagesEndRef} />
+                                            </div>
+                                        ) : (
+                                            <div className="empty-messages">
+                                                <p>No messages in this group yet. Be the first to say hello!</p>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <form className="message-input-container" onSubmit={handleSendMessage}>
+                                        <input
+                                            type="text"
+                                            className="message-input"
+                                            placeholder="Type a message..."
+                                            value={newMessage}
+                                            onChange={(e) => setNewMessage(e.target.value)}
+                                        />
+                                        <button
+                                            type="submit"
+                                            className="primary-button"
+                                            disabled={!newMessage.trim()}
+                                        >
+                                            Send
+                                        </button>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            style={{ display: 'none' }}
+                                            ref={fileInputRef}
+                                            onChange={handleGroupImageUpload}
+                                        />
+                                        <button
+                                            type="button"
+                                            className="secondary-button"
+                                            onClick={() => fileInputRef.current?.click()}
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                                <polyline points="21 15 16 10 5 21"></polyline>
+                                            </svg>
+                                        </button>
+                                    </form>
+                                </div>
+                            )}
+
+                            {activeTab === 'posts' && (
+                                <div className="posts-section">
+                                    <div className="create-post-form">
+                                        <textarea
+                                            placeholder="Write a post..."
+                                            rows={3}
+                                            value={newPostContent}
+                                            onChange={(e) => setNewPostContent(e.target.value)}
+                                            maxLength={1000}
+                                        ></textarea>
+                                        <div className={`character-counter ${newPostContent.length > 1000 ? 'over-limit' : ''}`}>
+                                            {newPostContent.length}/1000 characters
                                         </div>
+
+                                        {newPostImagePreview && (
+                                            <div className="image-preview-container">
+                                                <img src={newPostImagePreview} alt="Preview" className="image-preview" />
+                                                <button
+                                                    type="button"
+                                                    onClick={handleRemoveImage}
+                                                    className="remove-image-button"
+                                                >
+                                                    ×
+                                                </button>
+                                            </div>
+                                        )}
+
+                                        <div className="post-actions">
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={handleImageChange}
+                                                style={{ display: 'none' }}
+                                                id="group-post-image-input"
+                                            />
+                                            <label htmlFor="group-post-image-input" className="secondary-button">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                                    <polyline points="21 15 16 10 5 21"></polyline>
+                                                </svg>
+                                                Add Image
+                                            </label>
+                                            <button
+                                                className="primary-button"
+                                                onClick={handleCreatePost}
+                                                disabled={!newPostContent.trim() && !newPostImage}
+                                            >
+                                                Post
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {posts.length > 0 ? (
+                                        <div className="posts-container">
+                                            {posts.map(post => (
+                                                <article key={post.id} className="post-card">
+                                                    <header className="post-header">
+                                                        <div className="post-author">
+                                                            <div className="author-avatar">
+                                                                {post.avatar ? (
+                                                                    <img src={post.avatar.startsWith('http') ? post.avatar : `http://localhost:8080${encodeURI(post.avatar)}`} alt={`${post.first_name}'s avatar`} />
+                                                                ) : (
+                                                                    <div className="avatar-placeholder">
+                                                                        {post.first_name ? post.first_name.charAt(0) : 'U'}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            <div className="author-info">
+                                                                <h3 className="author-name">{post.first_name || 'Unknown'} {post.last_name || ''}</h3>
+                                                                <span className="post-time">{post.created_at ? new Date(post.created_at).toLocaleDateString('en-US', {
+                                                                    year: 'numeric',
+                                                                    month: 'short',
+                                                                    day: 'numeric',
+                                                                    hour: '2-digit',
+                                                                    minute: '2-digit'
+                                                                }) : 'Unknown date'}</span>
+                                                            </div>
+                                                        </div>
+                                                    </header>
+
+                                                    <div className="post-content">
+                                                        {post.content && <p>{post.content}</p>}
+                                                        {post.image && (
+                                                            <div className="post-image">
+                                                                <img
+                                                                    src={post.image.startsWith('http') ? post.image : `http://localhost:8080${encodeURI(post.image.replace(/\\/g, '/'))}`}
+                                                                    alt="Post content"
+                                                                    onClick={() => post.image && handleImageClick(post.image.startsWith('http') ? post.image : `http://localhost:8080${encodeURI(post.image.replace(/\\/g, '/'))}`)}
+                                                                    style={{ cursor: 'pointer' }}
+                                                                />
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    <footer className="post-footer">
+                                                        <button
+                                                            className="secondary-button"
+                                                            onClick={() => setSelectedPost(selectedPost === post.id ? null : post.id)}
+                                                        >
+                                                            {selectedPost === post.id ? 'Hide Comments' : 'Show Comments'} ({post.comment_count || 0})
+                                                        </button>
+                                                    </footer>
+
+                                                    {selectedPost === post.id && (
+                                                        <div className="comments-section">
+                                                            <h4>Comments</h4>
+                                                            {loadingComments[post.id] ? (
+                                                                <div className="loading-comments">Loading comments...</div>
+                                                            ) : postComments[post.id]?.length > 0 ? (
+                                                                <div className="comments-list">
+                                                                    {postComments[post.id].map(comment => (
+                                                                        <div key={comment.id} className="comment-item">
+                                                                            <div className="comment-author">
+                                                                                <div className="author-avatar">
+                                                                                    {comment.avatar ? (
+                                                                                        <img
+                                                                                            src={comment.avatar.startsWith('http') ? comment.avatar : `http://localhost:8080${comment.avatar}`}
+                                                                                            alt={`${comment.first_name}'s avatar`}
+                                                                                        />
+                                                                                    ) : (
+                                                                                        <div className="avatar-placeholder">
+                                                                                            {comment.first_name ? comment.first_name.charAt(0) : 'U'}
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+                                                                                <span className="author-name">
+                                                                                    {comment.first_name} {comment.last_name}
+                                                                                </span>
+                                                                            </div>
+                                                                            <div className="comment-content">
+                                                                                {comment.content}
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            ) : (
+                                                                <div className="no-comments">No comments yet. Be the first to comment!</div>
+                                                            )}
+
+                                                            <form onSubmit={(e) => {
+                                                                e.preventDefault();
+                                                                handleCreateComment(post.id);
+                                                            }} className="comment-form">
+                                                                <input
+                                                                    type="text"
+                                                                    value={newComment}
+                                                                    onChange={(e) => setNewComment(e.target.value)}
+                                                                    placeholder="Write a comment..."
+                                                                />
+                                                                <button type="submit" className="primary-button" disabled={!newComment.trim()}>
+                                                                    Post Comment
+                                                                </button>
+                                                            </form>
+                                                        </div>
+                                                    )}
+                                                </article>
                                     ))}
                                 </div>
                             ) : (
@@ -1353,24 +1393,24 @@ const handleCreateComment = async (postId: number) => {
                         </div>
                     )}
 
-                    {activeTab === 'events' && (
-                        <div className="group-events">
-                            <div className="create-event">
-                                <button
-                                    className="create-event-button"
-                                    onClick={() => setShowEventForm(!showEventForm)}
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                                        <line x1="16" y1="2" x2="16" y2="6"></line>
-                                        <line x1="8" y1="2" x2="8" y2="6"></line>
-                                        <line x1="3" y1="10" x2="21" y2="10"></line>
-                                        <line x1="12" y1="14" x2="12" y2="18"></line>
-                                        <line x1="10" y1="16" x2="14" y2="16"></line>
-                                    </svg>
-                                    Create Event
-                                </button>
-                            </div>
+                            {activeTab === 'events' && (
+                                <div className="events-section">
+                                    <div className="create-event-header">
+                                        <button
+                                            className="primary-button"
+                                            onClick={() => setShowEventForm(!showEventForm)}
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                                <line x1="16" y1="2" x2="16" y2="6"></line>
+                                                <line x1="8" y1="2" x2="8" y2="6"></line>
+                                                <line x1="3" y1="10" x2="21" y2="10"></line>
+                                                <line x1="12" y1="14" x2="12" y2="18"></line>
+                                                <line x1="10" y1="16" x2="14" y2="16"></line>
+                                            </svg>
+                                            Create Event
+                                        </button>
+                                    </div>
 
                             {/* Event creation form */}
                             {showEventForm && (
@@ -1423,7 +1463,7 @@ const handleCreateComment = async (postId: number) => {
 
                                     <div className="form-actions">
                                         <button
-                                            className="cancel-button"
+                                            className="secondary-button"
                                             onClick={() => {
                                                 setShowEventForm(false);
                                                 setEventError(''); // Clear error when canceling
@@ -1432,7 +1472,7 @@ const handleCreateComment = async (postId: number) => {
                                             Cancel
                                         </button>
                                         <button
-                                            className="create-button"
+                                            className="primary-button"
                                             onClick={handleCreateEvent}
                                             disabled={!eventTitle.trim() || !eventDescription.trim() || !eventDate || !eventTime}
                                         >
@@ -1473,13 +1513,13 @@ const handleCreateComment = async (postId: number) => {
                                             </div>
                                             <div className="event-actions">
                                                 <button
-                                                    className={`event-action-button ${event.user_response === 'Going' ? 'active' : ''}`}
+                                                    className={`secondary-button ${event.user_response === 'Going' ? 'active' : ''}`}
                                                     onClick={() => handleEventResponse(event.id, 1)}
                                                 >
                                                     Going
                                                 </button>
                                                 <button
-                                                    className={`event-action-button ${event.user_response === 'Not Going' ? 'active' : ''}`}
+                                                    className={`secondary-button ${event.user_response === 'Not Going' ? 'active' : ''}`}
                                                     onClick={() => handleEventResponse(event.id, 2)}
                                                 >
                                                     Not Going
@@ -1493,10 +1533,13 @@ const handleCreateComment = async (postId: number) => {
                                     <p>No events scheduled in this group yet.</p>
                                 </div>
                             )}
+                                </div>
+                            )}
                         </div>
-                    )}
+                        </div>
+                    </div>
                 </div>
-            </div>
+            </main>
 
             {/* Invite Users Modal */}
             {showInviteModal && (
@@ -1553,18 +1596,40 @@ const handleCreateComment = async (postId: number) => {
 
                         <div className="modal-footer">
                             <button
-                                className="cancel-button"
+                                className="secondary-button"
                                 onClick={() => setShowInviteModal(false)}
                             >
                                 Cancel
                             </button>
                             <button
-                                className="invite-button"
+                                className="primary-button"
                                 onClick={handleInviteUsers}
                                 disabled={selectedUsers.length === 0 || inviteLoading}
                             >
                                 {inviteLoading ? 'Sending...' : 'Send Invitations'}
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Image Modal */}
+            {showImageModal && (
+                <div className="image-modal" onClick={closeImageModal}>
+                    <div className="image-modal-content" onClick={(e) => e.stopPropagation()}>
+                        <button className="image-modal-close" onClick={closeImageModal}>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                        <img
+                            src={selectedImage}
+                            alt="Full size image"
+                            className="modal-image"
+                        />
+                        <div className="image-modal-info">
+                            <p>Click outside or press ESC to close</p>
                         </div>
                     </div>
                 </div>
