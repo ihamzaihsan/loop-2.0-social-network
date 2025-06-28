@@ -79,7 +79,7 @@ export default function Post({
           <div className="author-avatar">
             {author.avatar ? (
               <img
-                src={author.avatar.startsWith('http') ? author.avatar : `http://localhost:8080${author.avatar.replace(/\\/g, '/')}`}
+                src={author.avatar.startsWith('http') ? author.avatar : `http://localhost:8080${encodeURI(author.avatar.replace(/\\/g, '/'))}`}
                 alt={`${author.firstName}'s avatar`}
                 className="avatar-img"
               />
@@ -126,7 +126,7 @@ export default function Post({
                       >
                         {!isImageLoaded && <div className="image-loading-spinner"></div>}
                         <img
-                          src={image.startsWith('http') ? image : `http://localhost:8080${image.replace(/\\/g, '/')}`}
+                          src={image.startsWith('http') ? image : `http://localhost:8080${encodeURI(image.replace(/\\/g, '/'))}`}
                           alt="Post content"
                           className={`post-image ${isLandscape ? 'landscape' : ''}`}
                           onLoad={handleImageLoad}
@@ -137,7 +137,7 @@ export default function Post({
                         <div className="image-modal" onClick={() => setShowFullImage(false)}>
                           <div className="modal-content">
                             <img
-                              src={image.startsWith('http') ? image : `http://localhost:8080${image.replace(/\\/g, '/')}`}
+                              src={image.startsWith('http') ? image : `http://localhost:8080${encodeURI(image.replace(/\\/g, '/'))}`}
                               alt="Full size post content"
                               className="full-size-image"
                             />

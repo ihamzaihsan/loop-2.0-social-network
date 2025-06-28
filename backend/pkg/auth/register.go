@@ -2,14 +2,13 @@ package auth
 
 import (
 	"encoding/json"
-	"io"
+	"fmt"
 	"log"
 	"net/http"
-	"os"
-	"path/filepath"
 	"regexp"
 	"socialNetwork/pkg/db"
 	"socialNetwork/pkg/models"
+	"socialNetwork/pkg/utils"
 	"strings"
 	"time"
 
@@ -73,29 +72,15 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		if err == nil {
 			defer file.Close()
 
-			// Save the avatar file
-			uploadDir := "./uploads/avatars"
-			if err := os.MkdirAll(uploadDir, 0755); err != nil {
-				http.Error(w, "Failed to create upload directory", http.StatusInternalServerError)
-				return
-			}
-
-			filename := filepath.Join(uploadDir, header.Filename)
-			out, err := os.Create(filename)
+			// Use the centralized image upload handler for consistency
+			imagePath, err := utils.HandleImageUpload(file, header)
 			if err != nil {
-				http.Error(w, "Failed to create file", http.StatusInternalServerError)
-				return
-			}
-			defer out.Close()
-
-			_, err = io.Copy(out, file)
-			if err != nil {
-				http.Error(w, "Failed to save file", http.StatusInternalServerError)
+				http.Error(w, fmt.Sprintf("Failed to upload avatar: %v", err), http.StatusInternalServerError)
 				return
 			}
 
 			// Store the web-accessible path
-			avatarPath = "/uploads/avatars/" + header.Filename
+			avatarPath = imagePath
 		}
 	} else {
 		// Parse JSON for non-file requests

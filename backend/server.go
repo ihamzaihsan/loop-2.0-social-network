@@ -74,7 +74,6 @@ func main() {
 	// http.HandleFunc("/api/following", auth.CorsMiddleware(auth.AuthMiddleware(routes.GetUserFollowing)))
 	http.HandleFunc("/api/following", auth.CorsMiddleware(auth.AuthMiddleware(routes.ServeFollowingUsers)))
 
-
 	http.HandleFunc("/profile/privacy", auth.CorsMiddleware(auth.AuthMiddleware(routes.UpdatePrivacy)))
 
 	// Notification routes

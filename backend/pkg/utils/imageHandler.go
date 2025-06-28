@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -8,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 const (
@@ -49,6 +52,23 @@ func ValidateImageFile(header *multipart.FileHeader) error {
 	return nil
 }
 
+// Generate a unique filename
+func generateUniqueFilename(originalFilename string) string {
+	// Get file extension
+	ext := strings.ToLower(filepath.Ext(originalFilename))
+
+	// Generate timestamp
+	timestamp := time.Now().Unix()
+
+	// Generate random bytes
+	randomBytes := make([]byte, 8)
+	rand.Read(randomBytes)
+	randomString := hex.EncodeToString(randomBytes)
+
+	// Create unique filename: timestamp_randomstring.ext
+	return fmt.Sprintf("%d_%s%s", timestamp, randomString, ext)
+}
+
 func HandleImageUpload(file multipart.File, header *multipart.FileHeader) (string, error) {
 	// Validate the image file first
 	if err := ValidateImageFile(header); err != nil {
@@ -60,8 +80,11 @@ func HandleImageUpload(file multipart.File, header *multipart.FileHeader) (strin
 		return "", fmt.Errorf("failed to create upload directory: %v", err)
 	}
 
-	filename := filepath.Join(uploadDir, header.Filename)
-	out, err := os.Create(filename)
+	// Generate unique filename instead of using original
+	uniqueFilename := generateUniqueFilename(header.Filename)
+	filepath := filepath.Join(uploadDir, uniqueFilename)
+
+	out, err := os.Create(filepath)
 	if err != nil {
 		return "", fmt.Errorf("failed to create file: %v", err)
 	}
@@ -72,8 +95,7 @@ func HandleImageUpload(file multipart.File, header *multipart.FileHeader) (strin
 		return "", fmt.Errorf("failed to save file: %v", err)
 	}
 
-	// For new uploads, return a web-friendly path
-	// This will store "/uploads/filename.jpg" in the database
-	webPath := "/uploads/" + header.Filename
+	// Return web-friendly path with the unique filename
+	webPath := "/uploads/" + uniqueFilename
 	return webPath, nil
 }

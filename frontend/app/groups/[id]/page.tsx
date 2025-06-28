@@ -1130,7 +1130,7 @@ const handleCreateComment = async (postId: number) => {
                                         <div className="message-content">
                                                  {message.content.match(/\.(jpeg|jpg|gif|png)$/i) ? (
                                                   // If the content is an image URL
-                                             <img src={`http://localhost:8080/${message.content}`} alt="User uploaded content" />
+                                             <img src={`http://localhost:8080${encodeURI(message.content)}`} alt="User uploaded content" />
                                              ) : (
   
                                                       message.content
@@ -1246,7 +1246,7 @@ const handleCreateComment = async (postId: number) => {
                                                 <div className="post-author">
                                                     <div className="author-avatar">
                                                         {post.avatar ? (
-                                                            <img src={post.avatar.startsWith('http') ? post.avatar : `http://localhost:8080${post.avatar}`} alt={`${post.first_name}'s avatar`} />
+                                                            <img src={post.avatar.startsWith('http') ? post.avatar : `http://localhost:8080${encodeURI(post.avatar)}`} alt={`${post.first_name}'s avatar`} />
                                                         ) : (
                                                             <div className="avatar-placeholder">
                                                                 {post.first_name ? post.first_name.charAt(0) : 'U'}
@@ -1271,7 +1271,7 @@ const handleCreateComment = async (postId: number) => {
                                                 {post.image && (
                                                     <div className="post-image-container">
                                                         <img
-                                                            src={post.image.startsWith('http') ? post.image : `http://localhost:8080${post.image.replace(/\\/g, '/')}`}
+                                                            src={post.image.startsWith('http') ? post.image : `http://localhost:8080${encodeURI(post.image.replace(/\\/g, '/'))}`}
                                                             alt="Post content"
                                                             className="post-image"
                                                         />

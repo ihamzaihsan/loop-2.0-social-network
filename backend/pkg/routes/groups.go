@@ -621,10 +621,16 @@ func CreateGroupPost(w http.ResponseWriter, r *http.Request) {
 		defer file.Close()
 		imagePath, err := utils.HandleImageUpload(file, header)
 		if err != nil {
-			http.Error(w, "Failed to upload image: "+err.Error(), http.StatusBadRequest)
+			log.Printf("[ERROR] Failed to upload image: %v", err)
+			http.Error(w, fmt.Sprintf("Failed to upload image: %v", err), http.StatusInternalServerError)
 			return
 		}
 		req.Image = imagePath
+	} else if err != http.ErrMissingFile {
+		// Only log if it's not just a missing file
+		log.Printf("[ERROR] Error processing image upload: %v", err)
+		http.Error(w, "Error processing image upload", http.StatusBadRequest)
+		return
 	}
 
 	// Create post using service

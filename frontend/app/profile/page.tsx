@@ -302,9 +302,9 @@ export default function Profile() {
               <div className="profile-header">
                 <div className="profile-avatar">
                   {profile.user.avatar ? (
-                    <img 
-                      src={`http://localhost:8080${profile.user.avatar}`} 
-                      alt={`${profile.user.firstName}'s avatar`} 
+                    <img
+                      src={`http://localhost:8080${encodeURI(profile.user.avatar)}`}
+                      alt={`${profile.user.firstName}'s avatar`}
                       className="avatar-image"
                     />
                   ) : (
@@ -414,10 +414,10 @@ export default function Profile() {
                         {post.content && <p className="post-text">{post.content}</p>}
                         {post.image && (
                           <div className="post-image-container">
-                            <img 
-                              src={post.image.startsWith('http') ? post.image : `http://localhost:8080/${post.image}`} 
-                              alt="Post image" 
-                              className="post-image" 
+                            <img
+                              src={post.image.startsWith('http') ? post.image : `http://localhost:8080${encodeURI(post.image.replace(/\\/g, '/'))}`}
+                              alt="Post image"
+                              className="post-image"
                             />
                           </div>
                         )}
@@ -454,9 +454,9 @@ export default function Profile() {
                       <li key={follower.id || index} className="follow-item" onClick={() => navigateToProfile(follower.id)}>
                         <div className="follow-avatar">
                           {follower.avatar ? (
-                            <img 
-                              src={follower.avatar.startsWith('http') ? follower.avatar : `http://localhost:8080${follower.avatar}`} 
-                              alt="Follower avatar" 
+                            <img
+                              src={follower.avatar.startsWith('http') ? follower.avatar : `http://localhost:8080${encodeURI(follower.avatar)}`}
+                              alt="Follower avatar"
                             />
                           ) : (
                             <div className="avatar-placeholder">

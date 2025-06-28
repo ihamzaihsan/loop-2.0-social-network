@@ -178,9 +178,9 @@ export default function UserProfile() {
               <div className="profile-header">
                 <div className="profile-avatar">
                   {profile.user.avatar ? (
-                    <img 
-                      src={`http://localhost:8080${profile.user.avatar}`} 
-                      alt={`${profile.user.firstName}'s avatar`} 
+                    <img
+                      src={`http://localhost:8080${encodeURI(profile.user.avatar)}`}
+                      alt={`${profile.user.firstName}'s avatar`}
                       className="avatar-image"
                     />
                   ) : (
@@ -294,10 +294,10 @@ export default function UserProfile() {
                           {post.content && <p className="post-text">{post.content}</p>}
                           {post.image && (
                             <div className="post-image-container">
-                              <img 
-                                src={post.image.startsWith('http') ? post.image : `http://localhost:8080/${post.image}`} 
-                                alt="Post image" 
-                                className="post-image" 
+                              <img
+                                src={post.image.startsWith('http') ? post.image : `http://localhost:8080${encodeURI(post.image.replace(/\\/g, '/'))}`}
+                                alt="Post image"
+                                className="post-image"
                               />
                             </div>
                           )}

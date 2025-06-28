@@ -227,9 +227,19 @@ func DeletePost(w http.ResponseWriter, r *http.Request) {
 // Add this helper function at the top of the file (outside any other function)
 func fixImagePath(image string) string {
 	if image != "" {
+		// Convert backslashes to forward slashes
+		image = strings.ReplaceAll(image, "\\", "/")
+
 		// If the image path starts with "./uploads", convert it to "/uploads"
 		if strings.HasPrefix(image, "./uploads") {
-			return strings.Replace(image, "./uploads", "/uploads", 1)
+			image = strings.Replace(image, "./uploads", "/uploads", 1)
+		}
+
+		// Ensure the path starts with /uploads if it doesn't already
+		if !strings.HasPrefix(image, "/uploads") && !strings.HasPrefix(image, "http") {
+			if strings.HasPrefix(image, "uploads") {
+				image = "/" + image
+			}
 		}
 	}
 	return image

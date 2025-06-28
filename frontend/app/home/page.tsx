@@ -415,7 +415,7 @@ export default function Home() {
                         <div className="author-avatar">
                           {post.author.avatar ? (
                             <img
-                              src={post.author.avatar.startsWith('http') ? post.author.avatar : `http://localhost:8080${post.author.avatar.replace(/\\/g, '/')}`}
+                              src={post.author.avatar.startsWith('http') ? post.author.avatar : `http://localhost:8080${encodeURI(post.author.avatar.replace(/\\/g, '/'))}`}
                               alt={`${post.author.firstName}'s avatar`}
                               className="avatar-img"
                             />
@@ -456,14 +456,25 @@ export default function Home() {
                       {post.image && (
                         <div className="post-image-container">
                           <img
-                            src={post.image.startsWith('http') ? post.image : `http://localhost:8080/${post.image.replace(/\\/g, '/')}`}
+                            src={(() => {
+                              if (post.image.startsWith('http')) {
+                                return post.image;
+                              }
+                              // Normalize the path - remove leading ./ and ensure it starts with /
+                              let normalizedPath = post.image.replace(/\\/g, '/');
+                              if (normalizedPath.startsWith('./')) {
+                                normalizedPath = normalizedPath.substring(1); // Remove the dot, keep the slash
+                              }
+                              if (!normalizedPath.startsWith('/')) {
+                                normalizedPath = '/' + normalizedPath;
+                              }
+                              return `http://localhost:8080${encodeURI(normalizedPath)}`;
+                            })()}
                             alt="Post image"
                             className="post-image"
                             onError={(e) => {
                               console.error('Failed to load image:', post.image);
-                              const normalizedPath = post.image.replace(/\\/g, '/');
-                              const constructedURL = post.image.startsWith('http') ? post.image : `http://localhost:8080${normalizedPath}`;
-                              console.error('Constructed URL:', constructedURL);
+                              console.error('Constructed URL:', (e.target as HTMLImageElement).src);
                             }}
                             onLoad={() => {
                               console.log('Successfully loaded image:', post.image);
