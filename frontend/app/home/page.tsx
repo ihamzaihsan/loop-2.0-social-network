@@ -66,6 +66,7 @@ export default function Home() {
   const [newComments, setNewComments] = useState<{[postId: number]: string}>({})
   const [commentFileInputs, setCommentFileInputs] = useState<{[postId: number]: HTMLInputElement | null}>({});
   const [commentImageFiles, setCommentImageFiles] = useState<{[key: number]: File | null}>({});
+  const [expandedPosts, setExpandedPosts] = useState<{[postId: number]: boolean}>({});
 
   // Initialize WebSocket connection
   useEffect(() => {
@@ -252,6 +253,8 @@ export default function Home() {
       return
     }
 
+    setSubmittingComment(prev => ({ ...prev, [postId]: true }));
+
     try {
       console.log(`Adding comment to post ${postId}: ${newComments[postId]}`);
       console.log('With image file:', commentImageFiles[postId]?.name);
@@ -314,6 +317,8 @@ export default function Home() {
       }
     } catch (error) {
       console.error('Error adding comment:', error);
+    } finally {
+      setSubmittingComment(prev => ({ ...prev, [postId]: false }));
     }
   };
 
@@ -375,8 +380,22 @@ export default function Home() {
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
     })
+  }
+
+  const togglePostExpansion = (postId: number) => {
+    setExpandedPosts(prev => ({
+      ...prev,
+      [postId]: !prev[postId]
+    }))
+  }
+
+  const truncateText = (text: string, maxLength: number = 300) => {
+    if (text.length <= maxLength) return text
+    return text.substring(0, maxLength) + '...'
   }
 
   if (loading) return <div className="home-page">Loading...</div>
@@ -389,22 +408,27 @@ export default function Home() {
       <main className="main-content">
         <div className="dashboard">
           <div className="card feed-card">
-            <h2 className="card-title">Your Feed</h2>
-            
-            <button 
-              className="primary-button create-post-btn" 
-              onClick={navigateToCreatePost}
-            >
-              Create New Post
-            </button>
+            <div className="feed-header">
+              <h2 className="card-title">Your Feed</h2>
+              <button 
+                className="primary-button create-post-btn" 
+                onClick={navigateToCreatePost}
+              >
+                <span className="create-post-icon">✏️</span>
+                Create New Post
+              </button>
+            </div>
             
             <div className="posts-container">
               {postsLoading ? (
-                <p className="loading-posts">Loading posts...</p>
+                <div className="loading-posts">
+                  <div className="loading-spinner"></div>
+                  <p>Loading posts...</p>
+                </div>
               ) : posts.length > 0 ? (
                 posts.map(post => (
-                  <div key={post.id} className="post-card">
-                    <div className="post-header">
+                  <article key={post.id} className="post-card">
+                    <header className="post-header">
                       <div 
                         className="post-author" 
                         onClick={() => router.push(`/profile/${post.userId}`)}
@@ -429,7 +453,9 @@ export default function Home() {
                           <h3 className="author-name">
                             {post.author.nickname || `${post.author.firstName} ${post.author.lastName}`}
                           </h3>
-                          <span className="post-date">{formatDate(post.createdAt)}</span>
+                          <time className="post-date" dateTime={post.createdAt}>
+                            {formatDate(post.createdAt)}
+                          </time>
                         </div>
                       </div>
                       
@@ -438,21 +464,42 @@ export default function Home() {
                           <button 
                             onClick={() => router.push(`/edit-post?id=${post.id}`)}
                             className="edit-post-btn"
+                            title="Edit post"
                           >
+                            <span className="action-icon">✏️</span>
                             Edit
                           </button>
                           <button 
                             onClick={() => handleDeletePost(post.id)}
                             className="delete-post-btn"
+                            title="Delete post"
                           >
+                            <span className="action-icon">🗑️</span>
                             Delete
                           </button>
                         </div>
                       )}
-                    </div>
+                    </header>
                     
                     <div className="post-content">
-                      {post.content && <p className="post-text">{post.content}</p>}
+                      {post.content && (
+                        <div className="post-text-container">
+                          <p className="post-text">
+                            {expandedPosts[post.id] || post.content.length <= 300
+                              ? post.content
+                              : truncateText(post.content, 300)
+                            }
+                          </p>
+                          {post.content.length > 300 && (
+                            <button
+                              className="read-more-btn"
+                              onClick={() => togglePostExpansion(post.id)}
+                            >
+                              {expandedPosts[post.id] ? 'Show less' : 'Read more'}
+                            </button>
+                          )}
+                        </div>
+                      )}
                       {post.image && (
                         <div className="post-image-container">
                           <img
@@ -484,112 +531,177 @@ export default function Home() {
                       )}
                     </div>
                     
-                    <div className="post-footer">
-                      <div className="post-stats">
+                    <footer className="post-footer">
+                      <div className="post-interactions">
                         <button 
-                          className="comments-toggle-btn"
+                          className={`interaction-btn comments-btn ${post.showComments ? 'active' : ''}`}
                           onClick={() => toggleComments(post.id)}
                         >
-                          {post.showComments ? 'Hide Comments' : 'Show Comments'}
+                          <span className="interaction-icon">💬</span>
+                          <span className="interaction-text">
+                            {post.showComments ? 'Hide Comments' : `Comments ${post.comments?.length ? `(${post.comments.length})` : ''}`}
+                          </span>
                         </button>
                       </div>
                       
                       {post.showComments && (
                         <div className="comments-section">
-                          <h4>Comments</h4>
-                          {post.comments && post.comments.map((comment, index) => (
-                            <div key={comment.id || index} className="comment">
-                              <div className="comment-avatar">
-                                {comment.author?.avatar ? (
-                                  <img
-                                    src={comment.author.avatar.startsWith('http') ? comment.author.avatar : `http://localhost:8080${comment.author.avatar.replace(/\\/g, '/')}`}
-                                    alt={`${comment.author.firstName}'s avatar`}
-                                    className="avatar-img"
-                                  />
-                                ) : (
-                                  <div className="avatar-placeholder">
-                                    {comment.author?.firstName?.charAt(0) || 'A'}
-                                  </div>
-                                )}
-                              </div>
-                              <div className="comment-body">
-                                <div className="comment-author">
-                                  {comment.author?.firstName || 'Anonymous'} {comment.author?.lastName || ''}
-                                </div>
-                                <div className="comment-content">
-                                  {comment.content}
-                                  {comment.image && (
-                                    <div className="comment-image-container">
-                                      <img
-                                        src={comment.image.startsWith('http') ? comment.image : `http://localhost:8080${comment.image.replace(/\\/g, '/')}`}
-                                        alt="Comment image"
-                                        className="comment-image"
-                                      />
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          ))}
+                          <div className="comments-header">
+                            <h4 className="comments-title">
+                              Comments {post.comments?.length ? `(${post.comments.length})` : ''}
+                            </h4>
+                          </div>
                           
-                          <form onSubmit={(e) => {
-                            e.preventDefault();
-                            handleAddComment(post.id);
-                          }} className="comment-form">
-                            <input
-                              type="text"
-                              value={newComments[post.id] || ''}
-                              onChange={(e) => setNewComments(prev => ({
-                                ...prev,
-                                [post.id]: e.target.value
-                              }))}
-                              placeholder="Write a comment..."
-                              className="comment-input"
-                            />
-                            <div className="comment-form-actions">
-                              <input
-                                type="file"
-                                accept="image/*"
-                                style={{ display: 'none' }}
-                                id={`comment-file-${post.id}`}
-                                onChange={(e) => handleCommentFileChange(post.id, e)}
-                              />
-                              <label htmlFor={`comment-file-${post.id}`} className="comment-image-button">
-                                📷
-                              </label>
-                              <button type="submit" className="comment-submit">Post</button>
-                            </div>
-                            
-                            {/* Add a visual preview of the selected image */}
-                            {commentImageFiles[post.id] && (
-                              <div className="comment-image-preview">
-                                <div className="preview-image-container">
-                                  <img 
-                                    src={URL.createObjectURL(commentImageFiles[post.id]!)} 
-                                    alt="Preview" 
-                                    className="preview-image" 
-                                  />
+                          <div className="comments-list">
+                            {post.comments && post.comments.length > 0 ? (
+                              post.comments.map((comment, index) => (
+                                <div key={comment.id || index} className="comment-item">
+                                  <div className="comment-avatar">
+                                    {comment.author?.avatar ? (
+                                      <img
+                                        src={comment.author.avatar.startsWith('http') ? comment.author.avatar : `http://localhost:8080${comment.author.avatar.replace(/\\/g, '/')}`}
+                                        alt={`${comment.author.firstName}'s avatar`}
+                                        className="avatar-img"
+                                      />
+                                    ) : (
+                                      <div className="avatar-placeholder">
+                                        {comment.author?.firstName?.charAt(0) || 'A'}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="comment-content">
+                                    <div className="comment-header">
+                                      <span className="comment-author">
+                                        {comment.author?.nickname || 
+                                         `${comment.author?.firstName || 'Anonymous'} ${comment.author?.lastName || ''}`}
+                                      </span>
+                                      <time className="comment-date" dateTime={comment.createdAt}>
+                                        {formatDate(comment.createdAt)}
+                                      </time>
+                                    </div>
+                                    <div className="comment-body">
+                                      <p className="comment-text">{comment.content}</p>
+                                      {comment.image && (
+                                        <div className="comment-image-container">
+                                          <img
+                                            src={comment.image.startsWith('http') ? comment.image : `http://localhost:8080${comment.image.replace(/\\/g, '/')}`}
+                                            alt="Comment image"
+                                            className="comment-image"
+                                          />
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
                                 </div>
-                                <div className="preview-details">
-                                  <span className="preview-filename">{commentImageFiles[post.id]?.name}</span>
-                                  <button 
-                                    type="button" 
-                                    className="remove-image-button"
-                                    onClick={() => setCommentImageFiles(prev => ({...prev, [post.id]: null}))}
-                                  >
-                                    ×
-                                  </button>
-                                </div>
+                              ))
+                            ) : (
+                              <div className="no-comments">
+                                <p>No comments yet. Be the first to comment!</p>
                               </div>
                             )}
-                          </form>
+                          </div>
+                          
+                          <div className="comment-form-container">
+                            <form onSubmit={(e) => {
+                              e.preventDefault();
+                              handleAddComment(post.id);
+                            }} className="comment-form">
+                              <div className="comment-input-container">
+                                <div className="current-user-avatar">
+                                  <div className="avatar-placeholder">
+                                    {username.charAt(0).toUpperCase()}
+                                  </div>
+                                </div>
+                                <div className="comment-input-wrapper">
+                                  <textarea
+                                    value={newComments[post.id] || ''}
+                                    onChange={(e) => setNewComments(prev => ({
+                                      ...prev,
+                                      [post.id]: e.target.value
+                                    }))}
+                                    placeholder="Write a comment..."
+                                    className="comment-input"
+                                    rows={2}
+                                    maxLength={500}
+                                  />
+                                  <div className="comment-input-footer">
+                                    <div className="comment-actions">
+                                      <input
+                                        type="file"
+                                        accept="image/*"
+                                        style={{ display: 'none' }}
+                                        id={`comment-file-${post.id}`}
+                                        onChange={(e) => handleCommentFileChange(post.id, e)}
+                                      />
+                                      <label htmlFor={`comment-file-${post.id}`} className="comment-image-button" title="Add image">
+                                        <span className="image-icon">📷</span>
+                                      </label>
+                                      <div className="comment-char-count">
+                                        {(newComments[post.id] || '').length}/500
+                                      </div>
+                                    </div>
+                                    <button 
+                                      type="submit" 
+                                      className="comment-submit"
+                                      disabled={submittingComment[post.id] || (!(newComments[post.id]?.trim()) && !commentImageFiles[post.id])}
+                                    >
+                                      {submittingComment[post.id] ? (
+                                        <span className="submitting">
+                                          <span className="spinner"></span>
+                                          Posting...
+                                        </span>
+                                      ) : (
+                                        'Post Comment'
+                                      )}
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              {/* Image preview */}
+                              {commentImageFiles[post.id] && (
+                                <div className="comment-image-preview">
+                                  <div className="preview-container">
+                                    <div className="preview-image-wrapper">
+                                      <img 
+                                        src={URL.createObjectURL(commentImageFiles[post.id]!)} 
+                                        alt="Preview" 
+                                        className="preview-image" 
+                                      />
+                                    </div>
+                                    <div className="preview-info">
+                                      <span className="preview-filename">{commentImageFiles[post.id]?.name}</span>
+                                      <button 
+                                        type="button" 
+                                        className="remove-image-button"
+                                        onClick={() => setCommentImageFiles(prev => ({...prev, [post.id]: null}))}
+                                        title="Remove image"
+                                      >
+                                        ✕
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </form>
+                          </div>
                         </div>
                       )}
-                    </div>
-                  </div>
+                    </footer>
+                  </article>
                 ))
               ) : (
-                <p className="empty-feed">No posts yet. Start connecting with friends!</p>
+                <div className="empty-feed">
+                  <div className="empty-feed-icon">📝</div>
+                  <h3>No posts yet</h3>
+                  <p>Start connecting with friends and sharing your thoughts!</p>
+                  <button 
+                    className="primary-button"
+                    onClick={navigateToCreatePost}
+                  >
+                    Create Your First Post
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -599,6 +711,3 @@ export default function Home() {
     </div>
   )
 }
-
-
-
