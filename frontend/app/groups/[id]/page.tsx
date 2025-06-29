@@ -1077,40 +1077,69 @@ const handleCreateComment = async (postId: number) => {
                     {/* Right Main Content */}
                     <div className="group-main-content">
                         <div className="card feed-card">
-                        <div className="feed-header">
-                            <div className="group-header-info">
-                                <h2 className="card-title">{group?.title}</h2>
-                                <p className="group-description">{group?.description}</p>
-                                <div className="group-meta">
-                                    <span className="member-count">{group?.member_count || 0} members</span>
-                                    <span className="created-date">Created {new Date(group?.created_at || '').toLocaleDateString()}</span>
-                                </div>
+                        <div className="group-hero-section">
+                            <div className="hero-background">
+                                <div className="hero-pattern"></div>
+                                <div className="hero-gradient"></div>
                             </div>
-                            <div className="group-actions">
-                                <button
-                                    className="secondary-button"
-                                    onClick={() => router.push('/groups')}
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M19 12H5M12 19l-7-7 7-7" />
-                                    </svg>
-                                    Back to Groups
-                                </button>
-                                <button
-                                    className="primary-button"
-                                    onClick={() => {
-                                        fetchUsers()
-                                        setShowInviteModal(true)
-                                    }}
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                        <circle cx="8.5" cy="7" r="4"></circle>
-                                        <line x1="20" y1="8" x2="20" y2="14"></line>
-                                        <line x1="23" y1="11" x2="17" y2="11"></line>
-                                    </svg>
-                                    Invite Users
-                                </button>
+                            <div className="hero-content">
+                                <div className="hero-text">
+                                    <div className="group-avatar-large">
+                                        <div className="avatar-background-large"></div>
+                                        <div className="avatar-letter-large">
+                                            {group?.title?.charAt(0) || 'G'}
+                                        </div>
+                                        <div className="avatar-ring-large"></div>
+                                    </div>
+                                    <div className="group-info-large">
+                                        <h1 className="hero-title">{group?.title || 'Loading...'}</h1>
+                                        <p className="hero-description">{group?.description || 'Group description loading...'}</p>
+                                        <div className="group-stats">
+                                            <div className="stat-item">
+                                                <span className="stat-number">{group?.member_count || 0}</span>
+                                                <span className="stat-label">Members</span>
+                                            </div>
+                                            <div className="stat-divider"></div>
+                                            <div className="stat-item">
+                                                <span className="stat-number">{posts.length}</span>
+                                                <span className="stat-label">Posts</span>
+                                            </div>
+                                            <div className="stat-divider"></div>
+                                            <div className="stat-item">
+                                                <span className="stat-number">{events.length}</span>
+                                                <span className="stat-label">Events</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="hero-actions">
+                                    <button
+                                        className="hero-primary-button"
+                                        onClick={() => {
+                                            fetchUsers()
+                                            setShowInviteModal(true)
+                                        }}
+                                    >
+                                        <div className="button-icon">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                                <circle cx="8.5" cy="7" r="4"></circle>
+                                                <line x1="20" y1="8" x2="20" y2="14"></line>
+                                                <line x1="23" y1="11" x2="17" y2="11"></line>
+                                            </svg>
+                                        </div>
+                                        <span>Invite Members</span>
+                                    </button>
+                                    <button
+                                        className="hero-secondary-button"
+                                        onClick={() => router.push('/groups')}
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M19 12H5M12 19l-7-7 7-7" />
+                                        </svg>
+                                        Back to Groups
+                                    </button>
+                                </div>
                             </div>
                         </div>
 

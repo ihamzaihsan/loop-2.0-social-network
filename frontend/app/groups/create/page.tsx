@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
-import styles from './createGroup.module.css'
+import './create.css'
 
 export default function CreateGroupPage() {
     const [title, setTitle] = useState('')
@@ -62,55 +62,150 @@ export default function CreateGroupPage() {
         }
     }
     return (
-        <div className={styles.container}>
+        <div className="home-page">
             <Sidebar activePage="groups" />
-            <main className={styles.main}>
-                <div className={styles.formContainer}>
-                    <h1>Create a New Group</h1>
 
-                    {error && <div className={styles.error}>{error}</div>}
-
-                    <form onSubmit={handleSubmit} className={styles.form}>
-                        <div className={styles.formGroup}>
-                            <label htmlFor="title">Group Name*</label>
-                            <input
-                                type="text"
-                                id="title"
-                                value={title}
-                                onChange={(e) => setTitle(e.target.value)}
-                                placeholder="Enter a name for your group"
-                                required
-                            />
+            <main className="main-content">
+                <div className="dashboard">
+                    <div className="card feed-card">
+                        <div className="create-hero-section">
+                            <div className="hero-background">
+                                <div className="hero-pattern"></div>
+                                <div className="hero-gradient"></div>
+                            </div>
+                            <div className="hero-content">
+                                <div className="hero-text">
+                                    <h1 className="hero-title">
+                                        <span className="title-icon">🚀</span>
+                                        Create Your Community
+                                    </h1>
+                                    <p className="hero-description">
+                                        Build something amazing! Start a new group and bring together people who share your passion and interests.
+                                    </p>
+                                    <div className="hero-features">
+                                        <div className="feature-item">
+                                            <span className="feature-icon">👥</span>
+                                            <span className="feature-text">Connect People</span>
+                                        </div>
+                                        <div className="feature-item">
+                                            <span className="feature-icon">💬</span>
+                                            <span className="feature-text">Share Ideas</span>
+                                        </div>
+                                        <div className="feature-item">
+                                            <span className="feature-icon">🎯</span>
+                                            <span className="feature-text">Achieve Goals</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="hero-actions">
+                                    <button
+                                        type="button"
+                                        className="hero-secondary-button"
+                                        onClick={() => router.back()}
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M19 12H5M12 19l-7-7 7-7" />
+                                        </svg>
+                                        Go Back
+                                    </button>
+                                </div>
+                            </div>
                         </div>
 
-                        <div className={styles.formGroup}>
-                            <label htmlFor="description">Description</label>
-                            <textarea
-                                id="description"
-                                value={description}
-                                onChange={(e) => setDescription(e.target.value)}
-                                placeholder="What is this group about?"
-                                rows={5}
-                            />
-                        </div>
+                        <div className="create-form-section">
+                            <div className="form-header">
+                                <h2 className="form-title">Group Details</h2>
+                                <p className="form-subtitle">Tell us about your community</p>
+                            </div>
 
-                        <div className={styles.buttonGroup}>
-                            <button
-                                type="button"
-                                className={styles.cancelButton}
-                                onClick={() => router.back()}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="submit"
-                                className={styles.createButton}
-                                disabled={loading}
-                            >
-                                {loading ? 'Creating...' : 'Create Group'}
-                            </button>
+                            {error && (
+                                <div className="error-message-enhanced">
+                                    <div className="error-icon">⚠️</div>
+                                    <div className="error-content">
+                                        <h4>Oops! Something went wrong</h4>
+                                        <p>{error}</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            <form onSubmit={handleSubmit} className="create-form-enhanced">
+                                <div className="form-group-enhanced">
+                                    <label htmlFor="title" className="form-label-enhanced">
+                                        <span className="label-icon">🏷️</span>
+                                        <span className="label-text">Group Name*</span>
+                                    </label>
+                                    <div className="input-container">
+                                        <input
+                                            type="text"
+                                            id="title"
+                                            className="form-input-enhanced"
+                                            value={title}
+                                            onChange={(e) => setTitle(e.target.value)}
+                                            placeholder="Enter a catchy name for your group"
+                                            required
+                                        />
+                                        <div className="input-border"></div>
+                                    </div>
+                                    <div className="input-help">
+                                        Choose a name that reflects your group's purpose and attracts the right members
+                                    </div>
+                                </div>
+
+                                <div className="form-group-enhanced">
+                                    <label htmlFor="description" className="form-label-enhanced">
+                                        <span className="label-icon">📝</span>
+                                        <span className="label-text">Description</span>
+                                    </label>
+                                    <div className="textarea-container">
+                                        <textarea
+                                            id="description"
+                                            className="form-textarea-enhanced"
+                                            value={description}
+                                            onChange={(e) => setDescription(e.target.value)}
+                                            placeholder="What makes your group special? Describe its purpose, goals, and what members can expect to gain from joining..."
+                                            rows={6}
+                                        />
+                                        <div className="textarea-border"></div>
+                                        <div className="character-count">
+                                            {description.length}/500 characters
+                                        </div>
+                                    </div>
+                                    <div className="input-help">
+                                        A compelling description helps potential members understand what your group is about
+                                    </div>
+                                </div>
+
+                                <div className="form-actions-enhanced">
+                                    <button
+                                        type="button"
+                                        className="cancel-button-enhanced"
+                                        onClick={() => router.back()}
+                                        disabled={loading}
+                                    >
+                                        <span className="button-icon">↩️</span>
+                                        <span>Cancel</span>
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="submit-button-enhanced"
+                                        disabled={loading || !title.trim()}
+                                    >
+                                        {loading ? (
+                                            <>
+                                                <div className="button-spinner"></div>
+                                                <span>Creating Your Group...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <span className="button-icon">🎉</span>
+                                                <span>Create Group</span>
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </form>
                         </div>
-                    </form>
+                    </div>
                 </div>
             </main>
         </div>

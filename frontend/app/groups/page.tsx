@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Sidebar from '@/components/Sidebar'
 import { useRouter } from 'next/navigation'
-import './groupsSidebar.css'
+import './groups.css'
 import { Group } from './types'
 
 export default function GroupsPage() {
@@ -60,93 +60,183 @@ export default function GroupsPage() {
     }
 
     return (
-        <div className="groups-page">
+        <div className="home-page">
             <Sidebar activePage="groups" />
 
-            <div className="groups-container">
-                <div className="groups-sidebar">
-                    <div className="groups-sidebar-header">
-                        <h2>Groups</h2>
-                        <div className="header-buttons">
-                            <button 
-                                className="invitations-button" 
-                                onClick={() => router.push('/groups/invitations')}
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
-                                </svg>
-                                Invitations
-                            </button>
-                            <button 
-                                className="discover-button" 
-                                onClick={() => router.push('/groups/discover')}
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <circle cx="11" cy="11" r="8"></circle>
-                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                                </svg>
-                                Discover
-                            </button>
-                            <button className="new-group-button" onClick={handleCreateGroup}>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                                </svg>
-                                Create
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="groups-list-container">
-                        {loading ? (
-                            <div className="loading-message">Loading groups...</div>
-                        ) : groups.length === 0 ? (
-                            <div className="empty-list-message">
-                                <p>You haven't joined any groups yet.</p>
-                                <button className="create-first-group" onClick={handleCreateGroup}>
-                                    Create Your First Group
-                                </button>
+            <main className="main-content">
+                <div className="dashboard">
+                    <div className="card feed-card">
+                        <div className="groups-hero-section">
+                            <div className="hero-background">
+                                <div className="hero-pattern"></div>
+                                <div className="hero-gradient"></div>
                             </div>
-                        ) : (
-                            <ul className="groups-list">
-                                {Array.isArray(groups) && groups.map((group) => (
-                                    <li
-                                        key={group.id}
-                                        className="group-item"
-                                        onClick={() => handleGroupClick(group.id)}
-                                        style={{ cursor: 'pointer' }} 
+                            <div className="hero-content">
+                                <div className="hero-text">
+                                    <h1 className="hero-title">
+                                        <span className="title-icon">🌟</span>
+                                        My Groups
+                                    </h1>
+                                    <p className="hero-description">
+                                        Connect, collaborate, and build amazing communities together
+                                    </p>
+                                    <div className="hero-stats">
+                                        <div className="stat-item">
+                                            <span className="stat-number">{groups.length}</span>
+                                            <span className="stat-label">Groups Joined</span>
+                                        </div>
+                                        <div className="stat-divider"></div>
+                                        <div className="stat-item">
+                                            <span className="stat-number">
+                                                {groups.reduce((total, group) => total + (group.member_count || 0), 0)}
+                                            </span>
+                                            <span className="stat-label">Total Members</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="hero-actions">
+                                    <button
+                                        className="hero-primary-button"
+                                        onClick={handleCreateGroup}
                                     >
-                                        <div className="group-avatar">
-                                            <div className="avatar-placeholder">
-                                                {group.title.charAt(0)}
-                                            </div>
+                                        <div className="button-icon">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                                            </svg>
                                         </div>
-                                        <div className="group-info">
-                                            <span className="group-name">{group.title}</span>
-                                            <p className="group-description">{group.description}</p>
-                                        </div>
-                                        <div className="group-meta">
-                                            <span className="member-count">{group.member_count || 0} members</span>
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                    </div>
-                </div>
+                                        <span>Create New Group</span>
+                                    </button>
+                                    <div className="hero-secondary-actions">
+                                        <button
+                                            className="hero-secondary-button"
+                                            onClick={() => router.push('/groups/discover')}
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <circle cx="11" cy="11" r="8"></circle>
+                                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                            </svg>
+                                            Discover Groups
+                                        </button>
+                                        <button
+                                            className="hero-secondary-button"
+                                            onClick={() => router.push('/groups/invitations')}
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                                            </svg>
+                                            View Invitations
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
-                <div className="groups-main">
-                    <div className="empty-group-selection">
-                        <div className="empty-group-message">
-                            <h3>Select a group or create a new one</h3>
-                            <p>Choose a group from the sidebar or create a new group to get started.</p>
-                            <button className="new-group-button-large" onClick={handleCreateGroup}>
-                                Create New Group
-                            </button>
+                        <div className="groups-content-section">
+                            {loading ? (
+                                <div className="loading-state">
+                                    <div className="loading-spinner">
+                                        <div className="spinner"></div>
+                                    </div>
+                                    <h3>Loading your groups...</h3>
+                                    <p>Gathering your communities</p>
+                                </div>
+                            ) : groups.length === 0 ? (
+                                <div className="empty-state-enhanced">
+                                    <div className="empty-illustration">
+                                        <div className="empty-icon">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                                <circle cx="9" cy="7" r="4"></circle>
+                                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                            </svg>
+                                        </div>
+                                        <div className="empty-sparkles">
+                                            <span className="sparkle sparkle-1">✨</span>
+                                            <span className="sparkle sparkle-2">⭐</span>
+                                            <span className="sparkle sparkle-3">💫</span>
+                                        </div>
+                                    </div>
+                                    <div className="empty-content">
+                                        <h3>Your Group Journey Starts Here!</h3>
+                                        <p>Join communities, share ideas, and connect with like-minded people. The perfect group is waiting for you!</p>
+                                        <div className="empty-actions">
+                                            <button className="empty-primary-button" onClick={handleCreateGroup}>
+                                                <span className="button-icon">🚀</span>
+                                                Create Your First Group
+                                            </button>
+                                            <button className="empty-secondary-button" onClick={() => router.push('/groups/discover')}>
+                                                <span className="button-icon">🔍</span>
+                                                Explore Existing Groups
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="groups-showcase">
+                                    <div className="showcase-header">
+                                        <h2 className="showcase-title">Your Communities</h2>
+                                        <div className="showcase-filters">
+                                            <button className="filter-button active">All Groups</button>
+                                        </div>
+                                    </div>
+                                    <div className="groups-grid-enhanced">
+                                        {Array.isArray(groups) && groups.map((group, index) => (
+                                            <div
+                                                key={group.id}
+                                                className="group-card-enhanced"
+                                                onClick={() => handleGroupClick(group.id)}
+                                                style={{
+                                                    cursor: 'pointer',
+                                                    animationDelay: `${index * 0.1}s`
+                                                }}
+                                            >
+                                                <div className="card-background">
+                                                    <div className="card-pattern"></div>
+                                                    <div className="card-glow"></div>
+                                                </div>
+                                                <div className="card-content">
+                                                    <div className="group-header-enhanced">
+                                                        <div className="group-avatar-enhanced">
+                                                            <div className="avatar-background"></div>
+                                                            <div className="avatar-letter">
+                                                                {group.title.charAt(0)}
+                                                            </div>
+                                                            <div className="avatar-ring"></div>
+                                                        </div>
+                                                        <div className="group-badge">
+                                                            <span className="badge-icon">👥</span>
+                                                            <span className="badge-text">{group.member_count || 0}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="group-details">
+                                                        <h3 className="group-title-enhanced">{group.title}</h3>
+                                                        {group.description && (
+                                                            <p className="group-description-enhanced">{group.description}</p>
+                                                        )}
+                                                    </div>
+                                                    <div className="group-footer">
+                                                        <div className="activity-indicator">
+                                                            <div className="activity-dot"></div>
+                                                            <span>Active community</span>
+                                                        </div>
+                                                        <div className="card-arrow">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                <path d="M7 17L17 7M17 7H7M17 7V17"/>
+                                                            </svg>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
-            </div>
+            </main>
         </div>
     )
 }
