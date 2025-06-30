@@ -41,7 +41,7 @@ func (s *GroupService) HandleGroupMembershipRequest(groupID, targetUserID, actor
 }
 
 func (s *GroupService) CreateGroupPost(groupID, userID int, content, image string) (int, error) {
-	return query.CreateGroupPost(groupID, userID, content, image)
+	return CreateGroupPostService(groupID, userID, content, image)
 }
 
 func (s *GroupService) GetGroupPosts(groupID, userID int) (interface{}, error) {

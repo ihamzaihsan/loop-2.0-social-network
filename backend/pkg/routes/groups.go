@@ -554,6 +554,7 @@ func CreateGroupPost(w http.ResponseWriter, r *http.Request) {
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"success": true,
 				"post_id": postID,
+				"image":   jsonRequest.Image,
 			})
 			return
 		}
@@ -645,6 +646,7 @@ func CreateGroupPost(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
 		"post_id": postID,
+		"image":   req.Image,
 		"message": "Post created successfully",
 	})
 }

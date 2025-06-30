@@ -427,7 +427,7 @@ export const sendMessage = async (
                     return {
                         id: data.post_id,
                         content: content,
-                        image: imageFile ? URL.createObjectURL(imageFile) : null,
+                        image: data.image || null,
                         created_at: new Date().toISOString(),
                         first_name: currentUser?.firstName || 'Unknown',
                         last_name: currentUser?.lastName || '',
@@ -484,12 +484,12 @@ export const sendMessage = async (
                     
                     const data = await response.json();
                     if (data.success && data.post_id) {
-                        // Return a constructed post object since the API might not return the full post
+                        // Return a constructed post object using server response
                         return {
                             id: data.post_id,
                             user_id: currentUser?.id,
                             content: content,
-                            image: image,
+                            image: data.image || image,
                             created_at: new Date().toISOString(),
                             comment_count: 0,
                             first_name: currentUser?.firstName || "",

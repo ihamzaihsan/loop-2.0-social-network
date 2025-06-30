@@ -464,42 +464,8 @@ func handleGroupPost(userID int, content map[string]interface{}) {
 	postID, _ := result.LastInsertId()
 	log.Printf("[INFO] Stored group post with ID %d", postID)
 
-	// Get user info for the post
-	var firstName, lastName string
-	var avatar sql.NullString
-	err = db.DBInstance.DB.QueryRow(`
-        SELECT first_name, last_name, avatar
-        FROM users
-        WHERE id = ?
-    `, userID).Scan(&firstName, &lastName, &avatar)
-
-	if err != nil {
-		log.Printf("[ERROR] Failed to get user info: %v", err)
-		return
-	}
-
-	// Create post object for broadcasting
-	post := map[string]interface{}{
-		"id":            postID,
-		"group_id":      groupID,
-		"user_id":       userID,
-		"content":       postContent,
-		"image":         image,
-		"created_at":    time.Now(),
-		"first_name":    firstName,
-		"last_name":     lastName,
-		"comment_count": 0,
-	}
-
-	if avatar.Valid {
-		post["avatar"] = avatar.String
-	}
-
-	// Broadcast to all group members
-	broadcastToGroupMembers(groupID, userID, Message{
-		Type:    "group_post",
-		Content: post,
-	})
+	// Broadcast complete post data to all group members via WebSocket
+	ws.BroadcastGroupPost(groupID, userID, postID, postContent, image)
 }
 func handleGroupComment(userID int, content map[string]interface{}) {
 	// Extract post_id and content

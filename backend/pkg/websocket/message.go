@@ -1,8 +1,11 @@
 package websocket
 
 import (
+	"database/sql"
 	"log"
+	"socialNetwork/pkg/db"
 	"sync"
+	"time"
 
 	gorilla "github.com/gorilla/websocket"
 )
@@ -83,4 +86,83 @@ func GetClient(userID int) (*SafeConn, bool) {
 	client, exists := clients[userID]
 	clientsMutex.RUnlock()
 	return client, exists
+}
+
+// BroadcastToGroupMembers broadcasts a message to all members of a group except the sender
+func BroadcastToGroupMembers(groupID, senderID int, message Message) {
+	// Get all members of the group
+	rows, err := db.DBInstance.DB.Query(`
+        SELECT user_id FROM group_members
+        WHERE group_id = ?
+    `, groupID)
+
+	if err != nil {
+		log.Printf("[ERROR] Failed to get group members for broadcast: %v", err)
+		return
+	}
+	defer rows.Close()
+
+	var memberIDs []int
+	for rows.Next() {
+		var memberID int
+		if err := rows.Scan(&memberID); err != nil {
+			log.Printf("[ERROR] Failed to scan member ID: %v", err)
+			continue
+		}
+		memberIDs = append(memberIDs, memberID)
+	}
+
+	log.Printf("[INFO] Broadcasting %s message to %d group members (excluding sender %d)", message.Type, len(memberIDs), senderID)
+
+	// Send the message to all online members except the sender
+	successCount := 0
+	for _, memberID := range memberIDs {
+		if memberID != senderID || senderID == 0 {
+			if SendToUser(memberID, message) {
+				successCount++
+			}
+		}
+	}
+
+	log.Printf("[INFO] Successfully broadcast %s message to %d/%d group members", message.Type, successCount, len(memberIDs))
+}
+
+// BroadcastGroupPost creates and broadcasts a complete group post to all group members
+func BroadcastGroupPost(groupID, userID int, postID int64, content, image string) {
+	// Get user info for the post
+	var firstName, lastName string
+	var avatar sql.NullString
+	err := db.DBInstance.DB.QueryRow(`
+        SELECT first_name, last_name, avatar
+        FROM users
+        WHERE id = ?
+    `, userID).Scan(&firstName, &lastName, &avatar)
+
+	if err != nil {
+		log.Printf("[ERROR] Failed to get user info for group post broadcast: %v", err)
+		return
+	}
+
+	// Create complete post object for broadcasting
+	post := map[string]interface{}{
+		"id":            postID,
+		"group_id":      groupID,
+		"user_id":       userID,
+		"content":       content,
+		"image":         image,
+		"created_at":    time.Now(),
+		"first_name":    firstName,
+		"last_name":     lastName,
+		"comment_count": 0,
+	}
+
+	if avatar.Valid {
+		post["avatar"] = avatar.String
+	}
+
+	// Broadcast to all group members
+	BroadcastToGroupMembers(groupID, userID, Message{
+		Type:    "group_post",
+		Content: post,
+	})
 }

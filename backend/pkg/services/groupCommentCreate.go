@@ -18,8 +18,7 @@ func CreateGroupCommentService(postID, userID int, content string) (int, error) 
 	isMember, err := query.IsGroupMember(post.GroupID, userID)
 	if err != nil || !isMember {
 		return 0, err
-	} 
-	
+	}
 
 	// Create comment
 	commentID, err := query.CreateGroupComment(postID, userID, content)
@@ -42,7 +41,7 @@ func CreateGroupCommentService(postID, userID int, content string) (int, error) 
 				INSERT INTO notifications (user_id, type, related_id, content, created_at)
 				VALUES (?, 'group_comment', ?, ?, NOW())
 			`, post.UserID, commentID, truncateString(content, 50))
-			
+
 			if err != nil {
 				log.Printf("[ERROR] Failed to store notification: %v", err)
 			}
@@ -52,3 +51,10 @@ func CreateGroupCommentService(postID, userID int, content string) (int, error) 
 	return commentID, nil
 }
 
+// Helper function to truncate string
+func truncateString(s string, maxLength int) string {
+	if len(s) <= maxLength {
+		return s
+	}
+	return s[:maxLength] + "..."
+}
