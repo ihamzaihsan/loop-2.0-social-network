@@ -87,9 +87,9 @@ func CreateComment(w http.ResponseWriter, r *http.Request) {
 		file, header, err := r.FormFile("image")
 		if err == nil {
 			defer file.Close()
-			log.Printf("Found image file in request: %s (%d bytes)", 
+			log.Printf("Found image file in request: %s (%d bytes)",
 				header.Filename, header.Size)
-			
+
 			// Use the utils function to handle the image upload
 			imagePath, err := utils.HandleImageUpload(file, header)
 			if err != nil {
@@ -108,7 +108,19 @@ func CreateComment(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	log.Printf("Creating comment for post %d with content: %s and image: %s", 
+	// Validate content length
+	if len(request.Content) > 100 {
+		http.Error(w, "Comment content exceeds maximum length of 100 characters", http.StatusBadRequest)
+		return
+	}
+
+	// Validate that comment has content or image
+	if strings.TrimSpace(request.Content) == "" && request.Image == "" {
+		http.Error(w, "Comment must contain either text content or an image", http.StatusBadRequest)
+		return
+	}
+
+	log.Printf("Creating comment for post %d with content: %s and image: %s",
 		postID, request.Content, request.Image)
 
 	comment, err := query.CreateComment(userID, postID, request)

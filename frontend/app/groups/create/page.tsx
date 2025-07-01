@@ -24,6 +24,17 @@ export default function CreateGroupPage() {
             return
         }
 
+        // Validate field lengths
+        if (title.length > 100) {
+            setError('Group title exceeds maximum length of 100 characters')
+            return
+        }
+
+        if (description.length > 100) {
+            setError('Group description exceeds maximum length of 100 characters')
+            return
+        }
+
         setLoading(true)
         setError('')
 
@@ -143,6 +154,7 @@ export default function CreateGroupPage() {
                                             onChange={(e) => setTitle(e.target.value)}
                                             placeholder="Enter a catchy name for your group"
                                             required
+                                            maxLength={100}
                                         />
                                         <div className="input-border"></div>
                                     </div>
@@ -164,10 +176,11 @@ export default function CreateGroupPage() {
                                             onChange={(e) => setDescription(e.target.value)}
                                             placeholder="What makes your group special? Describe its purpose, goals, and what members can expect to gain from joining..."
                                             rows={6}
+                                            maxLength={100}
                                         />
                                         <div className="textarea-border"></div>
                                         <div className="character-count">
-                                            {description.length}/500 characters
+                                            {description.length}/100 characters
                                         </div>
                                     </div>
                                     <div className="input-help">

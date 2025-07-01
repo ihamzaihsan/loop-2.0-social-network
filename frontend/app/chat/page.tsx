@@ -322,6 +322,12 @@ export default function Chat() {
     const handleSendMessage = async () => {
       if (!newMessage.trim() || !selectedContact || !currentUser) return;
 
+      // Validate message length
+      if (newMessage.length > 100) {
+        console.error('Message exceeds maximum length of 100 characters');
+        return;
+      }
+
       try {
         // Try to send via WebSocket first
         let sentViaWebSocket = false;
@@ -727,7 +733,8 @@ export default function Chat() {
                   placeholder="Type a message..."
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                  maxLength={100}
                 />
                 <button 
                   className="send-button"

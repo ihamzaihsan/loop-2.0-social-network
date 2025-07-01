@@ -125,6 +125,24 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validate field lengths
+	if len(firstName) > 100 {
+		http.Error(w, "First name exceeds maximum length of 100 characters", http.StatusBadRequest)
+		return
+	}
+	if len(lastName) > 100 {
+		http.Error(w, "Last name exceeds maximum length of 100 characters", http.StatusBadRequest)
+		return
+	}
+	if len(nickname) > 100 {
+		http.Error(w, "Nickname exceeds maximum length of 100 characters", http.StatusBadRequest)
+		return
+	}
+	if len(password) > 100 {
+		http.Error(w, "Password exceeds maximum length of 100 characters", http.StatusBadRequest)
+		return
+	}
+
 	if !validInputRegex.MatchString(firstName) ||
 		!validInputRegex.MatchString(lastName) ||
 		(nickname != "" && !validInputRegex.MatchString(nickname)) ||

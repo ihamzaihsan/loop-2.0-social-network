@@ -142,6 +142,12 @@ func SendGroupMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validate content length
+	if len(request.Content) > 100 {
+		http.Error(w, "Message content exceeds maximum length of 100 characters", http.StatusBadRequest)
+		return
+	}
+
 	// Check if user is a member of the group
 	var isMember bool
 	err = db.DBInstance.DB.QueryRow(`

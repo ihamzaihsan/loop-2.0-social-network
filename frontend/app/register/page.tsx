@@ -46,6 +46,25 @@ export default function Register() {
 
   const handleNext = (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Validate character limits
+    if (formData.firstName.length > 100) {
+      setErrorMessage("First name exceeds maximum length of 100 characters")
+      return
+    }
+    if (formData.lastName.length > 100) {
+      setErrorMessage("Last name exceeds maximum length of 100 characters")
+      return
+    }
+    if (formData.nickname && formData.nickname.length > 100) {
+      setErrorMessage("Nickname exceeds maximum length of 100 characters")
+      return
+    }
+    if (formData.password.length > 100) {
+      setErrorMessage("Password exceeds maximum length of 100 characters")
+      return
+    }
+
     if (
       !isValidInput(formData.firstName) ||
       !isValidInput(formData.lastName) ||
@@ -68,6 +87,25 @@ export default function Register() {
   const handleSubmit = async (e: React.FormEvent) => {
    e.preventDefault()
   setErrorMessage(null)
+
+  // Validate character limits
+  if (formData.firstName.length > 100) {
+    setErrorMessage("First name exceeds maximum length of 100 characters")
+    return
+  }
+  if (formData.lastName.length > 100) {
+    setErrorMessage("Last name exceeds maximum length of 100 characters")
+    return
+  }
+  if (formData.nickname && formData.nickname.length > 100) {
+    setErrorMessage("Nickname exceeds maximum length of 100 characters")
+    return
+  }
+  if (formData.password.length > 100) {
+    setErrorMessage("Password exceeds maximum length of 100 characters")
+    return
+  }
+
   if (
     !isValidInput(formData.firstName) ||
     !isValidInput(formData.lastName) ||
@@ -158,6 +196,7 @@ export default function Register() {
                     placeholder="First Name"
                     value={formData.firstName}
                     onChange={e => setFormData({ ...formData, firstName: e.target.value })}
+                    maxLength={100}
                   />
                 </div>
                 <div className="form-group">
@@ -169,6 +208,7 @@ export default function Register() {
                     placeholder="Last Name"
                     value={formData.lastName}
                     onChange={e => setFormData({ ...formData, lastName: e.target.value })}
+                    maxLength={100}
                   />
                 </div>
               </div>
@@ -192,6 +232,7 @@ export default function Register() {
                   placeholder="••••••••"
                   value={formData.password}
                   onChange={e => setFormData({ ...formData, password: e.target.value })}
+                  maxLength={100}
                 />
               </div>
               <div className="form-group">
@@ -212,6 +253,7 @@ export default function Register() {
                   placeholder="Your nickname (optional)"
                   value={formData.nickname}
                   onChange={e => setFormData({ ...formData, nickname: e.target.value })}
+                  maxLength={100}
                 />
               </div>
               <button type="submit" className="next-button">Next</button>

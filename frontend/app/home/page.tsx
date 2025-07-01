@@ -248,8 +248,8 @@ export default function Home() {
     }
 
     // Validate comment length
-    if (commentText.length > 500) {
-      alert('Comment exceeds maximum length of 500 characters')
+    if (commentText.length > 100) {
+      console.error('Comment exceeds maximum length of 100 characters')
       return
     }
 
@@ -622,7 +622,7 @@ export default function Home() {
                                     placeholder="Write a comment..."
                                     className="comment-input"
                                     rows={2}
-                                    maxLength={500}
+                                    maxLength={100}
                                   />
                                   <div className="comment-input-footer">
                                     <div className="comment-actions">
@@ -637,7 +637,7 @@ export default function Home() {
                                         <span className="image-icon">📷</span>
                                       </label>
                                       <div className="comment-char-count">
-                                        {(newComments[post.id] || '').length}/500
+                                        {(newComments[post.id] || '').length}/100
                                       </div>
                                     </div>
                                     <button 

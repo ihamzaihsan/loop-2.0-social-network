@@ -61,6 +61,17 @@ func CreateGroup(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Group description is required", http.StatusBadRequest)
 		return
 	}
+
+	// Validate field lengths
+	if len(req.Title) > 100 {
+		http.Error(w, "Group title exceeds maximum length of 100 characters", http.StatusBadRequest)
+		return
+	}
+
+	if len(req.Description) > 100 {
+		http.Error(w, "Group description exceeds maximum length of 100 characters", http.StatusBadRequest)
+		return
+	}
 	log.Printf("[INFO] Creating group with title: %s, description: %s, userID: %d", req.Title, req.Description, userID)
 
 	// Create group using service
@@ -519,8 +530,8 @@ func CreateGroupPost(w http.ResponseWriter, r *http.Request) {
 			}
 
 			// Validate content length
-			if len(jsonRequest.Content) > 1000 {
-				http.Error(w, "Post content exceeds maximum length of 1000 characters", http.StatusBadRequest)
+			if len(jsonRequest.Content) > 100 {
+				http.Error(w, "Post content exceeds maximum length of 100 characters", http.StatusBadRequest)
 				return
 			}
 
@@ -587,8 +598,8 @@ func CreateGroupPost(w http.ResponseWriter, r *http.Request) {
 	req.Content = r.FormValue("content")
 
 	// Validate content length
-	if len(req.Content) > 1000 {
-		http.Error(w, "Post content exceeds maximum length of 1000 characters", http.StatusBadRequest)
+	if len(req.Content) > 100 {
+		http.Error(w, "Post content exceeds maximum length of 100 characters", http.StatusBadRequest)
 		return
 	}
 

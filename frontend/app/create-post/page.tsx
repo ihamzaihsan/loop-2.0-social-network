@@ -233,8 +233,8 @@ export default function CreatePost() {
     }
 
     // Validate content length
-    if (content.length > 1000) {
-      setError('Post content exceeds maximum length of 1000 characters')
+    if (content.length > 100) {
+      setError('Post content exceeds maximum length of 100 characters')
       return
     }
 
@@ -366,10 +366,10 @@ export default function CreatePost() {
                 placeholder="Share your thoughts..."
                 rows={5}
                 className="content-textarea"
-                maxLength={1000}
+                maxLength={100}
               />
-              <div className={`character-counter ${content.length > 1000 ? 'over-limit' : ''}`}>
-                {content.length}/1000 characters
+              <div className={`character-counter ${content.length > 100 ? 'over-limit' : ''}`}>
+                {content.length}/100 characters
               </div>
             </div>
             

@@ -66,7 +66,7 @@ func ServeMessages(w http.ResponseWriter, r *http.Request) {
 		SELECT id FROM chats 
 		WHERE (user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)
 	`, currentUserID, otherUserID, otherUserID, currentUserID).Scan(&chatID)
-	
+
 	if err == sql.ErrNoRows {
 		// No chat exists yet, return empty messages
 		w.Header().Set("Content-Type", "application/json")
@@ -104,7 +104,7 @@ func ServeMessages(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var msg MessageResponse
 		var isRead bool = true // Default to true since we don't track read status
-		
+
 		err := rows.Scan(
 			&msg.ID, &msg.SenderID, &msg.Content, &msg.CreatedAt,
 			&msg.Sender.ID, &msg.Sender.FirstName, &msg.Sender.LastName, &msg.Sender.Avatar,
@@ -113,14 +113,14 @@ func ServeMessages(w http.ResponseWriter, r *http.Request) {
 			log.Printf("[ERROR] Error scanning message row: %v", err)
 			continue
 		}
-		
+
 		// Set receiver_id based on sender
 		if msg.SenderID == currentUserID {
 			msg.ReceiverID = otherUserID
 		} else {
 			msg.ReceiverID = currentUserID
 		}
-		
+
 		msg.IsRead = isRead
 		messages = append(messages, msg)
 	}
@@ -246,6 +246,12 @@ func SendMessage(w http.ResponseWriter, r *http.Request) {
 
 	if request.Content == "" {
 		http.Error(w, "Message content cannot be empty", http.StatusBadRequest)
+		return
+	}
+
+	// Validate content length
+	if len(request.Content) > 100 {
+		http.Error(w, "Message content exceeds maximum length of 100 characters", http.StatusBadRequest)
 		return
 	}
 

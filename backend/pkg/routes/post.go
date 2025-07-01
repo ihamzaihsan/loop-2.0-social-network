@@ -51,8 +51,8 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 			}
 
 			// Validate content length
-			if len(jsonRequest.Content) > 1000 {
-				http.Error(w, "Post content exceeds maximum length of 1000 characters", http.StatusBadRequest)
+			if len(jsonRequest.Content) > 100 {
+				http.Error(w, "Post content exceeds maximum length of 100 characters", http.StatusBadRequest)
 				return
 			}
 
@@ -85,8 +85,8 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 	request.Privacy = r.FormValue("privacy")
 
 	// Validate content length
-	if len(request.Content) > 1000 {
-		http.Error(w, "Post content exceeds maximum length of 1000 characters", http.StatusBadRequest)
+	if len(request.Content) > 100 {
+		http.Error(w, "Post content exceeds maximum length of 100 characters", http.StatusBadRequest)
 		return
 	}
 

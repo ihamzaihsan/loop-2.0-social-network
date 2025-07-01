@@ -599,6 +599,12 @@ const handleGroupImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) =>
 
         if (!newMessage.trim() || !groupId || !currentUser) return;
 
+        // Validate message length
+        if (newMessage.length > 100) {
+            console.error('Message exceeds maximum length of 100 characters');
+            return;
+        }
+
         try {
             // Try to send via WebSocket first
             let sentViaWebSocket = false;
@@ -709,8 +715,8 @@ const handleGroupImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) =>
         if (!groupId) return
 
         // Validate content length
-        if (newPostContent.length > 1000) {
-            alert('Post content exceeds maximum length of 1000 characters')
+        if (newPostContent.length > 100) {
+            alert('Post content exceeds maximum length of 100 characters')
             return
         }
 
@@ -1225,6 +1231,7 @@ const handleCreateComment = async (postId: number) => {
                                             placeholder="Type a message..."
                                             value={newMessage}
                                             onChange={(e) => setNewMessage(e.target.value)}
+                                            maxLength={100}
                                         />
                                         <button
                                             type="submit"
@@ -1263,10 +1270,10 @@ const handleCreateComment = async (postId: number) => {
                                             rows={3}
                                             value={newPostContent}
                                             onChange={(e) => setNewPostContent(e.target.value)}
-                                            maxLength={1000}
+                                            maxLength={100}
                                         ></textarea>
-                                        <div className={`character-counter ${newPostContent.length > 1000 ? 'over-limit' : ''}`}>
-                                            {newPostContent.length}/1000 characters
+                                        <div className={`character-counter ${newPostContent.length > 100 ? 'over-limit' : ''}`}>
+                                            {newPostContent.length}/100 characters
                                         </div>
 
                                         {newPostImagePreview && (
