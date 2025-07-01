@@ -97,7 +97,7 @@ export default function Post({
               <span className="post-date">{formatDate(createdAt)}</span>
               {privacy !== 'public' && (
                 <span className={`privacy-indicator ${privacy}`}>
-                  {privacy === 'private' ? '🔒 Private' : privacy === 'almost_private' ? '👥 Followers' : privacy}
+                  {privacy === 'private' ? '🔒 Private' : privacy === 'friends' ? '👥 Friends' : privacy}
                 </span>
               )}
             </div>

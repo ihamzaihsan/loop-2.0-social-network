@@ -407,7 +407,7 @@ export default function CreatePost() {
                 className="privacy-select"
               >
                 <option value="public">Public</option>
-                <option value="almost_private">Followers Only</option>
+                <option value="friends">Friends Only</option>
                 <option value="private">Private</option>
               </select>
             </div>

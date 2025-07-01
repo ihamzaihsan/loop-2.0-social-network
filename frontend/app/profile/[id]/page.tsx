@@ -219,7 +219,9 @@ export default function UserProfile() {
                   
                   {profile.user.isPrivate && (
                     <div className="privacy-controls">
-                      <span className="privacy-badge private">Private Account</span>
+                      <span className="privacy-badge private">
+                        🔒 Private Account
+                      </span>
                     </div>
                   )}
                 </div>
@@ -251,8 +253,12 @@ export default function UserProfile() {
             {profile.isPrivate && !profile.isFollowing && !profile.isCurrentUser ? (
               <div className="card posts-card">
                 <div className="private-account-message">
+                  <div className="private-icon">🔒</div>
                   <h3>This account is private</h3>
-                  <p>Follow this account to see their posts.</p>
+                  <p>Follow @{profile.user.nickname || profile.user.firstName?.toLowerCase()} to see their posts and activity.</p>
+                  <div className="private-stats">
+                    <span>Only approved followers can see posts</span>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -308,7 +314,22 @@ export default function UserProfile() {
                     ))}
                   </div>
                 ) : (
-                  <p className="empty-posts">No posts yet.</p>
+                  <div className="empty-posts-container">
+                    {profile.user.isPrivate && !profile.isCurrentUser ? (
+                      <div className="privacy-message">
+                        <div className="privacy-icon">🔒</div>
+                        <h4>Posts are private</h4>
+                        <p>
+                          {profile.isFollowing
+                            ? "This user hasn't shared any posts with you yet."
+                            : "Follow this account to see their posts."
+                          }
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="empty-posts">No posts yet.</p>
+                    )}
+                  </div>
                 )}
               </div>
             )}

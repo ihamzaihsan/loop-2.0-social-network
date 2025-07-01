@@ -816,3 +816,87 @@
     gap: 1.5rem;
   }
 }
+
+/* Privacy-related styles */
+.privacy-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-top: 0.5rem;
+}
+
+.privacy-badge.private {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: #1f2937;
+  box-shadow: 0 2px 8px rgba(251, 191, 36, 0.3);
+}
+
+.private-account-message {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: #e5e7eb;
+}
+
+.private-account-message .private-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.7;
+}
+
+.private-account-message h3 {
+  color: #f9fafb;
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.private-account-message p {
+  color: #9ca3af;
+  margin-bottom: 1.5rem;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.private-stats {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  background: rgba(55, 65, 81, 0.5);
+  border-radius: 12px;
+  border: 1px solid rgba(75, 85, 99, 0.3);
+  color: #d1d5db;
+  font-size: 0.875rem;
+}
+
+.empty-posts-container {
+  text-align: center;
+  padding: 2rem;
+}
+
+.privacy-message {
+  color: #e5e7eb;
+}
+
+.privacy-message .privacy-icon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  opacity: 0.6;
+}
+
+.privacy-message h4 {
+  color: #f9fafb;
+  margin-bottom: 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.privacy-message p {
+  color: #9ca3af;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  max-width: 400px;
+  margin: 0 auto;
+}

@@ -11,9 +11,11 @@ func GetVisiblePosts(userID, limit, offset int) ([]models.PostResponse, int, err
 	countQuery := `
         SELECT COUNT(*) FROM posts p
         WHERE p.privacy = 'public'
-        OR (p.privacy = 'almost_private' AND EXISTS (
-            SELECT 1 FROM followers
-            WHERE follower_id = ? AND following_id = p.user_id
+        OR (p.privacy = 'friends' AND EXISTS (
+            SELECT 1 FROM followers f1
+            JOIN followers f2 ON f1.follower_id = f2.following_id AND f1.following_id = f2.follower_id
+            WHERE f1.follower_id = ? AND f1.following_id = p.user_id
+            AND f1.status = 'accept' AND f2.status = 'accept'
         ))
         OR (p.privacy = 'private' AND EXISTS (
             SELECT 1 FROM post_viewers
@@ -33,9 +35,11 @@ func GetVisiblePosts(userID, limit, offset int) ([]models.PostResponse, int, err
         FROM posts p
         JOIN users u ON p.user_id = u.id
         WHERE p.privacy = 'public'
-        OR (p.privacy = 'almost_private' AND EXISTS (
-            SELECT 1 FROM followers
-            WHERE follower_id = ? AND following_id = p.user_id
+        OR (p.privacy = 'friends' AND EXISTS (
+            SELECT 1 FROM followers f1
+            JOIN followers f2 ON f1.follower_id = f2.following_id AND f1.following_id = f2.follower_id
+            WHERE f1.follower_id = ? AND f1.following_id = p.user_id
+            AND f1.status = 'accept' AND f2.status = 'accept'
         ))
         OR (p.privacy = 'private' AND EXISTS (
             SELECT 1 FROM post_viewers

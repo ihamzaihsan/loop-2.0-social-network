@@ -92,8 +92,8 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Get posts, followers, following counts
-	posts, err := query.GetPostsByUserID(userID)
+	// Get posts with privacy filtering
+	posts, err := query.GetPostsByUserIDWithPrivacy(userID, currentUserID)
 	if err != nil {
 		log.Printf("Error getting user posts: %v", err)
 		posts = []models.PostResponse{} // Use the correct type
@@ -118,7 +118,7 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	postsCount, _ := query.GetUserPostsCount(userID)
+	postsCount, _ := query.GetUserPostsCountWithPrivacy(userID, currentUserID)
 
 	// Get followers with full user info
 	followersResult, followersCountResult, err := query.GetFollowers(uint(userID))
