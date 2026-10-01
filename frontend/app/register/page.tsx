@@ -5,6 +5,8 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { redirectBasedOnSession } from '../../utils/session'
 import { WebSocketClient } from '../webscoket/websocket'
+import AuthShowcase from '../../components/AuthShowcase'
+import BrandMark from '../../components/BrandMark'
 
 export default function Register() {
   const router = useRouter()
@@ -181,8 +183,19 @@ export default function Register() {
 
   return (
     <div className="register-container">
+      <AuthShowcase mode="register" />
       <div className="register-form-wrapper">
-        <h2 className="form-title">Create Account</h2>
+        <div className="auth-mobile-brand"><BrandMark /></div>
+        <div className="auth-form-heading">
+          <span className="eyebrow">Join Loop</span>
+          <h2 className="form-title">Create your space</h2>
+          <p>{step === 1 ? 'Start with the essentials.' : 'Now make it feel like you.'}</p>
+        </div>
+        <div className="auth-progress" aria-label={`Step ${step} of 2`}>
+          <span className={step >= 1 ? 'active' : ''}></span>
+          <span className={step >= 2 ? 'active' : ''}></span>
+          <small>Step {step} of 2</small>
+        </div>
         <form onSubmit={step === 1 ? handleNext : handleSubmit}>
           {step === 1 && (
             <>
@@ -256,7 +269,7 @@ export default function Register() {
                   maxLength={100}
                 />
               </div>
-              <button type="submit" className="next-button">Next</button>
+              <button type="submit" className="next-button">Continue</button>
             </>
           )}
           {step === 2 && (
@@ -311,12 +324,12 @@ export default function Register() {
                 <div className="error-message">{errorMessage}</div>
               )}
               <button type="button" className="next-button" onClick={handleBack} style={{marginBottom: '0.5rem'}}>Back</button>
-              <button type="submit" className="submit-button">Create An Account</button>
+              <button type="submit" className="submit-button">Create my Loop account</button>
             </>
           )}
         </form>
         <div className="register-link">
-          Already have an account? <Link href="/login" className="text-link">Login</Link>
+          Already part of Loop? <Link href="/login" className="text-link">Sign in</Link>
         </div>
       </div>
     </div>

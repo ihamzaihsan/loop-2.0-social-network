@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import NotificationBell from '../app/components/NotificationBell'
+import BrandMark from './BrandMark'
 
 export default function Sidebar({ activePage }: { activePage: string }) {
     const router = useRouter()
@@ -72,7 +73,8 @@ export default function Sidebar({ activePage }: { activePage: string }) {
 
             <div className={`sidebar ${isMobile && isMobileMenuOpen ? 'mobile-open' : ''}`}>
                 <div className="sidebar-logo">
-                    <h2>SOCIAL NETWORK</h2>
+                    <BrandMark inverse />
+                    <p>Your social circle, in one place.</p>
                 </div>
             <nav className="sidebar-nav">
                 <Link href="/home" onClick={closeMobileMenu}>
@@ -134,6 +136,10 @@ export default function Sidebar({ activePage }: { activePage: string }) {
                 </div>
 
                 <div className="sidebar-footer">
+                    <div className="sidebar-footer-note">
+                        <span className="status-dot"></span>
+                        <span>Connected to your circle</span>
+                    </div>
                     <div className="sidebar-item logout-item" onClick={() => { handleLogout(); closeMobileMenu(); }}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>

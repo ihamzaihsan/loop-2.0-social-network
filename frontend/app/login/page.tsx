@@ -5,6 +5,8 @@ import { Suspense, useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { redirectBasedOnSession } from '../../utils/session'
 import { WebSocketClient } from '../webscoket/websocket'
+import AuthShowcase from '../../components/AuthShowcase'
+import BrandMark from '../../components/BrandMark'
 
 function LoginContent() {
   const router = useRouter()
@@ -77,10 +79,14 @@ function LoginContent() {
 
   return (
     <div className="login-container">
+      <AuthShowcase mode="login" />
       <div className="login-form-wrapper">
-      
-
-        <h2 className="form-title">Login</h2>
+        <div className="auth-mobile-brand"><BrandMark /></div>
+        <div className="auth-form-heading">
+          <span className="eyebrow">Welcome back</span>
+          <h2 className="form-title">Sign in to your circle</h2>
+          <p>Pick up where the conversation left off.</p>
+        </div>
         
         {/* Display error message if there is one */}
         {error && <div className="error-message">{error}</div>}
@@ -111,11 +117,11 @@ function LoginContent() {
           </div>
 
           <button type="submit" className="submit-button">
-            Login
+            Continue to Loop
           </button>
 
           <div className="register-link">
-            Don't have an account? <Link href="/register" className="text-link">Register</Link>
+            New around here? <Link href="/register" className="text-link">Create an account</Link>
           </div>
         </form>
       </div>

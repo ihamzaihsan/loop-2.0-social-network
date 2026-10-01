@@ -407,15 +407,25 @@ export default function Home() {
       
       <main className="main-content">
         <div className="dashboard">
+          <header className="page-intro">
+            <div>
+              <span className="eyebrow">The daily loop</span>
+              <h1>Good to see you, {username || 'friend'}.</h1>
+              <p>Catch up with your circle and share what is happening now.</p>
+            </div>
+          </header>
           <div className="card feed-card">
             <div className="feed-header">
-              <h2 className="card-title">Your Feed</h2>
+              <div>
+                <span className="section-kicker">Latest from your circle</span>
+                <h2 className="card-title">Your feed</h2>
+              </div>
               <button 
                 className="primary-button create-post-btn" 
                 onClick={navigateToCreatePost}
               >
                 <span className="create-post-icon">✏️</span>
-                Create New Post
+                Share something
               </button>
             </div>
             
@@ -693,8 +703,8 @@ export default function Home() {
               ) : (
                 <div className="empty-feed">
                   <div className="empty-feed-icon">📝</div>
-                  <h3>No posts yet</h3>
-                  <p>Start connecting with friends and sharing your thoughts!</p>
+                  <h3>Your feed is ready for a first moment</h3>
+                  <p>Share an update or find people to begin building your circle.</p>
                   <button 
                     className="primary-button"
                     onClick={navigateToCreatePost}

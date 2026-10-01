@@ -384,6 +384,13 @@ export default function FindFriends() {
       <Sidebar activePage="find-friends" />
 
       <main className="users-container">
+        <header className="page-intro">
+          <div>
+            <span className="eyebrow">Grow your circle</span>
+            <h1>People</h1>
+            <p>Reconnect, discover someone new, or manage who wants to follow along.</p>
+          </div>
+        </header>
         <div className="tabs">
         <button
             className={`tab-button ${activeTab === 'friends' ? 'active' : ''}`}

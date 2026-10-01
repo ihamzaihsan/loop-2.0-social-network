@@ -298,7 +298,15 @@ export default function Profile() {
       <main className="main-content">
         {profile && (
           <div className="profile-container">
+            <header className="page-intro profile-page-intro">
+              <div>
+                <span className="eyebrow">Your space</span>
+                <h1>Profile</h1>
+                <p>The home for your posts, people, and personal story.</p>
+              </div>
+            </header>
             <div className="card profile-card">
+              <div className="profile-cover" aria-hidden="true"><span></span><span></span><span></span></div>
               <div className="profile-header">
                 <div className="profile-avatar">
                   {profile.user.avatar ? (
@@ -340,7 +348,7 @@ export default function Profile() {
               
               {profile.user.aboutMe && (
                 <div className="profile-about">
-                  <h3>About Me</h3>
+                  <h3>About</h3>
                   <p>{profile.user.aboutMe}</p>
                 </div>
               )}
@@ -362,7 +370,10 @@ export default function Profile() {
             </div>
             
             <div className="card posts-card">
-              <h2 className="card-title">My Posts</h2>
+              <div className="section-heading">
+                <span className="section-kicker">Your archive</span>
+                <h2 className="card-title">Shared moments</h2>
+              </div>
               
               <button 
                 className="primary-button create-post-btn" 
