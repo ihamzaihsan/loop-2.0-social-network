@@ -128,11 +128,12 @@ export default function FindFriends() {
 
       const responseData = await usersResponse.json()
 
-      if (!responseData.success || !responseData.users) {
+      if (responseData?.success !== true || (responseData.users !== null && !Array.isArray(responseData.users))) {
         throw new Error('Unexpected response format from server')
       }
 
-      const userData = responseData.users
+      // Older API builds encode an empty Go slice as null.
+      const userData: User[] = responseData.users ?? []
 
       // Filter out the current user
       const filteredUsers = userData.filter((user: User) => user.id !== currentUserId)

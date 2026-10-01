@@ -19,7 +19,7 @@ func GetAllUsers(currentUserID int) ([]map[string]interface{}, error) {
 	}
 	defer rows.Close()
 
-	var users []map[string]interface{}
+	users := make([]map[string]interface{}, 0)
 	for rows.Next() {
 		var id int
 		var firstName, lastName, email string

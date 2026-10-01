@@ -687,7 +687,7 @@ func GetFriends(userID uint) ([]models.Follow, int, error) {
 	}
 	defer rows.Close()
 
-	var friends []models.Follow
+	friends := make([]models.Follow, 0)
 	for rows.Next() {
 		var friend models.Follow
 		var firstName, lastName sql.NullString
@@ -724,6 +724,9 @@ func GetFriends(userID uint) ([]models.Follow, int, error) {
 		friends = append(friends, friend)
 	}
 
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
 	return friends, count, nil
 }
 

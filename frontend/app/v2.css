@@ -853,10 +853,13 @@ body .profile-card { position: relative; padding: 0 34px 30px; overflow: hidden;
 
 body .profile-header {
   position: relative;
-  align-items: flex-end;
-  margin: -58px 0 0;
-  padding: 0 0 25px;
-}
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 24px;
+  margin: 0;
+  padding: 24px 0 25px;
+  }
 
 body .profile-avatar {
   width: 124px;
@@ -869,9 +872,16 @@ body .profile-avatar {
 
 body .profile-avatar img,
 body .profile-avatar .avatar-placeholder { width: 100%; height: 100%; border-radius: 28px; }
-body .profile-info { padding-bottom: 4px; }
-body .profile-name { color: var(--loop-ink); font-size: clamp(1.7rem, 3vw, 2.5rem); }
-body .profile-nickname { color: var(--loop-muted); }
+body .profile-info { min-width: 0; align-items: flex-start; padding-bottom: 4px; }
+body .profile-name {
+  margin: 0;
+  color: var(--loop-ink);
+  font-size: clamp(1.7rem, 3vw, 2.5rem);
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+body .profile-nickname { margin: 0; color: var(--loop-muted); overflow-wrap: anywhere; }
+body .profile-info .privacy-controls { flex-wrap: wrap; }
 
 body .privacy-badge {
   border: 1px solid var(--loop-line);
@@ -957,6 +967,7 @@ body .tab-button::after { content: none; }
 body .tab-button.active { color: #fff; background: var(--loop-ink); box-shadow: none; }
 
 body .page-title { margin: 8px 0 22px; color: var(--loop-ink); font-size: 1.8rem; }
+body .users-container > .page-title { margin-left: auto; margin-right: auto; text-align: left; }
 
 body .users-list,
 body .requests-list,
@@ -1293,7 +1304,9 @@ body .spinner {
 
   body .profile-card { padding: 0 18px 22px; }
   .profile-cover { height: 145px; margin: 0 -18px; }
-  body .profile-header { align-items: flex-start; margin-top: -46px; }
+  body .profile-header { grid-template-columns: minmax(0, 1fr); gap: 16px; padding-top: 20px; }
+  body .profile-cover + .profile-header .profile-avatar { margin-top: -66px; }
+  body .profile-header .profile-avatar { margin-left: 0; margin-right: 0; margin-bottom: 0; }
   body .profile-avatar { width: 96px; height: 96px; border-radius: 27px; }
   body .profile-avatar img,
   body .profile-avatar .avatar-placeholder { border-radius: 21px; }
