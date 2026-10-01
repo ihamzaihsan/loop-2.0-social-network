@@ -1,12 +1,12 @@
 'use client'
 import Link from 'next/link'
 import './login.css'
-import { useState, useEffect } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { redirectBasedOnSession } from '../../utils/session'
 import { WebSocketClient } from '../webscoket/websocket'
 
-export default function Login() {
+function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [formData, setFormData] = useState({
@@ -121,4 +121,12 @@ export default function Login() {
       </div>
     </div>
   );
+}
+
+export default function Login() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LoginContent />
+    </Suspense>
+  )
 }
