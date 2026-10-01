@@ -59,7 +59,7 @@ The backend follows a layered structure:
 ## Repository structure
 
 ```text
-social-market/
+loop-2.0-social-network/
 ├── backend/
 │   ├── pkg/
 │   │   ├── auth/          # Authentication, sessions, and CORS
@@ -83,8 +83,8 @@ social-market/
 Docker is the fastest way to run the complete application.
 
 ```bash
-git clone https://github.com/ihamzaihsan/social-market.git
-cd social-market
+git clone https://github.com/ihamzaihsan/loop-2.0-social-network.git
+cd loop-2.0-social-network
 docker compose up --build
 ```
 
