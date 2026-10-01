@@ -8,6 +8,11 @@ FROM node:22-alpine AS builder
 WORKDIR /app
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
+ARG API_PORT=8080
+# Keep the legacy browser API/WebSocket URLs aligned with Compose's host port.
+RUN case "$API_PORT" in ''|*[!0-9]*) exit 1 ;; esac \
+    && test "$API_PORT" -ge 1 && test "$API_PORT" -le 65535 \
+    && find app components utils -type f -exec sed -i "s/localhost:8080/localhost:${API_PORT}/g" {} +
 RUN npm run build
 
 FROM node:22-alpine AS runner

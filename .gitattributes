@@ -1,0 +1,2 @@
+# The combined Windows/POSIX launcher needs LF endings for the shell branch.
+start-docker.cmd text eol=lf

@@ -82,6 +82,31 @@ loop-2.0-social-network/
 
 Docker is the fastest way to run the complete application.
 
+Start Docker Desktop (Windows) or the Docker daemon (Linux). The single launcher, `start-docker.cmd`, runs as a Windows batch file or a POSIX shell script. Only **Docker with the Compose plugin** is required; no Python or additional runtime is needed.
+
+| Action | Windows | Linux / macOS |
+| --- | --- | --- |
+| Build and start | `.\start-docker.cmd` (or double-click) | `sh start-docker.cmd` |
+| Start existing images | `.\start-docker.cmd --no-build` | `sh start-docker.cmd --no-build` |
+
+On Linux, `sh start-docker.cmd` does not require executable permission. To run the file directly from a shell such as Bash, grant executable permission once:
+
+```bash
+chmod a+x ./start-docker.cmd
+./start-docker.cmd            # Build and start
+./start-docker.cmd --no-build # Start existing images
+```
+
+The combined script has no shebang, so direct execution depends on the calling shell's fallback behavior. Use `sh start-docker.cmd` for reliable execution across shells. Windows does not require `chmod`.
+
+The launcher starts containers in the background and uses Compose's `--wait` to confirm they are running. This checks container status; the services do not define HTTP health checks. It resolves the project directory from its own location, so it works from other directories when invoked by its full path. Start-only mode does not build or pull images and works when containers are already running. Rebuild after changing code. The Windows console closes when a double-clicked run finishes; run it from a terminal to keep the output visible.
+
+The launcher uses [http://localhost:3000](http://localhost:3000) for the app and [http://localhost:8081](http://localhost:8081) for the API to avoid port 8080 conflicts. For other API ports, use Compose directly with the `API_PORT` environment variable set to the desired port for both build and subsequent startup commands.
+
+The frontend Docker build accepts an `API_PORT` argument and adjusts the existing localhost API and WebSocket URLs inside the image before compilation. Changing the API port requires a rebuild; source files stay unchanged. This setup is for local use. The launcher leaves containers running until you stop them with `docker compose down`.
+
+For the standard ports (frontend 3000, API 8080), use Compose directly:
+
 ```bash
 git clone https://github.com/ihamzaihsan/loop-2.0-social-network.git
 cd loop-2.0-social-network
