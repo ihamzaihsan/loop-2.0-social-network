@@ -59,7 +59,7 @@ export default function UserProfile() {
 
   // Add state for modals
   const [activeModal, setActiveModal] = useState<'followers' | 'following' | null>(null);
-  const [loadingUserDetails, setLoadingUserDetails] = useState(false);
+  const loadingUserDetails = false;
 
   // Add modal handlers
   const openFollowersModal = () => setActiveModal('followers');

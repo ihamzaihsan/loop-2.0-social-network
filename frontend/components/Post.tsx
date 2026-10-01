@@ -32,9 +32,7 @@ export default function Post({
   image, 
   privacy, 
   createdAt, 
-  author, 
-  likeCount, 
-  isLiked,
+  author,
   currentUserId,
   onDelete
 }: PostProps) {

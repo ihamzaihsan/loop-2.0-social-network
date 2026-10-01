@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import './home.css'
 import Sidebar from '../../components/Sidebar'
-import Post from '../../components/Post'
 import { WebSocketClient } from '../webscoket/websocket'
 import { redirectBasedOnSession } from '../../utils/session'
 
@@ -44,14 +43,6 @@ interface Post {
   showComments?: boolean
 }
 
-interface User {
-  id: number
-  firstName: string
-  lastName: string
-  email: string
-  nickname?: string
-}
-
 export default function Home() {
   const router = useRouter()
   const [username, setUsername] = useState('')
@@ -60,11 +51,8 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null)
   const [posts, setPosts] = useState<Post[]>([])
   const [postsLoading, setPostsLoading] = useState(false)
-  const [wsClient, setWsClient] = useState<WebSocketClient | null>(null)
-  const [commentInputs, setCommentInputs] = useState<{[key: number]: string}>({})
   const [submittingComment, setSubmittingComment] = useState<{[key: number]: boolean}>({})
   const [newComments, setNewComments] = useState<{[postId: number]: string}>({})
-  const [commentFileInputs, setCommentFileInputs] = useState<{[postId: number]: HTMLInputElement | null}>({});
   const [commentImageFiles, setCommentImageFiles] = useState<{[key: number]: File | null}>({});
   const [expandedPosts, setExpandedPosts] = useState<{[postId: number]: boolean}>({});
 
@@ -92,7 +80,6 @@ export default function Home() {
         
         // Don't call connect() here - it's handled by getInstance
         
-        setWsClient(client);
     }
     
     // No cleanup needed - we want to keep the connection alive
@@ -226,10 +213,6 @@ export default function Home() {
     );
   };
 
-  const handleCommentChange = (postId: number, value: string) => {
-    setCommentInputs(prev => ({ ...prev, [postId]: value }))
-  }
-
   const handleCommentFileChange = (postId: number, e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       console.log('File selected:', e.target.files[0].name);
@@ -270,7 +253,7 @@ export default function Home() {
       
       // Log the form data to verify it's correctly formed
       console.log('Form data entries:');
-      for (let [key, value] of formData.entries()) {
+      for (const [key, value] of formData.entries()) {
         console.log(`${key}: ${value instanceof File ? value.name : value}`);
       }
       
@@ -321,35 +304,6 @@ export default function Home() {
       setSubmittingComment(prev => ({ ...prev, [postId]: false }));
     }
   };
-
-  const handleLogout = async () => {
-    try {
-      const response = await fetch('http://localhost:8080/logout', {
-        method: 'POST',
-        credentials: 'include'
-      })
-  
-      if (response.ok) {
-        // Close WebSocket connection before logout
-        const client = WebSocketClient.getInstance();
-        if (client.socket) {
-          client.socket.close(1000, "User logged out");
-        }
-        
-        // Reset the singleton instance using the proper method
-        WebSocketClient.resetInstance();
-        
-        // Clear any stored tokens
-        localStorage.removeItem('sessionToken');
-        
-        router.push('/')
-      } else {
-        console.error('Error logging out')
-      }
-    } catch (error) {
-      console.error('Logout failed:', error)
-    }
-  }  
 
   const navigateToCreatePost = () => {
     router.push('/create-post')

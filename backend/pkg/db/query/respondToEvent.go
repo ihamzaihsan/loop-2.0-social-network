@@ -36,4 +36,3 @@ func RespondToEvent(eventID, userID, optionID int) error {
 
 	return err
 }
-

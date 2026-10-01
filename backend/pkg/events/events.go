@@ -23,7 +23,7 @@ var (
 func Subscribe(eventType EventType, listener func(Event)) {
 	listenersMu.Lock()
 	defer listenersMu.Unlock()
-	
+
 	listeners[eventType] = append(listeners[eventType], listener)
 }
 
@@ -32,7 +32,7 @@ func Publish(event Event) {
 	listenersMu.Lock()
 	eventListeners := listeners[event.Type]
 	listenersMu.Unlock()
-	
+
 	for _, listener := range eventListeners {
 		go listener(event)
 	}

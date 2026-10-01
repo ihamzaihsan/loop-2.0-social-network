@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	
+
 	auth "socialNetwork/pkg/auth"
 	query "socialNetwork/pkg/db/query"
 	"socialNetwork/pkg/models"
@@ -47,10 +47,10 @@ func GetUserConnections(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid URL format", http.StatusBadRequest)
 		return
 	}
-	
+
 	userIDStr := pathParts[2]
 	connectionType := pathParts[4]
-	
+
 	userID, err := strconv.Atoi(userIDStr)
 	if err != nil {
 		http.Error(w, "Invalid user ID", http.StatusBadRequest)
@@ -78,8 +78,8 @@ func GetUserConnections(w http.ResponseWriter, r *http.Request) {
 		if err != nil || !isFollowing {
 			// Return empty list for private accounts that the user doesn't follow
 			json.NewEncoder(w).Encode(map[string]interface{}{
-				"success": false,
-				"message": "This account is private",
+				"success":     false,
+				"message":     "This account is private",
 				"connections": []models.Follow{},
 			})
 			return
@@ -105,12 +105,12 @@ func GetUserConnections(w http.ResponseWriter, r *http.Request) {
 
 	// Return the connections
 	response := map[string]interface{}{
-		"success": true,
-		"count": count,
-		"connections": connections,
+		"success":        true,
+		"count":          count,
+		"connections":    connections,
 		"connectionType": connectionType,
-		"userId": userID,
-		"isCurrentUser": userID == currentUserID,
+		"userId":         userID,
+		"isCurrentUser":  userID == currentUserID,
 	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {

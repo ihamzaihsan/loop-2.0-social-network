@@ -41,7 +41,6 @@ export default function FindFriends() {
   const [friends, setFriends] = useState<Friend[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [currentUserId, setCurrentUserId] = useState<number | null>(null)
   const [activeTab, setActiveTab] = useState<'users' | 'requests' | 'friends'>('users')
 
   useEffect(() => {
@@ -65,8 +64,6 @@ export default function FindFriends() {
         }
 
         const profileData = await profileResponse.json()
-        setCurrentUserId(profileData.user.id)
-
         // Fetch users
 
         await fetchUsers(profileData.user.id)

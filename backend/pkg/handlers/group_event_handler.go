@@ -74,7 +74,7 @@ func HandleGroupEventCreation(userID int, content map[string]interface{}) {
 
 	// Get response options and broadcast
 	responseOptions := getEventResponseOptions(int(eventID))
-	
+
 	// Create event object for broadcasting
 	event := map[string]interface{}{
 		"id":               eventID,
@@ -184,7 +184,7 @@ func createEventNotifications(groupID, creatorID, eventID int, eventTitle string
 	rows, err := db.DBInstance.DB.Query(`
 		SELECT user_id FROM group_members WHERE group_id = ? AND user_id != ?
 	`, groupID, creatorID)
-	
+
 	if err != nil {
 		log.Printf("[ERROR] Failed to get group members: %v", err)
 		return
@@ -203,11 +203,11 @@ func createEventNotifications(groupID, creatorID, eventID int, eventTitle string
 
 	// Get creator and group info
 	var creatorFirstName, creatorLastName, groupTitle string
-	
+
 	err = db.DBInstance.DB.QueryRow(`
 		SELECT first_name, last_name FROM users WHERE id = ?
 	`, creatorID).Scan(&creatorFirstName, &creatorLastName)
-	
+
 	if err != nil {
 		log.Printf("[ERROR] Failed to get creator info: %v", err)
 		return
@@ -216,7 +216,7 @@ func createEventNotifications(groupID, creatorID, eventID int, eventTitle string
 	err = db.DBInstance.DB.QueryRow(`
 		SELECT title FROM groups WHERE id = ?
 	`, groupID).Scan(&groupTitle)
-	
+
 	if err != nil {
 		log.Printf("[ERROR] Failed to get group title: %v", err)
 		return
@@ -232,34 +232,34 @@ func createEventNotifications(groupID, creatorID, eventID int, eventTitle string
 			INSERT INTO notifications (user_id, from_user_id, type, related_id, content, status, created_at)
 			VALUES (?, ?, ?, ?, ?, ?, ?)
 		`, memberID, creatorID, "group_event", groupID, notificationContent, "unread", time.Now()) // Changed eventID to groupID
-		
+
 		if err != nil {
 			log.Printf("[ERROR] Failed to create notification for user %d: %v", memberID, err)
 			continue
 		}
-		
+
 		notificationID, _ := notificationResult.LastInsertId()
 		log.Printf("[INFO] Created notification %d for user %d", notificationID, memberID)
-		
+
 		// Send notification via WebSocket
 		notificationSent := websocket.SendToUser(memberID, websocket.Message{
 			Type: "notification",
 			Content: map[string]interface{}{
 				"id":           notificationID,
 				"type":         "group_event",
-				"group_id":     groupID,        // This should be the group ID
+				"group_id":     groupID, // This should be the group ID
 				"group_title":  groupTitle,
-				"event_id":     eventID,        // Keep event ID as separate field
+				"event_id":     eventID, // Keep event ID as separate field
 				"event_title":  eventTitle,
 				"creator_id":   creatorID,
 				"creator_name": creatorName,
 				"content":      notificationContent,
 				"status":       "unread",
 				"actions":      []string{},
-				"related_id":   groupID,        // Make sure this is group ID
+				"related_id":   groupID, // Make sure this is group ID
 			},
 		})
-		
+
 		log.Printf("[INFO] Notification WebSocket sent to user %d: %t", memberID, notificationSent)
 	}
 }

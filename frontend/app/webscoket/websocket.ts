@@ -1,6 +1,4 @@
-import { WebSocketClientInterface, MessageContent, MessageHandler } from './types';
-
-let globalWsClient: WebSocketClient | null = null;
+import { WebSocketClientInterface, MessageContent } from './types';
 
 export class WebSocketClient implements WebSocketClientInterface {
     private static instance: WebSocketClient | null = null;
@@ -101,7 +99,7 @@ export class WebSocketClient implements WebSocketClientInterface {
                     WebSocketClient.resetInstance();
                     
                     // Redirect to login page with reason parameter
-                    window.location.href = '/login?reason=session_expired';
+                    window.location.href = new URL('/login?reason=session_expired', window.location.origin).toString();
                     return;
                 }
             

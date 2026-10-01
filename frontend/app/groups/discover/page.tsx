@@ -12,7 +12,7 @@ export default function DiscoverPage() {
   const [userGroups, setUserGroups] = useState<Group[]>([])
   const [loading, setLoading] = useState(true)
   const [requestingJoin, setRequestingJoin] = useState<{ [key: number]: boolean }>({})
-  const [error, setError] = useState('')
+  const [, setError] = useState('')
   const [success, setSuccess] = useState<{ [key: number]: boolean }>({})
   const router = useRouter()
 

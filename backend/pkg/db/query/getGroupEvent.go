@@ -53,7 +53,7 @@ func GetGroupEvent(eventID, userID int) (*models.GroupEvent, error) {
 	if userResponse.Valid {
 		event.UserResponse = userResponse.String
 	}
-	
+
 	event.GoingCount = goingCount
 	event.NotGoingCount = notGoingCount
 

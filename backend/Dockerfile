@@ -15,8 +15,8 @@ WORKDIR /app
 COPY --from=builder /app/server ./server
 COPY --from=builder /app/pkg/db/migrations ./pkg/db/migrations
 
-# Create data directory
-RUN mkdir -p /app/data
+# Runtime data is mounted by Docker Compose.
+RUN mkdir -p /app/data /app/uploads
 
 EXPOSE 8080
 CMD ["./server"]

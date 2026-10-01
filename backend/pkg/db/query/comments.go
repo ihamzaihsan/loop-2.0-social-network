@@ -9,7 +9,7 @@ import (
 
 func CreateComment(userID, postID int, request models.CommentRequest) (*models.CommentResponse, error) {
 	// Add more detailed logging
-	log.Printf("Creating comment in database: postID=%d, userID=%d, content=%s, image=%s", 
+	log.Printf("Creating comment in database: postID=%d, userID=%d, content=%s, image=%s",
 		postID, userID, request.Content, request.Image)
 
 	// Start a transaction to ensure data consistency
@@ -29,7 +29,7 @@ func CreateComment(userID, postID int, request models.CommentRequest) (*models.C
 		FROM pragma_table_info('comments') 
 		WHERE name = 'image'
 	`).Scan(&hasImageColumn)
-	
+
 	if err != nil {
 		log.Printf("Error checking for image column: %v", err)
 		tx.Rollback()
@@ -60,7 +60,7 @@ func CreateComment(userID, postID int, request models.CommentRequest) (*models.C
 			tx.Rollback()
 			return nil, err
 		}
-		
+
 		// If we successfully inserted without the image column, we should add the column
 		_, err = tx.Exec(`ALTER TABLE comments ADD COLUMN image TEXT`)
 		if err != nil {
@@ -68,7 +68,7 @@ func CreateComment(userID, postID int, request models.CommentRequest) (*models.C
 			// Continue anyway, as the comment was inserted successfully
 		} else {
 			log.Printf("Added image column to comments table")
-			
+
 			// If we have an image, update the row
 			if request.Image != "" {
 				_, err = tx.Exec(`UPDATE comments SET image = ? WHERE id = last_insert_rowid()`, request.Image)
@@ -140,7 +140,7 @@ func CreateComment(userID, postID int, request models.CommentRequest) (*models.C
 			&commentResponse.Author.Nickname,
 			&commentResponse.Author.Avatar,
 		)
-		
+
 		// Set the image field manually if we have one
 		if request.Image != "" {
 			commentResponse.Image = request.Image

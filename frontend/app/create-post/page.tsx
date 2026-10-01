@@ -25,11 +25,9 @@ export default function CreatePost() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [followers, setFollowers] = useState<Follower[]>([])
-  const [allUsers, setAllUsers] = useState<any[]>([])
   const [showUserSelector, setShowUserSelector] = useState(false)
   const [selectedUsers, setSelectedUsers] = useState<number[]>([])
   const [isLoadingUsers, setIsLoadingUsers] = useState(false)
-  const [userSelectorMode, setUserSelectorMode] = useState<'followers' | 'all'>('followers')
   const [currentUser, setCurrentUser] = useState<any>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -58,16 +56,12 @@ export default function CreatePost() {
   useEffect(() => {
     if (privacy === 'private') {
       setShowUserSelector(true)
-      if (userSelectorMode === 'followers') {
-        fetchFollowers()
-      } else {
-        fetchAllUsers()
-      }
+      fetchFollowers()
     } else {
       setShowUserSelector(false)
       setSelectedUsers([])
     }
-  }, [privacy, userSelectorMode])
+  }, [privacy])
 
   // Function to fetch followers
   const fetchFollowers = async () => {
@@ -118,50 +112,6 @@ export default function CreatePost() {
     } catch (err: any) {
       console.error('Error fetching followers:', err)
       setError('Failed to load followers. Please try again.')
-    } finally {
-      setIsLoadingUsers(false)
-    }
-  }
-
-  // Function to fetch all users
-  const fetchAllUsers = async () => {
-    setIsLoadingUsers(true)
-    try {
-      const response = await fetch('http://localhost:8080/users', {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success && data.users) {
-          // Map users to a consistent format
-          const mappedUsers = data.users.map((user: any) => ({
-            id: user.id,
-            followerId: user.id, // Use user ID as followerId for consistency
-            followedId: user.id,
-            status: 'available',
-            username: user.nickname || `${user.first_name} ${user.last_name}`,
-            firstName: user.first_name,
-            lastName: user.last_name,
-            avatar: user.avatar,
-            selected: false
-          }))
-          setAllUsers(mappedUsers)
-        } else {
-          console.error('Failed to fetch users:', data.message)
-          setError('Failed to load users')
-        }
-      } else {
-        console.error('Failed to fetch users')
-        setError('Failed to load users')
-      }
-    } catch (error) {
-      console.error('Error fetching users:', error)
-      setError('Failed to load users')
     } finally {
       setIsLoadingUsers(false)
     }

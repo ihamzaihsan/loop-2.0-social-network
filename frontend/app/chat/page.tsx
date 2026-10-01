@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from 'react'
 import Sidebar from '../../components/Sidebar'
 import './chat.css'
 import { WebSocketClient } from '../webscoket/websocket'
-import { fetchFollowedUsers, fetchChatContacts, fetchMessages, sendMessage } from './messageHandlers'
+import { fetchFollowedUsers, fetchChatContacts, fetchMessages } from './messageHandlers'
 
 interface User {
   id: number

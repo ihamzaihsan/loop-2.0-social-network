@@ -10,7 +10,7 @@ export default function Logout() {
   useEffect(() => {
     const performLogout = async () => {
       try {
-        const response = await fetch('http://localhost:8080/logout', {
+        await fetch('http://localhost:8080/logout', {
           method: 'POST',
           credentials: 'include'
         })

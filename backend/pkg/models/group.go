@@ -40,7 +40,7 @@ type GroupInvitation struct {
 type GroupJoinRequest struct {
 	ID        int       `json:"id"`
 	GroupID   int       `json:"group_id"`
-	Title    string    `json:"title"`
+	Title     string    `json:"title"`
 	UserID    int       `json:"user_id"`
 	Status    string    `json:"status"`
 	CreatedAt time.Time `json:"created_at"`
@@ -74,15 +74,15 @@ type GroupComment struct {
 }
 
 type GroupEvent struct {
-	ID             int                   `json:"id"`
-	GroupID        int                   `json:"group_id"`
-	Title          string                `json:"title"`
-	Description    string                `json:"description"`
-	EventTime      time.Time             `json:"event_time"`
-	CreatedAt      time.Time             `json:"created_at"`
-	UserResponse   string                `json:"user_response,omitempty"`
-	GoingCount     int                   `json:"going_count"`
-	NotGoingCount  int                   `json:"not_going_count"`
+	ID              int                   `json:"id"`
+	GroupID         int                   `json:"group_id"`
+	Title           string                `json:"title"`
+	Description     string                `json:"description"`
+	EventTime       time.Time             `json:"event_time"`
+	CreatedAt       time.Time             `json:"created_at"`
+	UserResponse    string                `json:"user_response,omitempty"`
+	GoingCount      int                   `json:"going_count"`
+	NotGoingCount   int                   `json:"not_going_count"`
 	ResponseOptions []EventResponseOption `json:"response_options,omitempty"`
 }
 type UserEventResponse struct {

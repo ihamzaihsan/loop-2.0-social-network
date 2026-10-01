@@ -34,7 +34,7 @@ func CreatePostQuery(userID int, request models.PostRequest) (*models.Post, erro
 			}
 		}
 	}
-	
+
 	if err := tx.Commit(); err != nil {
 		tx.Rollback()
 		return nil, err

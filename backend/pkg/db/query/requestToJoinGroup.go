@@ -20,7 +20,7 @@ func RequestToJoinGroup(groupID, userID int) error {
 	}
 
 	if exists {
-		return nil 
+		return nil
 	}
 
 	_, err = db.DBInstance.DB.Exec(`

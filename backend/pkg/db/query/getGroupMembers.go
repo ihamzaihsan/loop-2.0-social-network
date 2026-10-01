@@ -4,7 +4,6 @@ import (
 	"database/sql"
 
 	"socialNetwork/pkg/db"
-
 )
 
 type GroupMember struct {
@@ -34,7 +33,6 @@ func GetGroupMembers(groupID int) ([]GroupMember, error) {
 	}
 	defer rows.Close()
 
-
 	var members []GroupMember
 	for rows.Next() {
 
@@ -52,7 +50,7 @@ func GetGroupMembers(groupID int) ([]GroupMember, error) {
 		); err != nil {
 			continue
 		}
-		
+
 		if avatar.Valid {
 
 			avatarStr := avatar.String
@@ -82,7 +80,6 @@ func GetActiveGroupMembers(groupID int) ([]GroupMember, error) {
 	}
 	defer rows.Close()
 
-
 	var members []GroupMember
 	for rows.Next() {
 
@@ -100,7 +97,7 @@ func GetActiveGroupMembers(groupID int) ([]GroupMember, error) {
 		); err != nil {
 			continue
 		}
-		
+
 		if avatar.Valid {
 
 			avatarStr := avatar.String
@@ -115,11 +112,11 @@ func GetActiveGroupMembers(groupID int) ([]GroupMember, error) {
 
 // GetActiveGroupMembersCount returns count of only active members
 func GetActiveGroupMembersCount(groupID int) (int, error) {
-    var count int
-    err := db.DBInstance.DB.QueryRow(`
+	var count int
+	err := db.DBInstance.DB.QueryRow(`
         SELECT COUNT(*) FROM group_members 
         WHERE group_id = ? AND status = 'active'
     `, groupID).Scan(&count)
-    
-    return count, err
+
+	return count, err
 }

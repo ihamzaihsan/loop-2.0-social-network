@@ -250,44 +250,6 @@ export default function Profile() {
     closeModal()
   }
 
-  const fetchFollowers = async (userId: number) => {
-    try {
-      const response = await fetch(`http://localhost:8080/user/${userId}/connections/followers`, {
-        method: 'GET',
-        credentials: 'include'
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch followers')
-      }
-
-      const data = await response.json()
-      return data.connections
-    } catch (err: any) {
-      console.error('Error fetching followers:', err)
-      return []
-    }
-  }
-
-  const fetchFollowing = async (userId: number) => {
-    try {
-      const response = await fetch(`http://localhost:8080/user/${userId}/connections/following`, {
-        method: 'GET',
-        credentials: 'include'
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch following')
-      }
-
-      const data = await response.json()
-      return data.connections
-    } catch (err: any) {
-      console.error('Error fetching following:', err)
-      return []
-    }
-  }
-
   if (loading) return <div className="profile-page">Loading profile...</div>
   if (error) return <div className="profile-page">Error: {error}</div>
 

@@ -6,9 +6,7 @@ import { useRouter, useParams } from 'next/navigation'
 import './groupChat.css'
 import { WebSocketClient } from '../../webscoket/websocket'
 import {
-    fetchGroupMessages,
     sendGroupMessage,
-    createGroupPost,
     createGroupPostWithFile,
     createGroupComment,
     createGroupEvent,
@@ -122,7 +120,7 @@ export default function GroupChatPage() {
     const [eventTime, setEventTime] = useState('')
     const [eventError, setEventError] = useState<string>('');
     // Add this to your state variables
-    const [userEventResponses, setUserEventResponses] = useState<{ [eventId: number]: number }>({});
+    const [, setUserEventResponses] = useState<{ [eventId: number]: number }>({});
 
     // Invite users functionality
     const [showInviteModal, setShowInviteModal] = useState(false)

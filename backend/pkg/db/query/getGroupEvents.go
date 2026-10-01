@@ -55,9 +55,7 @@ func GetGroupEvents(groupID, userID int) ([]models.GroupEvent, error) {
 			&userResponse,
 			&goingCount,
 			&notGoingCount,
-		);
-		
-		err != nil {
+		); err != nil {
 			log.Printf("Error scanning group event row: %v", err)
 			continue
 		}
@@ -65,7 +63,7 @@ func GetGroupEvents(groupID, userID int) ([]models.GroupEvent, error) {
 		if userResponse.Valid {
 			event.UserResponse = userResponse.String
 		}
-		
+
 		event.GoingCount = goingCount
 		event.NotGoingCount = notGoingCount
 

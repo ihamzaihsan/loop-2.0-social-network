@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	
+
 	auth "socialNetwork/pkg/auth"
 	query "socialNetwork/pkg/db/query"
 )
@@ -40,7 +40,7 @@ func GetUserFollowing(w http.ResponseWriter, r *http.Request) {
 	// Get target user ID from query parameter, default to current user
 	targetUserIDStr := r.URL.Query().Get("userId")
 	targetUserID := userID
-	
+
 	if targetUserIDStr != "" {
 		targetUserID, err = strconv.Atoi(targetUserIDStr)
 		if err != nil {
@@ -60,14 +60,14 @@ func GetUserFollowing(w http.ResponseWriter, r *http.Request) {
 	// Log the following data for debugging
 	log.Printf("Found %d following for user ID %d", count, targetUserID)
 	for i, f := range following {
-		log.Printf("Following %d: ID=%d, Username=%s, Avatar=%s", 
+		log.Printf("Following %d: ID=%d, Username=%s, Avatar=%s",
 			i, f.FollowedID, f.Username, f.Avatar)
 	}
 
 	// Return the following list
 	response := map[string]interface{}{
-		"success": true,
-		"count": count,
+		"success":   true,
+		"count":     count,
 		"following": following,
 	}
 

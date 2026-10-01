@@ -34,24 +34,24 @@ func HandleGroupMembershipRequest(groupID, userID int, action, requestType strin
 			SET status = 'active' 
 			WHERE group_id = ? AND user_id = ? AND status = ?
 		`, groupID, userID, status)
-		
+
 		if err != nil {
 			tx.Rollback()
 			log.Printf("[ERROR] Failed to update group member status: %v", err)
 			return err
 		}
-		
+
 		// Check if the update was successful (affected rows)
 		var count int
-		err = tx.QueryRow("SELECT COUNT(*) FROM group_members WHERE group_id = ? AND user_id = ? AND status = 'active'", 
+		err = tx.QueryRow("SELECT COUNT(*) FROM group_members WHERE group_id = ? AND user_id = ? AND status = 'active'",
 			groupID, userID).Scan(&count)
-		
+
 		if err != nil || count == 0 {
 			tx.Rollback()
 			log.Printf("[ERROR] Failed to verify group member update: %v", err)
 			return err
 		}
-		
+
 		return tx.Commit()
 	} else {
 		// For rejection, delete the record
@@ -59,13 +59,13 @@ func HandleGroupMembershipRequest(groupID, userID int, action, requestType strin
 			DELETE FROM group_members 
 			WHERE group_id = ? AND user_id = ? AND status = ?
 		`, groupID, userID, status)
-		
+
 		if err != nil {
 			tx.Rollback()
 			log.Printf("[ERROR] Failed to delete group member record: %v", err)
 			return err
 		}
-		
+
 		return tx.Commit()
 	}
 }

@@ -25,11 +25,6 @@ function EditPostContent() {
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
-  // Prevent server-side rendering
-  if (typeof window === 'undefined') {
-    return <div>Loading...</div>
-  }
-
   useEffect(() => {
     if (!postId) {
       setError('No post ID provided')

@@ -40,4 +40,3 @@ func GetJoinRequestsForCreator(w http.ResponseWriter, r *http.Request) {
 		"requests": requests,
 	})
 }
-

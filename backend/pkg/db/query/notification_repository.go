@@ -52,17 +52,17 @@ func GetUserNotifications(userID int, limit int) ([]models.Notification, error) 
 		var notification models.Notification
 		var firstName, lastName sql.NullString
 		var avatar sql.NullString
-		var fromUserID sql.NullInt64 
-		var relatedID sql.NullInt64  
-		var content sql.NullString    
+		var fromUserID sql.NullInt64
+		var relatedID sql.NullInt64
+		var content sql.NullString
 
 		err := rows.Scan(
 			&notification.ID,
 			&notification.UserID,
-			&fromUserID, 
+			&fromUserID,
 			&notification.Type,
-			&relatedID,   
-			&content,     
+			&relatedID,
+			&content,
 			&notification.Status,
 			&notification.CreatedAt,
 			&firstName,

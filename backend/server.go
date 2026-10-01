@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	auth "socialNetwork/pkg/auth"
 	db "socialNetwork/pkg/db"
 	routes "socialNetwork/pkg/routes"
@@ -27,10 +28,10 @@ func main() {
 		}
 	}()
 
-	// IMPORTANT: Add this line to serve static files from the uploads directory
+	// Serve uploaded media from the local runtime directory.
 	http.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir("./uploads"))))
 
-	//routes
+	// Routes
 	http.HandleFunc("/", routes.ServeMain)
 	http.HandleFunc("/register", auth.CorsMiddleware(auth.Register))
 	http.HandleFunc("/login", auth.CorsMiddleware(auth.Login))
@@ -85,8 +86,14 @@ func main() {
 
 	http.HandleFunc("/user/info", auth.CorsMiddleware(auth.AuthMiddleware(routes.GetUserInfo)))
 
-	fmt.Println("Server is running on http://0.0.0.0:8080")
-	err = http.ListenAndServe("0.0.0.0:8080", nil)
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	address := ":" + port
+	fmt.Printf("Server is running on http://0.0.0.0:%s\n", port)
+	err = http.ListenAndServe(address, nil)
 	if err != nil {
 		log.Fatalf("Server failed to start: %v", err)
 	}

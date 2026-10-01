@@ -11,7 +11,7 @@ import (
 // CreateGroupEventService creates a new event in a group
 func CreateGroupEventService(groupID, userID int, title, description string, eventTime time.Time) (int, error) {
 	log.Printf("[INFO] Creating group event: groupID=%d, userID=%d, title=%s", groupID, userID, title)
-	
+
 	// Check if user is a member of the group
 	isMember, err := query.IsGroupMember(groupID, userID)
 	if err != nil || !isMember {
@@ -67,7 +67,7 @@ func CreateGroupEventService(groupID, userID int, title, description string, eve
 	for _, member := range members {
 		if member.UserID != userID {
 			log.Printf("[INFO] Processing member: %d", member.UserID)
-			
+
 			// Create notification in database
 			notificationID, err := CreateNotification(
 				member.UserID,
@@ -108,15 +108,15 @@ func CreateGroupEventService(groupID, userID int, title, description string, eve
 			eventSent := ws.SendToUser(member.UserID, ws.Message{
 				Type: "group_event",
 				Content: map[string]interface{}{
-					"id":               eventID,
-					"group_id":         groupID,
-					"title":            title,
-					"description":      description,
-					"event_time":       eventTime,
-					"created_at":       time.Now(),
-					"creator_id":       userID,
-					"going_count":      0,
-					"not_going_count":  0,
+					"id":              eventID,
+					"group_id":        groupID,
+					"title":           title,
+					"description":     description,
+					"event_time":      eventTime,
+					"created_at":      time.Now(),
+					"creator_id":      userID,
+					"going_count":     0,
+					"not_going_count": 0,
 				},
 			})
 
