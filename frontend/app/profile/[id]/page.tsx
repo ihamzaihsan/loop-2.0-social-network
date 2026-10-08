@@ -1,5 +1,7 @@
 'use client'
 
+import { useRealtimeRefresh } from '@/app/webscoket/useRealtimeRefresh'
+
 import { useRouter, useParams } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import '../../home/home.css'
@@ -45,6 +47,7 @@ interface ProfileData {
   following: User[]
   isCurrentUser: boolean
   isFollowing: boolean
+  pendingFollow?: boolean
   isPrivate?: boolean
 }
 
@@ -101,6 +104,8 @@ export default function UserProfile() {
     }
   }
 
+  useRealtimeRefresh(['profiles', 'posts', 'social'], fetchProfile, !!userId)
+
   const handleFollowToggle = async () => {
     if (!profile || profile.isCurrentUser) return
     
@@ -114,7 +119,7 @@ export default function UserProfile() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          user_id: profile.user.id
+          followed_id: profile.user.id
         }),
         credentials: 'include'
       })
@@ -123,19 +128,7 @@ export default function UserProfile() {
         throw new Error('Failed to update follow status')
       }
       
-      // Update the local state
-      setProfile(prevProfile => {
-        if (!prevProfile) return null
-        
-        return {
-          ...prevProfile,
-          isFollowing: !prevProfile.isFollowing,
-          followersCount: prevProfile.isFollowing 
-            ? prevProfile.followersCount - 1 
-            : prevProfile.followersCount + 1
-        }
-      })
-      
+      await fetchProfile()
     } catch (err: any) {
       console.error('Error updating follow status:', err)
       setError(err.message)
@@ -201,9 +194,9 @@ export default function UserProfile() {
                       <button 
                         className={`follow-button ${profile.isFollowing ? 'following' : 'not-following'}`}
                         onClick={handleFollowToggle}
-                        disabled={isFollowLoading}
+                        disabled={isFollowLoading || profile.pendingFollow}
                       >
-                        {isFollowLoading ? 'Loading...' : profile.isFollowing ? 'Unfollow' : 'Follow'}
+                        {isFollowLoading ? 'Loading...' : profile.isFollowing ? 'Unfollow' : profile.pendingFollow ? 'Pending' : 'Follow'}
                       </button>
                       
                       {profile.isFollowing && (

@@ -1,5 +1,7 @@
 'use client'
 
+import { useRealtimeRefresh } from '@/app/webscoket/useRealtimeRefresh'
+
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import '../home/home.css'
@@ -58,6 +60,8 @@ export default function Profile() {
   useEffect(() => {
     fetchProfile()
   }, [router])
+
+  useRealtimeRefresh(['profiles', 'posts', 'social'], () => fetchProfile())
 
   // When a modal is opened, fetch user details for that list
   useEffect(() => {

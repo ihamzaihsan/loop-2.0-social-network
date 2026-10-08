@@ -1,5 +1,7 @@
 'use client'
 
+import { useRealtimeRefresh } from '@/app/webscoket/useRealtimeRefresh'
+
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import './find-friends.css'
@@ -44,6 +46,7 @@ export default function FindFriends() {
   const [activeTab, setActiveTab] = useState<'users' | 'requests' | 'friends'>('users')
 
   useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('tab') === 'requests') setActiveTab('requests')
     const fetchData = async () => {
       try {
         // First, get the current user profile to know who we are
@@ -91,25 +94,14 @@ export default function FindFriends() {
 
     fetchData()
 
-    // Add event listener for follow status updates
-    const handleFollowStatusUpdate = (event: CustomEvent) => {
-      const { followed_id, status } = event.detail;
-      setUsers(prevUsers =>
-        prevUsers.map(user =>
-          user.id === followed_id
-            ? { ...user, following: status === 'accept', pendingFollow: false }
-            : user
-        )
-      );
-    };
-
-    window.addEventListener('follow_status_update', handleFollowStatusUpdate as EventListener);
-
-    // Cleanup
-    return () => {
-      window.removeEventListener('follow_status_update', handleFollowStatusUpdate as EventListener);
-    };
   }, [router])
+
+  useRealtimeRefresh(['users', 'profiles', 'social'], async () => {
+    const response = await fetch('http://localhost:8080/profile', { credentials: 'include' })
+    if (!response.ok) return
+    const data = await response.json()
+    await Promise.all([fetchUsers(data.user.id), fetchFriends(), fetchFollowRequests()])
+  })
 
   const fetchUsers = async (currentUserId: number) => {
     try {
@@ -346,22 +338,7 @@ export default function FindFriends() {
         prevRequests.filter(request => request.id !== requestId)
       )
 
-      // If accepted, update the users list if the user is in it
-      if (action === 'accept') {
-        const request = followRequests.find(r => r.id === requestId)
-        if (request) {
-          setUsers(prevUsers =>
-            prevUsers.map(user =>
-              user.id === request.followerID
-                ? { ...user, following: true, pendingFollow: false }
-                : user
-            )
-          )
-          
-          // Refresh the friends list as this might have created a new friendship
-          fetchFriends();
-        }
-      }
+      window.dispatchEvent(new Event('social_update'))
 
       // Show success message
       alert(`Follow request ${action === 'accept' ? 'accepted' : 'rejected'} successfully`)
