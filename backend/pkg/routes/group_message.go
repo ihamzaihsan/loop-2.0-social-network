@@ -8,6 +8,7 @@ import (
 	"socialNetwork/pkg/auth"
 	"socialNetwork/pkg/db"
 	query "socialNetwork/pkg/db/query"
+	ws "socialNetwork/pkg/websocket"
 	"strconv"
 	"time"
 )
@@ -231,10 +232,11 @@ func SendGroupMessage(w http.ResponseWriter, r *http.Request) {
 
 // broadcastToGroupMembers sends a message to all online group members except the sender
 func broadcastToGroupMembers(groupID, senderID int, message interface{}) {
+	ws.PublishChange("groups")
 	// Get all members of the group
 	rows, err := db.DBInstance.DB.Query(`
         SELECT user_id FROM group_members
-        WHERE group_id = ?
+        WHERE group_id = ? AND status = 'active'
     `, groupID)
 
 	if err != nil {

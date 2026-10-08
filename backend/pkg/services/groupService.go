@@ -57,7 +57,7 @@ func (s *GroupService) CreateGroupComment(postID, userID int, content string) (i
 }
 
 func (s *GroupService) CreateGroupEvent(groupID, userID int, title, description string, eventTime time.Time) (int, error) {
-	return query.CreateGroupEvent(groupID, title, description, eventTime)
+	return CreateGroupEventService(groupID, userID, title, description, eventTime)
 }
 
 func (s *GroupService) GetGroupEvents(groupID, userID int) (interface{}, error) {

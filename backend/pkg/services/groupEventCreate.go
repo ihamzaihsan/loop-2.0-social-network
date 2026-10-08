@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"log"
 	"socialNetwork/pkg/db"
 	"socialNetwork/pkg/db/query"
@@ -16,7 +17,10 @@ func CreateGroupEventService(groupID, userID int, title, description string, eve
 	isMember, err := query.IsGroupMember(groupID, userID)
 	if err != nil || !isMember {
 		log.Printf("[ERROR] User %d is not a member of group %d: %v", userID, groupID, err)
-		return 0, err
+		if err != nil {
+			return 0, err
+		}
+		return 0, errors.New("active group membership required")
 	}
 
 	// Create event

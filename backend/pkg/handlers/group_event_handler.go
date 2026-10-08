@@ -46,7 +46,7 @@ func HandleGroupEventCreation(userID int, content map[string]interface{}) {
 	err = db.DBInstance.DB.QueryRow(`
         SELECT EXISTS(
             SELECT 1 FROM group_members 
-            WHERE group_id = ? AND user_id = ?
+            WHERE group_id = ? AND user_id = ? AND status = 'active'
         )
     `, groupID, userID).Scan(&isMember)
 
@@ -266,10 +266,11 @@ func createEventNotifications(groupID, creatorID, eventID int, eventTitle string
 
 // BroadcastToGroupMembers broadcasts a message to all members of a group
 func BroadcastToGroupMembers(groupID, excludeUserID int, message websocket.Message) {
+	websocket.PublishChange("groups")
 	// Get all members of the group
 	rows, err := db.DBInstance.DB.Query(`
         SELECT user_id FROM group_members
-        WHERE group_id = ?
+        WHERE group_id = ? AND status = 'active'
     `, groupID)
 
 	if err != nil {

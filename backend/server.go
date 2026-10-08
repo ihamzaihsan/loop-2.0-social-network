@@ -47,6 +47,7 @@ func main() {
 	http.HandleFunc("/messages", auth.CorsMiddleware(auth.AuthMiddleware(routes.SendMessage)))
 	http.HandleFunc("/messages/", auth.CorsMiddleware(auth.AuthMiddleware(routes.ServeMessages)))
 	http.HandleFunc("/chat/contacts", auth.CorsMiddleware(auth.AuthMiddleware(routes.ServeChatContacts)))
+	http.HandleFunc("/chat/read", auth.CorsMiddleware(auth.AuthMiddleware(routes.MarkMessagesRead)))
 	http.HandleFunc("/chat/followed", auth.CorsMiddleware(auth.AuthMiddleware(routes.ServeFollowedUsers)))
 	http.HandleFunc("/follow", auth.CorsMiddleware(auth.AuthMiddleware(routes.FollowUser)))
 	http.HandleFunc("/unfollow", auth.CorsMiddleware(auth.AuthMiddleware(routes.UnfollowUser)))
@@ -96,7 +97,7 @@ func main() {
 
 	address := ":" + port
 	fmt.Printf("Server is running on http://0.0.0.0:%s\n", port)
-	err = http.ListenAndServe(address, nil)
+	err = http.ListenAndServe(address, routes.MutationEvents(http.DefaultServeMux))
 	if err != nil {
 		log.Fatalf("Server failed to start: %v", err)
 	}

@@ -127,10 +127,7 @@ func UnfollowUser(w http.ResponseWriter, r *http.Request) {
 // HandleFollowRequest processes accepting or rejecting a follow request
 func HandleFollowRequest(w http.ResponseWriter, r *http.Request) {
 	// Set headers for CORS
-	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-	w.Header().Set("Access-Control-Allow-Credentials", "true")
+
 	w.Header().Set("Content-Type", "application/json")
 
 	// Handle preflight requests
