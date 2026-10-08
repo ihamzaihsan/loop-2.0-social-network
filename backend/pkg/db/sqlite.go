@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/sqlite3"
@@ -26,7 +27,12 @@ func InitDB() error {
 		dbPath = "social-network.db"
 	}
 
-	DBInstance.DB, err = sql.Open("sqlite3", dbPath)
+	separator := "?"
+	if strings.Contains(dbPath, "?") {
+		separator = "&"
+	}
+	// Driver options apply to every pooled connection, including new connections.
+	DBInstance.DB, err = sql.Open("sqlite3", dbPath+separator+"_foreign_keys=on&_busy_timeout=5000")
 	if err != nil {
 		return fmt.Errorf("error opening database: %v", err)
 	}
