@@ -22,78 +22,110 @@ type SafeConn struct {
 	mu   sync.Mutex
 }
 
-// Global client management
-var clients = make(map[int]*SafeConn)
+// Keep every connection for a user so one tab cannot replace another.
+var clients = make(map[int]map[*gorilla.Conn]*SafeConn)
 var clientsMutex sync.RWMutex
 
-// WriteJSON sends a JSON message through the WebSocket connection
 func (sc *SafeConn) WriteJSON(v interface{}) error {
 	sc.mu.Lock()
 	defer sc.mu.Unlock()
+	sc.conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
 	return sc.conn.WriteJSON(v)
 }
 
-// SendToUser sends a message to a specific user if they are connected
 func SendToUser(userID int, message Message) bool {
 	clientsMutex.RLock()
-	client, exists := clients[userID]
+	connections := make([]*SafeConn, 0, len(clients[userID]))
+	for _, client := range clients[userID] {
+		connections = append(connections, client)
+	}
 	clientsMutex.RUnlock()
-
-	if !exists {
-		return false
-	}
-
-	if err := client.WriteJSON(message); err != nil {
-		log.Printf("[ERROR] Failed to send message to user %d: %v", userID, err)
-		return false
-	}
-	return true
-}
-
-// BroadcastMessage sends a message to all connected clients
-func BroadcastMessage(message Message) {
-	clientsMutex.RLock()
-	defer clientsMutex.RUnlock()
-
-	for userID, client := range clients {
-		if err := client.WriteJSON(message); err != nil {
-			log.Printf("[ERROR] Failed to broadcast message to user %d: %v", userID, err)
+	sent := false
+	for _, client := range connections {
+		if err := client.WriteJSON(message); err == nil {
+			sent = true
 		}
 	}
+	return sent
 }
 
-// RegisterClient adds a client to the global client map
-func RegisterClient(userID int, conn *gorilla.Conn) {
-	safeConn := &SafeConn{
-		conn: conn,
+func BroadcastMessage(message Message) {
+	clientsMutex.RLock()
+	ids := make([]int, 0, len(clients))
+	for id := range clients {
+		ids = append(ids, id)
 	}
-
-	clientsMutex.Lock()
-	clients[userID] = safeConn
-	clientsMutex.Unlock()
+	clientsMutex.RUnlock()
+	for _, id := range ids {
+		SendToUser(id, message)
+	}
 }
 
-// UnregisterClient removes a client from the global client map
-func UnregisterClient(userID int) {
+func RegisterClient(userID int, conn *gorilla.Conn) {
 	clientsMutex.Lock()
-	delete(clients, userID)
+	wasOffline := len(clients[userID]) == 0
+	if clients[userID] == nil {
+		clients[userID] = make(map[*gorilla.Conn]*SafeConn)
+	}
+	clients[userID][conn] = &SafeConn{conn: conn}
+	ids := make([]int, 0, len(clients))
+	for id := range clients {
+		ids = append(ids, id)
+	}
+	client := clients[userID][conn]
 	clientsMutex.Unlock()
+	client.WriteJSON(Message{Type: "presence_snapshot", Content: map[string]interface{}{"user_ids": ids, "user_id": userID}})
+	if wasOffline {
+		BroadcastMessage(Message{Type: "presence_changed", Content: map[string]interface{}{"user_id": userID, "online": true}})
+	}
 }
 
-// GetClient retrieves a client's connection
+func UnregisterClient(userID int, conn *gorilla.Conn) {
+	clientsMutex.Lock()
+	delete(clients[userID], conn)
+	isOffline := len(clients[userID]) == 0
+	if isOffline {
+		delete(clients, userID)
+	}
+	clientsMutex.Unlock()
+	if isOffline {
+		BroadcastMessage(Message{Type: "presence_changed", Content: map[string]interface{}{"user_id": userID, "online": false}})
+	}
+}
+
+func PublishChange(resource string) {
+	BroadcastMessage(Message{Type: "resource_changed", Content: map[string]string{"resource": resource}})
+}
+
+func DisconnectUser(userID int) {
+	clientsMutex.RLock()
+	connections := make([]*gorilla.Conn, 0, len(clients[userID]))
+	for conn := range clients[userID] {
+		connections = append(connections, conn)
+	}
+	clientsMutex.RUnlock()
+	for _, conn := range connections {
+		conn.Close()
+	}
+}
+
+// GetClient is retained for handlers that send a response to a connected user.
 func GetClient(userID int) (*SafeConn, bool) {
 	clientsMutex.RLock()
-	client, exists := clients[userID]
-	clientsMutex.RUnlock()
-	return client, exists
+	defer clientsMutex.RUnlock()
+	for _, client := range clients[userID] {
+		return client, true
+	}
+	return nil, false
 }
 
 // BroadcastToGroupMembers broadcasts a message to all members of a group except the sender
 func BroadcastToGroupMembers(groupID, senderID int, message Message) {
+	PublishChange("groups")
 	// Get all members of the group
 	rows, err := db.DBInstance.DB.Query(`
         SELECT user_id FROM group_members
-        WHERE group_id = ?
+        WHERE group_id = ? AND status = 'active'
     `, groupID)
 
 	if err != nil {

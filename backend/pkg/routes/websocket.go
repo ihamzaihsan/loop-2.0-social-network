@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"log"
 	"net/http"
-	"sync"
 	"time"
 
 	"socialNetwork/pkg/auth"
@@ -26,14 +25,6 @@ var upgrader = gorilla.Upgrader{
 // We're now using the Message type from the websocket package
 // Type aliases for backward compatibility
 type Message = ws.Message
-
-type SafeConn struct {
-	conn *gorilla.Conn
-	mu   sync.Mutex
-}
-
-var clients = make(map[int]*SafeConn)
-var clientsMutex sync.RWMutex
 
 func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	log.Printf("[INFO] WebSocket connection attempt from %s", r.RemoteAddr)
@@ -81,7 +72,7 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	// Clean up when the connection closes
 	defer func() {
 		log.Printf("[INFO] Cleaning up WebSocket connection for user %d", userID)
-		ws.UnregisterClient(userID)
+		ws.UnregisterClient(userID, conn)
 		conn.Close()
 		log.Printf("[INFO] WebSocket connection closed for user %d (%s %s)",
 			userID, user.FirstName, user.LastName)
@@ -91,7 +82,10 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		userID, user.FirstName, user.LastName)
 
 	// Message handling loop
+	conn.SetReadLimit(1 << 20)
 	for {
+		// Expire abandoned connections even if TCP never delivers a close frame.
+		conn.SetReadDeadline(time.Now().Add(90 * time.Second))
 		var msg Message
 		if err := conn.ReadJSON(&msg); err != nil {
 			log.Printf("[INFO] WebSocket read error for user %d: %v", userID, err)
@@ -157,8 +151,13 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 			handleEventResponse(userID, contentMap)
 
 		case "typing_status":
-			log.Printf("[INFO] Handling typing status from user %d", userID)
-			// TODO: Implement typing status handling
+			if content, ok := msg.Content.(map[string]interface{}); ok {
+				if receiver, ok := content["receiver_id"].(float64); ok && receiver > 0 && receiver != float64(userID) {
+					if typing, ok := content["is_typing"].(bool); ok {
+						ws.SendToUser(int(receiver), Message{Type: "typing_status", Content: map[string]interface{}{"sender_id": userID, "is_typing": typing}})
+					}
+				}
+			}
 		case "ping":
 			log.Printf("[INFO] Handling ping from user %d", userID)
 			client, exists := ws.GetClient(userID)
@@ -189,12 +188,6 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 				userID, user.FirstName, user.LastName, msg.Type)
 		}
 	}
-}
-
-func (sc *SafeConn) WriteJSON(v interface{}) error {
-	sc.mu.Lock()
-	defer sc.mu.Unlock()
-	return sc.conn.WriteJSON(v)
 }
 
 // For compatibility, alias the SendToUser function
@@ -306,6 +299,7 @@ func handlePrivateMessage(userID int, content map[string]interface{}) {
 
 	// Send to receiver using the websocket package
 	success := ws.SendToUser(receiverID, messageToSend)
+	ws.SendToUser(userID, messageToSend)
 	if success {
 		log.Printf("[INFO] Successfully delivered message to user %d", receiverID)
 	} else {
@@ -339,7 +333,7 @@ func handleGroupMessage(userID int, content map[string]interface{}) {
 	err := db.DBInstance.DB.QueryRow(`
 		SELECT EXISTS(
 			SELECT 1 FROM group_members 
-			WHERE group_id = ? AND user_id = ?
+			WHERE group_id = ? AND user_id = ? AND status = 'active'
 		)
 	`, groupID, userID).Scan(&isMember)
 
@@ -436,7 +430,7 @@ func handleGroupPost(userID int, content map[string]interface{}) {
 	err := db.DBInstance.DB.QueryRow(`
         SELECT EXISTS(
             SELECT 1 FROM group_members 
-            WHERE group_id = ? AND user_id = ?
+            WHERE group_id = ? AND user_id = ? AND status = 'active'
         )
     `, groupID, userID).Scan(&isMember)
 
@@ -500,7 +494,7 @@ func handleGroupComment(userID int, content map[string]interface{}) {
 	err = db.DBInstance.DB.QueryRow(`
         SELECT EXISTS(
             SELECT 1 FROM group_members 
-            WHERE group_id = ? AND user_id = ?
+            WHERE group_id = ? AND user_id = ? AND status = 'active'
         )
     `, groupID, userID).Scan(&isMember)
 
@@ -604,7 +598,7 @@ func handleEventResponse(userID int, content map[string]interface{}) {
 	err = db.DBInstance.DB.QueryRow(`
         SELECT EXISTS(
             SELECT 1 FROM group_members 
-            WHERE group_id = ? AND user_id = ?
+            WHERE group_id = ? AND user_id = ? AND status = 'active'
         )
     `, groupID, userID).Scan(&isMember)
 

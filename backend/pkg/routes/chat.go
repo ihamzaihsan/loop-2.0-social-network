@@ -164,7 +164,7 @@ func GetChatContacts(userID int) ([]ChatContact, error) {
 			u.avatar,
 			lm.last_message,
 			lm.last_message_time,
-			0 AS unread_count  -- Default to 0 since we don't track read status
+			(SELECT COUNT(*) FROM messages unread WHERE unread.chat_id = lm.chat_id AND unread.sender_id = lm.contact_id AND unread.is_read = 0) AS unread_count
 		FROM last_messages lm
 		JOIN users u ON lm.contact_id = u.id
 		ORDER BY lm.last_message_time DESC

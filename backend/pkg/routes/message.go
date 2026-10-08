@@ -8,6 +8,7 @@ import (
 	"socialNetwork/pkg/auth"
 	"socialNetwork/pkg/db"
 	"socialNetwork/pkg/db/query"
+	ws "socialNetwork/pkg/websocket"
 	"strconv"
 	"strings"
 	"time"
@@ -83,7 +84,7 @@ func ServeMessages(w http.ResponseWriter, r *http.Request) {
 
 	// Get messages for this chat
 	rows, err := db.DBInstance.DB.Query(`
-		SELECT m.id, m.sender_id, m.content, m.created_at, 
+		SELECT m.id, m.sender_id, m.content, m.created_at, m.is_read,
 			    u.id, u.first_name, u.last_name, u.avatar
 		FROM messages m
 		JOIN users u ON m.sender_id = u.id
@@ -103,10 +104,9 @@ func ServeMessages(w http.ResponseWriter, r *http.Request) {
 
 	for rows.Next() {
 		var msg MessageResponse
-		var isRead bool = true // Default to true since we don't track read status
 
 		err := rows.Scan(
-			&msg.ID, &msg.SenderID, &msg.Content, &msg.CreatedAt,
+			&msg.ID, &msg.SenderID, &msg.Content, &msg.CreatedAt, &msg.IsRead,
 			&msg.Sender.ID, &msg.Sender.FirstName, &msg.Sender.LastName, &msg.Sender.Avatar,
 		)
 		if err != nil {
@@ -121,7 +121,6 @@ func ServeMessages(w http.ResponseWriter, r *http.Request) {
 			msg.ReceiverID = currentUserID
 		}
 
-		msg.IsRead = isRead
 		messages = append(messages, msg)
 	}
 
@@ -132,95 +131,6 @@ func ServeMessages(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// ServeGroupMessages handles fetching messages for a group
-// func ServeGroupMessages(w http.ResponseWriter, r *http.Request) {
-// 	if r.Method != http.MethodGet {
-// 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-// 		return
-// 	}
-
-// 	pathParts := strings.Split(r.URL.Path, "/")
-// 	if len(pathParts) < 3 {
-// 		http.Error(w, "Invalid request", http.StatusBadRequest)
-// 		return
-// 	}
-
-// 	groupID, err := strconv.Atoi(pathParts[len(pathParts)-1])
-// 	if err != nil {
-// 		http.Error(w, "Invalid group ID", http.StatusBadRequest)
-// 		return
-// 	}
-
-// 	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
-// 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-// 	if limit == 0 {
-// 		limit = 20
-// 	}
-
-// 	currentUserID, err := auth.GetUserID(r)
-// 	if err != nil || currentUserID == 0 {
-// 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-// 		return
-// 	}
-
-// 	// Check if user is a member of the group
-// 	var isMember bool
-// 	err = db.DBInstance.DB.QueryRow(`
-// 		SELECT EXISTS(SELECT 1 FROM group_members WHERE group_id = ? AND user_id = ?)
-// 	`, groupID, currentUserID).Scan(&isMember)
-
-// 	if err != nil {
-// 		log.Printf("[ERROR] Error checking group membership: %v", err)
-// 		http.Error(w, "Database error", http.StatusInternalServerError)
-// 		return
-// 	}
-
-// 	if !isMember {
-// 		http.Error(w, "You are not a member of this group", http.StatusForbidden)
-// 		return
-// 	}
-
-// 	// Get group messages
-// 	rows, err := db.DBInstance.DB.Query(`
-// 		SELECT m.id, m.sender_id, NULL as receiver_id, m.group_id, m.content, m.created_at, m.is_read,
-// 			    u.id, u.first_name, u.last_name, u.avatar
-// 		FROM messages m
-// 		JOIN users u ON m.sender_id = u.id
-// 		WHERE m.group_id = ?
-// 		ORDER BY m.created_at DESC
-// 		LIMIT ? OFFSET ?
-// 	`, groupID, limit, offset)
-
-// 	if err != nil {
-// 		log.Printf("[ERROR] Database error fetching group messages: %v", err)
-// 		http.Error(w, "Database error", http.StatusInternalServerError)
-// 		return
-// 	}
-// 	defer rows.Close()
-
-// 	var messages []MessageResponse
-
-// 	for rows.Next() {
-// 		var msg MessageResponse
-// 		err := rows.Scan(
-// 			&msg.ID, &msg.SenderID, &msg.ReceiverID, &msg.GroupID, &msg.Content, &msg.CreatedAt, &msg.IsRead,
-// 			&msg.Sender.ID, &msg.Sender.FirstName, &msg.Sender.LastName, &msg.Sender.Avatar,
-// 		)
-// 		if err != nil {
-// 			log.Printf("[ERROR] Error scanning group message row: %v", err)
-// 			continue
-// 		}
-// 		messages = append(messages, msg)
-// 	}
-
-// 	w.Header().Set("Content-Type", "application/json")
-// 	json.NewEncoder(w).Encode(map[string]interface{}{
-// 		"success":  true,
-// 		"messages": messages,
-// 	})
-// }
-
-// SendMessage handles sending a new message (both private and group)
 func SendMessage(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -325,26 +235,21 @@ func SendMessage(w http.ResponseWriter, r *http.Request) {
 
 		messageID, _ = result.LastInsertId()
 
-		// Send WebSocket notification if receiver is online
-		clientsMutex.RLock()
-		if recipientConn, ok := clients[*request.ReceiverID]; ok {
-			err = recipientConn.WriteJSON(Message{
-				Type: "private_message",
-				Content: map[string]interface{}{
-					"id":          messageID,
-					"sender_id":   currentUserID,
-					"receiver_id": *request.ReceiverID,
-					"sender":      sender.FirstName + " " + sender.LastName,
-					"content":     request.Content,
-					"created_at":  time.Now(),
-				},
-			})
+		// Reconcile the sender's other tabs as well.
+		ws.SendToUser(currentUserID, ws.Message{Type: "resource_changed", Content: map[string]string{"resource": "chat"}})
 
-			if err != nil {
-				log.Printf("[ERROR] Failed to deliver private message to user %d: %v", *request.ReceiverID, err)
-			}
-		}
-		clientsMutex.RUnlock()
+		// Send WebSocket notification if receiver is online
+		ws.SendToUser(*request.ReceiverID, Message{
+			Type: "private_message",
+			Content: map[string]interface{}{
+				"id":          messageID,
+				"sender_id":   currentUserID,
+				"receiver_id": *request.ReceiverID,
+				"sender":      sender.FirstName + " " + sender.LastName,
+				"content":     request.Content,
+				"created_at":  time.Now(),
+			},
+		})
 	} else {
 		// Group message
 		// Check if user is a member of the group
@@ -365,8 +270,8 @@ func SendMessage(w http.ResponseWriter, r *http.Request) {
 		}
 
 		result, err := db.DBInstance.DB.Exec(
-			"INSERT INTO messages (sender_id, group_id, content, created_at, is_read) VALUES (?, ?, ?, ?, ?)",
-			currentUserID, *request.GroupID, request.Content, time.Now(), false,
+			"INSERT INTO group_chat_messages (user_id, group_id, content, created_at) VALUES (?, ?, ?, ?)",
+			currentUserID, *request.GroupID, request.Content, time.Now(),
 		)
 		if err != nil {
 			log.Printf("[ERROR] Failed to store group message: %v", err)
@@ -375,6 +280,8 @@ func SendMessage(w http.ResponseWriter, r *http.Request) {
 		}
 
 		messageID, _ = result.LastInsertId()
+
+		ws.PublishChange("groups")
 
 		// Get all group members
 		rows, err := db.DBInstance.DB.Query("SELECT user_id FROM group_members WHERE group_id = ?", *request.GroupID)
@@ -392,27 +299,19 @@ func SendMessage(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 
-			clientsMutex.RLock()
 			for _, memberID := range memberIDs {
-				if memberConn, ok := clients[memberID]; ok {
-					err = memberConn.WriteJSON(Message{
-						Type: "group_message",
-						Content: map[string]interface{}{
-							"id":         messageID,
-							"group_id":   *request.GroupID,
-							"sender_id":  currentUserID,
-							"sender":     sender.FirstName + " " + sender.LastName,
-							"content":    request.Content,
-							"created_at": time.Now(),
-						},
-					})
-
-					if err != nil {
-						log.Printf("[ERROR] Failed to deliver group message to user %d: %v", memberID, err)
-					}
-				}
+				ws.SendToUser(memberID, Message{
+					Type: "group_message",
+					Content: map[string]interface{}{
+						"id":         messageID,
+						"group_id":   *request.GroupID,
+						"sender_id":  currentUserID,
+						"sender":     sender.FirstName + " " + sender.LastName,
+						"content":    request.Content,
+						"created_at": time.Now(),
+					},
+				})
 			}
-			clientsMutex.RUnlock()
 		}
 	}
 
