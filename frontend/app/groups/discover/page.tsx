@@ -1,5 +1,7 @@
 'use client'
 
+import { useRealtimeRefresh } from '@/app/webscoket/useRealtimeRefresh'
+
 import { useState, useEffect } from 'react'
 import Sidebar from '@/components/Sidebar'
 import { useRouter } from 'next/navigation'
@@ -16,71 +18,72 @@ export default function DiscoverPage() {
   const [success, setSuccess] = useState<{ [key: number]: boolean }>({})
   const router = useRouter()
 
-  useEffect(() => {
-      const fetchGroups = async () => {
-          try {
-              // Fetch all available groups
-              const allGroupsResponse = await fetch('http://localhost:8080/groups/all', {
-                  method: 'GET',
-                  credentials: 'include'
-              })
+    const fetchGroups = async () => {
+        try {
+            // Fetch all available groups
+            const allGroupsResponse = await fetch('http://localhost:8080/groups/all', {
+                method: 'GET',
+                credentials: 'include'
+            })
 
-              // Fetch user's groups to check membership
-              const userGroupsResponse = await fetch('http://localhost:8080/groups/user', {
-                  method: 'GET',
-                  credentials: 'include'
-              })
+            // Fetch user's groups to check membership
+            const userGroupsResponse = await fetch('http://localhost:8080/groups/user', {
+                method: 'GET',
+                credentials: 'include'
+            })
 
-              if (allGroupsResponse.ok && userGroupsResponse.ok) {
-                  const allGroupsData = await allGroupsResponse.json()
-                  const userGroupsData = await userGroupsResponse.json()
+            if (allGroupsResponse.ok && userGroupsResponse.ok) {
+                const allGroupsData = await allGroupsResponse.json()
+                const userGroupsData = await userGroupsResponse.json()
 
-                  // Process all groups
-                  let allGroupsList: Group[] = []
-                  if (Array.isArray(allGroupsData)) {
-                      allGroupsList = allGroupsData
-                  } else if (allGroupsData && typeof allGroupsData === 'object') {
-                      if (Array.isArray(allGroupsData.groups)) {
-                          allGroupsList = allGroupsData.groups
-                      } else {
-                          const groupsArray = Object.values(allGroupsData).filter(item =>
-                              item && typeof item === 'object' && 'id' in item
-                          ) as Group[]
-                          allGroupsList = groupsArray
-                      }
-                  }
+                // Process all groups
+                let allGroupsList: Group[] = []
+                if (Array.isArray(allGroupsData)) {
+                    allGroupsList = allGroupsData
+                } else if (allGroupsData && typeof allGroupsData === 'object') {
+                    if (Array.isArray(allGroupsData.groups)) {
+                        allGroupsList = allGroupsData.groups
+                    } else {
+                        const groupsArray = Object.values(allGroupsData).filter(item =>
+                            item && typeof item === 'object' && 'id' in item
+                        ) as Group[]
+                        allGroupsList = groupsArray
+                    }
+                }
 
-                  // Process user groups
-                  let userGroupsList: Group[] = []
-                  if (Array.isArray(userGroupsData)) {
-                      userGroupsList = userGroupsData
-                  } else if (userGroupsData && typeof userGroupsData === 'object') {
-                      if (Array.isArray(userGroupsData.groups)) {
-                          userGroupsList = userGroupsData.groups
-                      } else {
-                          const groupsArray = Object.values(userGroupsData).filter(item =>
-                              item && typeof item === 'object' && 'id' in item
-                          ) as Group[]
-                          userGroupsList = groupsArray
-                      }
-                  }
+                // Process user groups
+                let userGroupsList: Group[] = []
+                if (Array.isArray(userGroupsData)) {
+                    userGroupsList = userGroupsData
+                } else if (userGroupsData && typeof userGroupsData === 'object') {
+                    if (Array.isArray(userGroupsData.groups)) {
+                        userGroupsList = userGroupsData.groups
+                    } else {
+                        const groupsArray = Object.values(userGroupsData).filter(item =>
+                            item && typeof item === 'object' && 'id' in item
+                        ) as Group[]
+                        userGroupsList = groupsArray
+                    }
+                }
 
-                  setAllGroups(allGroupsList)
-                  setUserGroups(userGroupsList)
-              } else {
-                  console.error('Failed to fetch groups')
-                  setError('Failed to load groups. Please try again.')
-              }
-          } catch (error) {
-              console.error('Error fetching groups:', error)
-              setError('An error occurred while loading groups.')
-          } finally {
-              setLoading(false)
-          }
-      }
+                setAllGroups(allGroupsList)
+                setUserGroups(userGroupsList)
+                setSuccess({})
+            } else {
+                console.error('Failed to fetch groups')
+                setError('Failed to load groups. Please try again.')
+            }
+        } catch (error) {
+            console.error('Error fetching groups:', error)
+            setError('An error occurred while loading groups.')
+        } finally {
+            setLoading(false)
+        }
+    }
 
-      fetchGroups()
-  }, [])
+    useEffect(() => { fetchGroups() }, [])
+    useRealtimeRefresh(['groups', 'profiles'], fetchGroups)
+
 
   const handleRequestJoin = async (groupId: number) => {
       setRequestingJoin(prev => ({ ...prev, [groupId]: true }))
@@ -135,7 +138,7 @@ export default function DiscoverPage() {
   }
 
   const hasRequestedToJoin = (group: Group) => {
-      return group.status === 'requested' || group.status === 'invited'
+      return group.status === 'requested' || group.status === 'pending' || group.status === 'invited'
   }
 
   return (

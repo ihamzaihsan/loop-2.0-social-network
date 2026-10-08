@@ -1,5 +1,7 @@
 'use client'
 
+import { useRealtimeRefresh } from '@/app/webscoket/useRealtimeRefresh'
+
 import { useState, useEffect } from 'react'
 import Sidebar from '@/components/Sidebar'
 import { useRouter } from 'next/navigation'
@@ -11,47 +13,47 @@ export default function GroupsPage() {
     const [loading, setLoading] = useState(true)
     const router = useRouter()
 
-    useEffect(() => {
-        const fetchGroups = async () => {
-            try {
-                const response = await fetch('http://localhost:8080/groups/user', {
-                    method: 'GET',
-                    credentials: 'include'
-                })
+    const fetchGroups = async () => {
+        try {
+            const response = await fetch('http://localhost:8080/groups/user', {
+                method: 'GET',
+                credentials: 'include'
+            })
 
-                if (response.ok) {
-                    const data = await response.json()
-                    if (Array.isArray(data)) {
-                        setGroups(data)
-                    } else if (data && typeof data === 'object') {
-                        if (Array.isArray(data.groups)) {
-                            setGroups(data.groups)
-                        } else {
-                            console.warn('API returned object instead of array, attempting to convert')
-                            const groupsArray = Object.values(data).filter(item =>
-                                item && typeof item === 'object' && 'id' in item
-                            ) as Group[]
-                            setGroups(groupsArray)
-                        }
+            if (response.ok) {
+                const data = await response.json()
+                if (Array.isArray(data)) {
+                    setGroups(data)
+                } else if (data && typeof data === 'object') {
+                    if (Array.isArray(data.groups)) {
+                        setGroups(data.groups)
                     } else {
-                        console.error('Unexpected data format:', data)
-                        setGroups([])
+                        console.warn('API returned object instead of array, attempting to convert')
+                        const groupsArray = Object.values(data).filter(item =>
+                            item && typeof item === 'object' && 'id' in item
+                        ) as Group[]
+                        setGroups(groupsArray)
                     }
                 } else {
-                    console.error('Failed to fetch groups')
+                    console.error('Unexpected data format:', data)
+                    setGroups([])
                 }
-            } catch (error) {
-                console.error('Error fetching groups:', error)
-            } finally {
-                setLoading(false)
+            } else {
+                console.error('Failed to fetch groups')
             }
+        } catch (error) {
+            console.error('Error fetching groups:', error)
+        } finally {
+            setLoading(false)
         }
+    }
 
-        fetchGroups()
-    }, [])
+    useEffect(() => { fetchGroups() }, [])
+    useRealtimeRefresh(['groups', 'profiles'], fetchGroups)
+
 
     const handleGroupClick = (groupId: number) => {
-        console.log('Group clicked:', groupId) 
+        console.log('Group clicked:', groupId)
         router.push(`/groups/${groupId}`)
     }
 

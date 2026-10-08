@@ -1,5 +1,7 @@
 'use client'
 
+import { useRealtimeRefresh } from '@/app/webscoket/useRealtimeRefresh'
+
 import { useState, useEffect } from 'react'
 import Sidebar from '@/components/Sidebar'
 import { useRouter } from 'next/navigation'
@@ -36,55 +38,54 @@ export default function GroupInvitationsPage() {
     const [success, setSuccess] = useState('')
     const router = useRouter()
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                setLoading(true)
+    const fetchData = async () => {
+        try {
 
-                // Fetch invitations
-                const invitationsResponse = await fetch('http://localhost:8080/groups/invitations', {
-                    method: 'GET',
-                    credentials: 'include'
-                })
+            // Fetch invitations
+            const invitationsResponse = await fetch('http://localhost:8080/groups/invitations', {
+                method: 'GET',
+                credentials: 'include'
+            })
 
-                // Fetch join requests for groups where user is creator
-                const joinRequestsResponse = await fetch('http://localhost:8080/groups/join/requests', {
-                    method: 'GET',
-                    credentials: 'include'
-                })
+            // Fetch join requests for groups where user is creator
+            const joinRequestsResponse = await fetch('http://localhost:8080/groups/join/requests', {
+                method: 'GET',
+                credentials: 'include'
+            })
 
-                if (invitationsResponse.ok) {
-                    const data = await invitationsResponse.json()
-                    if (data && data.invitations) {
-                        setInvitations(data.invitations)
-                    } else {
-                        setInvitations([])
-                    }
+            if (invitationsResponse.ok) {
+                const data = await invitationsResponse.json()
+                if (data && data.invitations) {
+                    setInvitations(data.invitations)
                 } else {
-                    console.error('Failed to fetch invitations')
-                    setError('Failed to load invitations')
+                    setInvitations([])
                 }
-
-                if (joinRequestsResponse.ok) {
-                    const data = await joinRequestsResponse.json()
-                    if (data && data.requests) {
-                        setJoinRequests(data.requests)
-                    } else {
-                        setJoinRequests([])
-                    }
-                } else {
-                    console.error('Failed to fetch join requests')
-                }
-            } catch (error) {
-                console.error('Error fetching data:', error)
-                setError('Failed to load invitations and requests')
-            } finally {
-                setLoading(false)
+            } else {
+                console.error('Failed to fetch invitations')
+                setError('Failed to load invitations')
             }
-        }
 
-        fetchData()
-    }, [])
+            if (joinRequestsResponse.ok) {
+                const data = await joinRequestsResponse.json()
+                if (data && data.requests) {
+                    setJoinRequests(data.requests)
+                } else {
+                    setJoinRequests([])
+                }
+            } else {
+                console.error('Failed to fetch join requests')
+            }
+        } catch (error) {
+            console.error('Error fetching data:', error)
+            setError('Failed to load invitations and requests')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    useEffect(() => { fetchData() }, [])
+    useRealtimeRefresh(['groups', 'profiles'], fetchData)
+
 
     const handleInvitationAction = async (invitationId: number, groupId: number, action: string) => {
         const actionKey = `invitation-${invitationId}-${action}`

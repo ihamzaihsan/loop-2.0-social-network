@@ -1,5 +1,7 @@
 'use client'
 
+import { useRealtimeRefresh } from '@/app/webscoket/useRealtimeRefresh'
+
 import { useState, useEffect, useRef } from 'react'
 import Sidebar from '@/components/Sidebar'
 import { useRouter, useParams } from 'next/navigation'
@@ -269,8 +271,6 @@ const handleGroupImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) =>
         initializeGroupDetails();
     }, [groupId, router]);
 
-    // Fetch group messages, posts, and events
-    useEffect(() => {
         const fetchGroupData = async () => {
             if (!groupId) return;
 
@@ -318,175 +318,17 @@ const handleGroupImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) =>
             }
         };
 
-        if (groupId) {
-            fetchGroupData();
-        }
-    }, [groupId]);
-
-    // Setup WebSocket connection
-    useEffect(() => {
-        const client = WebSocketClient.getInstance();
-
-        if (client && currentUser) {
-            // Add message handler for group messages
-            client.addMessageHandler('group_message', (content) => {
-                console.log('Received group message:', content);
-
-                // Only process messages for the current group
-                if (content.group_id === groupId) {
-                    const newMessage: GroupMessage = {
-                        id: content.id || 0,
-                        sender_id: content.sender_id || 0,
-                        group_id: content.group_id || 0,
-                        content: content.content || "",
-                        created_at: content.created_at || new Date().toISOString(),
-                        sender: {
-                            id: content.sender_id || 0,
-                            firstName: content.sender?.firstName || "",
-                            lastName: content.sender?.lastName || "",
-                            avatar: content.sender?.avatar
-                        }
-                    };
-
-                    // Don't add messages from the current user (they're added directly when sent)
-                    if (newMessage.sender_id !== currentUser.id) {
-                        setMessages(prev => [...prev, newMessage]);
-                    }
-                }
-            });
-
-            // Add message handler for group posts
-            client.addMessageHandler('group_post', (content) => {
-                if (content.group_id === groupId && content.user_id !== currentUser.id) {
-                    setPosts(prev => [content, ...prev]);
-                }
-            });
-
-            // Add message handler for group comments
-            client.addMessageHandler('group_comment', (content) => {
-                console.log('Received group comment:', content);
-                
-                // Update the post's comment count
-                setPosts(prev =>
-                    prev.map(post =>
-                        post.id === content.post_id
-                            ? { ...post, comment_count: (post.comment_count || 0) + 1 }
-                            : post
-                    )
-                );
-                
-                // Add the comment to the comments list if we're viewing that post
-                if (content.post_id) {
-                    setPostComments(prev => {
-                        // If we already have comments for this post, add the new one
-                        if (prev[content.post_id]) {
-                            // Check if this comment is already in the list to avoid duplicates
-                            const isDuplicate = prev[content.post_id].some(comment => 
-                                comment.id === content.id
-                            );
-                            
-                            if (!isDuplicate) {
-                                return {
-                                    ...prev,
-                                    [content.post_id]: [...prev[content.post_id], content]
-                                };
-                            }
-                        }
-                        return prev;
-                    });
-                }
-            });
-
-            // Add message handler for group events
-            client.addMessageHandler('group_event', (content) => {
-                if (content.group_id === groupId && content.creator_id !== currentUser.id) {
-                    setEvents(prev => [...prev, content]);
-                }
-            });
-
-            // Add message handler for event responses
-            client.addMessageHandler('event_response', (content) => {
-                console.log('Received event response:', content);
-
-                if (content.event_id) {
-                    // Update the events array with new counts
-                    setEvents(prev =>
-                        prev.map(event =>
-                            event.id === content.event_id
-                                ? {
-                                    ...event,
-                                    going_count: content.going_count,
-                                    not_going_count: content.not_going_count,
-                                    // Update user_response if this is the current user's response
-                                    user_response: content.user_id === currentUser.id
-                                        ? content.response
-                                        : event.user_response
-                                }
-                                : event
-                        )
-                    );
-
-                    // Also update userEventResponses state if needed
-                    if (content.user_id === currentUser.id) {
-                        setUserEventResponses(prev => ({
-                            ...prev,
-                            [content.event_id]: content.option_id
-                        }));
-                    }
-                }
-            });
-
-            client.addMessageHandler('group_membership_update', (content) => {
-                console.log('Processing group membership update:', content);
-                
-                // Only process updates for the current group AND only for member_joined actions
-                if (content.group_id === groupId && content.action === 'member_joined') {
-                    console.log('New member joined group:', groupId);
-                    
-                    // Update group info including member count
-                    if (content.group) {
-                        setGroup(prev => prev ? {
-                            ...prev,
-                            ...content.group,
-                            member_count: content.member_count || prev.member_count
-                        } : null);
-                    }
-                    
-                    // Update members list
-                    if (content.members) {
-                        console.log('Updating members list:', content.members);
-                        setMembers(content.members);
-                    }
-                    
-                    console.log('New member joined the group');
-                } else if (content.group_id === groupId) {
-                    console.log('Ignoring group update for action:', content.action);
-                }
-            });
-            
-            // Add message handler for group member joined notifications
-            client.addMessageHandler('group_member_joined', (content) => {
-                console.log('Received group member joined notification:', content);
-                if (content.group_id === groupId) {
-                    // Refresh group data
-                    fetchGroupDetails();
-                }
-            });
-            
-            // Add message handler for group join approved notifications
-            client.addMessageHandler('group_join_approved', (content) => {
-                console.log('Received group join approved notification:', content);
-                if (content.group_id === groupId) {
-                    // Refresh group data
-                    fetchGroupDetails();
-                }
-            });
-
-            setWsClient(client);
-        }
-
-        // No cleanup needed as we want to keep the connection alive
-    }, [currentUser, groupId]);
+    useEffect(() => { if (groupId) fetchGroupData() }, [groupId])
+    useEffect(() => { setWsClient(WebSocketClient.getInstance()) }, [])
+    useRealtimeRefresh(['groups', 'profiles'], async () => {
+        await fetchGroupDetails()
+        await fetchGroupData()
+        await Promise.all(Object.keys(postComments).map(async id => {
+            const comments = await fetchGroupPostComments(Number(id))
+            setPostComments(prev => ({ ...prev, [id]: comments }))
+        }))
+        if (showInviteModal) await fetchUsers()
+    }, !!groupId)
 
     // Scroll to bottom of messages when new messages arrive
     useEffect(() => {
