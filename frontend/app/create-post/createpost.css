@@ -12,13 +12,13 @@
     align-items: center;
     min-height: 100vh;
     padding: 20px;
-    background-color: #f5f7fb;
+    background-color: var(--loop-surface);
   }
   
   .create-post-card {
     width: 100%;
     max-width: 600px;
-    background-color: white;
+    background-color: var(--loop-paper-strong);
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     padding: 30px;
@@ -27,7 +27,7 @@
   .create-post-title {
     font-size: 24px;
     font-weight: 600;
-    color: #333;
+    color: var(--loop-ink);
     margin-bottom: 20px;
     text-align: center;
   }
@@ -37,7 +37,7 @@
     align-items: center;
     gap: 12px;
     padding: 16px;
-    background: #f8fafc;
+    background: var(--loop-surface);
     border-radius: 12px;
     margin-bottom: 24px;
     border: 1px solid #e2e8f0;
@@ -79,12 +79,12 @@
   .current-user-name {
     font-weight: 600;
     font-size: 16px;
-    color: #1e293b;
+    color: var(--loop-ink);
   }
 
   .posting-as {
     font-size: 14px;
-    color: #64748b;
+    color: var(--loop-muted);
   }
 
   .create-post-form {
@@ -102,7 +102,7 @@
   .form-group label {
     font-size: 14px;
     font-weight: 500;
-    color: #555;
+    color: var(--loop-ink-soft);
   }
   
   .content-textarea {
@@ -123,7 +123,7 @@
 
   .character-counter {
     font-size: 12px;
-    color: #666;
+    color: var(--loop-muted);
     text-align: right;
     margin-top: 4px;
   }
@@ -141,7 +141,7 @@
     padding: 10px;
     border: 1px solid #ddd;
     border-radius: 8px;
-    background-color: white;
+    background-color: var(--loop-paper-strong);
     font-size: 16px;
   }
   
@@ -161,7 +161,7 @@
   
   .cancel-button {
     background-color: #f1f1f1;
-    color: #555;
+    color: var(--loop-ink-soft);
     border: none;
   }
   
@@ -331,13 +331,13 @@
       border-radius: 8px;
       padding: 1.5rem;
       text-align: center;
-      background: #f9f9f9;
+      background: var(--loop-surface);
       margin: 1rem 0;
     }
 
     .file-input-container:hover {
       border-color: var(--primary-color);
-      background: #f0f0f0;
+      background: var(--loop-surface);
     }
 
     .privacy-selector {
@@ -350,7 +350,7 @@
       font-size: 1rem;
       border-radius: 8px;
       border: 1px solid #ddd;
-      background: white;
+      background: var(--loop-paper-strong);
     }
 
     /* User selector improvements */
@@ -369,7 +369,7 @@
       padding: 0.75rem;
       border-radius: 8px;
       border: 1px solid #ddd;
-      background: white;
+      background: var(--loop-paper-strong);
       font-size: 0.9rem;
       min-height: 44px;
     }
@@ -419,7 +419,7 @@
   }
   
   .follower-item:hover {
-    background-color: #f5f7fb;
+    background-color: var(--loop-surface);
   }
   
   .follower-item.selected {
@@ -446,14 +446,14 @@
   
   .avatar-placeholder {
     font-weight: 600;
-    color: #666;
+    color: var(--loop-muted);
     text-transform: uppercase;
   }
   
   .follower-name {
     flex: 1;
     font-size: 14px;
-    color: #333;
+    color: var(--loop-ink);
   }
   
   .follower-checkbox {
@@ -463,16 +463,16 @@
   .loading-followers {
     padding: 12px;
     text-align: center;
-    color: #777;
+    color: var(--loop-muted);
     font-size: 14px;
   }
   
   .no-followers {
     padding: 15px;
     text-align: center;
-    color: #777;
+    color: var(--loop-muted);
     font-size: 14px;
-    background-color: #f5f7fb;
+    background-color: var(--loop-surface);
     border-radius: 8px;
   }
   

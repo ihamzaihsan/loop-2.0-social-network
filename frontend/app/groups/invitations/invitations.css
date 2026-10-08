@@ -287,7 +287,7 @@
 }
 
 .loading-state h3 {
-  color: #000000;
+  color: var(--loop-ink);
   font-size: 1.25rem;
   font-weight: 600;
   margin: 0 0 0.5rem 0;
@@ -357,7 +357,7 @@
 }
 
 .empty-content h3 {
-  color: #000000;
+  color: var(--loop-ink);
   font-size: 1.75rem;
   font-weight: 700;
   margin: 0 0 1rem 0;
@@ -419,7 +419,7 @@
 }
 
 .section-title {
-  color: #000000;
+  color: var(--loop-ink);
   font-size: 1.5rem;
   font-weight: 700;
   margin: 0;
@@ -460,7 +460,7 @@
 .invitation-card-enhanced,
 .request-card-enhanced {
   position: relative;
-  background: white;
+  background: var(--loop-paper-strong);
   border-radius: 20px;
   overflow: hidden;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -619,7 +619,7 @@
 
 .group-title-enhanced,
 .user-name-enhanced {
-  color: #000000;
+  color: var(--loop-ink);
   font-size: 1.25rem;
   font-weight: 700;
   margin: 0 0 0.5rem 0;
@@ -684,9 +684,9 @@
 
 .decline-button-enhanced,
 .reject-button-enhanced {
-  background: white;
+  background: var(--loop-paper-strong);
   border: 2px solid #e2e8f0;
-  color: #64748b;
+  color: var(--loop-muted);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 

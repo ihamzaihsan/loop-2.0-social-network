@@ -274,7 +274,7 @@
   margin: 0;
   font-size: 1rem;
   font-weight: 600;
-  color: #000000;
+  color: var(--loop-ink);
 }
 
 .members-list-container {
@@ -330,7 +330,7 @@
 
 .member-item .member-name {
   font-weight: 600;
-  color: #000000;
+  color: var(--loop-ink);
   font-size: 0.875rem;
   margin: 0;
   white-space: nowrap;
@@ -340,7 +340,7 @@
 
 .member-item .member-role {
   font-size: 0.75rem;
-  color: #333333;
+  color: var(--loop-ink-soft);
   background: var(--background-light);
   padding: 0.125rem 0.5rem;
   border-radius: var(--radius-sm);
@@ -351,7 +351,7 @@
 
 .empty-members-message {
   text-align: center;
-  color: #666666;
+  color: var(--loop-muted);
   padding: 2rem 1rem;
   font-style: italic;
   margin: 0;
@@ -591,8 +591,8 @@
   font-size: 0.875rem;
   outline: none;
   transition: all 0.2s ease;
-  background: rgb(233, 0, 0);
-  color: #000000 !important; 
+  background: var(--loop-paper-strong);
+  color: var(--loop-ink);
 }
 
 
@@ -721,7 +721,7 @@
 
 .author-name {
   font-weight: 600;
-  color: black;
+  color: var(--loop-ink);
   margin: 0;
   font-size: 0.875rem;
 }
@@ -738,7 +738,7 @@
 .post-content p {
   margin: 0 0 0.75rem 0;
   line-height: 1.6;
-  color: #000;
+  color: var(--loop-ink);
 }
 
 .post-image {
@@ -767,7 +767,7 @@
 .comments-section h4 {
   margin: 0 0 1rem 0;
   font-size: 1rem;
-  color: black;
+  color: var(--loop-ink);
 }
 
 .comments-list {
@@ -799,13 +799,13 @@
 .comment-author .author-name {
   font-size: 0.75rem;
   font-weight: 600;
-  color: black;
+  color: var(--loop-ink);
 }
 
 .comment-content {
   font-size: 0.875rem;
   line-height: 1.5;
-  color: black;
+  color: var(--loop-ink);
 }
 
 .comment-form {
@@ -1024,7 +1024,7 @@
 
 .member-card .member-name {
   font-weight: 600;
-  color: black;
+  color: var(--loop-ink);
   font-size: 0.875rem;
   margin: 0;
 }
@@ -1177,7 +1177,7 @@
   justify-content: center;
   margin-left: 0.75rem;
   flex-shrink: 0;
-  background: white;
+  background: var(--loop-paper-strong);
 }
 
 .user-item.selected .checkbox,
@@ -1354,7 +1354,7 @@
   font-size: 0.875rem;
   transition: all 0.2s ease;
   background: var(--background-card);
-  color: black;
+  color: var(--loop-ink);
 }
 
 .group-content input:focus,
@@ -1584,7 +1584,7 @@
   flex: 1;
   overflow-y: auto;
   padding: 20px;
-  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  background: var(--loop-surface);
 }
 
 .create-event {
@@ -1613,7 +1613,7 @@
 }
 
 .event-form {
-  background: white;
+  background: var(--loop-paper-strong);
   border-radius: 20px;
   padding: 20px;
   margin-bottom: 20px;
@@ -1624,7 +1624,7 @@
   margin-top: 0;
   margin-bottom: 20px;
   font-size: 18px;
-  color: #1e293b;
+  color: var(--loop-ink);
   padding-bottom: 10px;
   border-bottom: 2px solid #e2e8f0;
   font-weight: 600;
@@ -1638,7 +1638,7 @@
   display: block;
   margin-bottom: 8px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--loop-ink);
   font-size: 14px;
 }
 
@@ -1648,17 +1648,17 @@
   padding: 14px 20px;
   border: 2px solid #e2e8f0;
   border-radius: 12px;
-  color: black;
+  color: var(--loop-ink);
   font-size: 14px;
   outline: none;
   transition: all 0.3s ease;
-  background: #f8fafc;
+  background: var(--loop-surface);
 }
 
 .form-group input:focus,
 .form-group textarea:focus {
   border-color: #667eea;
-  background: white;
+  background: var(--loop-paper-strong);
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
@@ -1677,8 +1677,8 @@
 }
 
 .cancel-button {
-  background: #e2e8f0;
-  color: #4a5568;
+  background: var(--loop-surface);
+  color: var(--loop-ink-soft);
   border: none;
   border-radius: 25px;
   padding: 12px 24px;
@@ -1689,7 +1689,7 @@
 }
 
 .cancel-button:hover {
-  background: #cbd5e0;
+  background: var(--loop-surface);
   transform: translateY(-1px);
 }
 
@@ -1726,7 +1726,7 @@
 
 .event-item {
   display: flex;
-  background: white;
+  background: var(--loop-paper-strong);
   border-radius: 20px;
   padding: 20px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
@@ -1772,13 +1772,13 @@
   margin: 0 0 8px 0;
   font-size: 18px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--loop-ink);
 }
 
 .event-description {
   margin: 0 0 12px 0;
   font-size: 14px;
-  color: #4a5568;
+  color: var(--loop-ink-soft);
   line-height: 1.6;
 }
 
@@ -1787,7 +1787,7 @@
   align-items: center;
   gap: 6px;
   font-size: 14px;
-  color: #64748b;
+  color: var(--loop-muted);
   margin-bottom: 8px;
 }
 
@@ -1795,7 +1795,7 @@
   display: flex;
   gap: 12px;
   font-size: 13px;
-  color: #64748b;
+  color: var(--loop-muted);
 }
 
 .going-count {
@@ -1848,12 +1848,12 @@
   align-items: center;
   justify-content: center;
   padding: 40px 0;
-  color: #64748b;
+  color: var(--loop-muted);
   text-align: center;
 }
 
 .empty-events p {
-  background: white;
+  background: var(--loop-paper-strong);
   padding: 40px;
   border-radius: 20px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
@@ -1877,7 +1877,7 @@
 }
 
 .invite-modal {
-  background: white;
+  background: var(--loop-paper-strong);
   border-radius: 20px;
   width: 90%;
   max-width: 500px;
@@ -1966,7 +1966,7 @@
   cursor: pointer;
   transition: all 0.3s ease;
   margin: 4px 0;
-  background: white;
+  background: var(--loop-paper-strong);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   border: 1px solid #f1f5f9;
 }
@@ -2020,7 +2020,7 @@
 
 .user-name {
   font-weight: 600;
-  color: #1e293b;
+  color: var(--loop-ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2038,7 +2038,7 @@
   margin-left: 12px;
   flex-shrink: 0;
   transition: all 0.3s ease;
-  background: white;
+  background: var(--loop-paper-strong);
 }
 
 .user-item.selected .checkbox {
@@ -2057,12 +2057,12 @@
   gap: 12px;
   padding: 20px 24px;
   border-top: 1px solid #e2e8f0;
-  background: #f8fafc;
+  background: var(--loop-surface);
 }
 
 .modal-footer .cancel-button {
-  background: #e2e8f0;
-  color: #4a5568;
+  background: var(--loop-surface);
+  color: var(--loop-ink-soft);
   border: none;
   border-radius: 25px;
   padding: 12px 24px;
@@ -2073,7 +2073,7 @@
 }
 
 .modal-footer .cancel-button:hover {
-  background: #cbd5e0;
+  background: var(--loop-surface);
   transform: translateY(-1px);
 }
 
@@ -2109,7 +2109,7 @@
   justify-content: center;
   height: 100vh;
   font-size: 16px;
-  color: #4a5568;
+  color: var(--loop-ink-soft);
   padding: 0 20px;
   text-align: center;
   background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
@@ -2259,7 +2259,7 @@
   .member-item .member-name {
     font-size: 0.9rem;
     font-weight: 600;
-    color: black;
+    color: var(--loop-ink);
     margin: 0;
   }
 

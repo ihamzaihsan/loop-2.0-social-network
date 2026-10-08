@@ -234,7 +234,7 @@
 }
 
 .loading-state h3 {
-  color: #000000;
+  color: var(--loop-ink);
   font-size: 1.25rem;
   font-weight: 600;
   margin: 0 0 0.5rem 0;
@@ -304,7 +304,7 @@
 }
 
 .empty-content h3 {
-  color: #000000;
+  color: var(--loop-ink);
   font-size: 1.75rem;
   font-weight: 700;
   margin: 0 0 1rem 0;
@@ -366,7 +366,7 @@
 }
 
 .showcase-title {
-  color: #000000;
+  color: var(--loop-ink);
   font-size: 1.75rem;
   font-weight: 700;
   margin: 0;
@@ -379,7 +379,7 @@
 .showcase-filters {
   display: flex;
   gap: 0.5rem;
-  background: #f1f5f9;
+  background: var(--loop-surface);
   padding: 0.25rem;
   border-radius: 12px;
   justify-content: center;
@@ -392,14 +392,14 @@
   border-radius: 8px;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #64748b;
+  color: var(--loop-muted);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .filter-button.active,
 .filter-button:hover {
-  background: white;
+  background: var(--loop-paper-strong);
   color: #334155;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -414,7 +414,7 @@
 
 .discover-card-enhanced {
   position: relative;
-  background: white;
+  background: var(--loop-paper-strong);
   border-radius: 20px;
   overflow: hidden;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -542,7 +542,7 @@
 }
 
 .group-title-enhanced {
-  color: #000000;
+  color: var(--loop-ink);
   font-size: 1.25rem;
   font-weight: 700;
   margin: 0 0 0.75rem 0;
@@ -678,7 +678,7 @@
 }
 
 .group-name {
-  color: #000000;
+  color: var(--loop-ink);
   font-size: 1.125rem;
   font-weight: 600;
   margin: 0 0 0.25rem 0;
