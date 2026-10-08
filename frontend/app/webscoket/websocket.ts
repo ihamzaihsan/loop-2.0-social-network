@@ -19,18 +19,19 @@ export class WebSocketClient implements WebSocketClientInterface {
     
     static resetInstance(): void {
         if (WebSocketClient.instance) {
-            if (WebSocketClient.instance.socket) {
-                WebSocketClient.instance.socket.close(1000, "Reset instance");
-            }
+            WebSocketClient.instance.close();
             WebSocketClient.instance = null;
         }
+        window.dispatchEvent(new Event('session_ended'));
     }
 
 
+    private stopped = false;
     socket: WebSocket | null = null;
     messageHandlers: Map<string, (content: any) => void> = new Map();
     messageHistory: Map<number, MessageContent[]>;
     currentChatUser: number | null;
+    currentUserId: number | null = null;
     onlineUsers: Map<number, boolean>;
     pingInterval: NodeJS.Timeout | null;
     reconnectTimeout: NodeJS.Timeout | null = null;
@@ -55,19 +56,17 @@ export class WebSocketClient implements WebSocketClientInterface {
             return;
         }
 
-        console.log('Attempting WebSocket connection...');
-        const sessionToken = localStorage.getItem('sessionToken') || document.cookie.replace(/(?:(?:^|.*;\s*)session_token\s*\=\s*([^;]*).*$)|^.*$/, "$1");
-
-        if (!sessionToken) {
-            console.error('No session token found, skipping WebSocket connection');
-            return;
-        }
-
-        // Include session token in the URL for authentication
-        this.socket = new WebSocket(`ws://localhost:8080/ws?token=${encodeURIComponent(sessionToken)}`);
+        this.stopped = false;
+        if (this.reconnectTimeout) clearTimeout(this.reconnectTimeout);
+        // Authentication uses the HTTP-only session cookie, never a URL token.
+        this.socket = new WebSocket('ws://localhost:8080/ws');
+        const connection = this.socket;
 
         this.socket.onopen = () => {
-            console.log('WebSocket connected successfully');
+            this.clearPingInterval();
+            this.startPingInterval();
+            window.dispatchEvent(new CustomEvent('connection_status', { detail: { connected: true } }));
+            window.dispatchEvent(new Event('realtime_reconnected'));
         
             // Send a ping to test the connection
             if (this.socket && this.socket.readyState === WebSocket.OPEN) {
@@ -107,21 +106,33 @@ export class WebSocketClient implements WebSocketClientInterface {
                     console.log('Ping-pong successful, connection is working properly');
                 }
 
+                if (message.type === 'presence_snapshot') {
+                    this.currentUserId = message.content.user_id;
+                    this.onlineUsers = new Map((message.content.user_ids as number[]).map(id => [id, true]));
+                    window.dispatchEvent(new Event('presence_update'));
+                }
+                if (message.type === 'presence_changed') {
+                    this.onlineUsers.set(message.content.user_id, message.content.online);
+                    window.dispatchEvent(new Event('presence_update'));
+                }
+                if (message.type === 'typing_status') {
+                    window.dispatchEvent(new CustomEvent('typing_status', { detail: message.content }));
+                }
+                if (message.type === 'private_message') {
+                    window.dispatchEvent(new CustomEvent('private_message', { detail: message.content }));
+                }
+                let resource = message.type === 'resource_changed' ? message.content.resource : null;
+                if (['private_message', 'messages_read'].includes(message.type)) resource = 'chat';
+                if (['notification', 'notification_changed', 'follow_request_handled'].includes(message.type)) resource = 'notifications';
+                if (resource) window.dispatchEvent(new CustomEvent('realtime_changed', { detail: { resource } }));
+
                 // Handle notification messages for all notification types
                 if (message.type === 'notification') {
                     // Trigger notification event
                     const event = new CustomEvent('notification', { detail: message.content });
                     window.dispatchEvent(event);
                     
-                    // Play notification sound if it's a new notification
-                    if (message.content && message.content.status === 'unread') {
-                        try {
-                            const audio = new Audio('/sounds/notification.mp3');
-                            audio.play().catch(err => console.log('Failed to play notification sound:', err));
-                        } catch (error) {
-                            console.log('Failed to create audio:', error);
-                        }
-                    }
+
                 }
 
                 // Handle follow status updates
@@ -129,6 +140,14 @@ export class WebSocketClient implements WebSocketClientInterface {
                     // Trigger follow status update event
                     const event = new CustomEvent('follow_status_update', { detail: message.content });
                     window.dispatchEvent(event);
+                }
+
+                if (['social_graph_updated', 'follow_request_handled', 'notification_changed'].includes(message.type)) {
+                    window.dispatchEvent(new CustomEvent(message.type, { detail: message.content }));
+                }
+                if (['social_graph_updated', 'follow_request_handled', 'follow_status_update'].includes(message.type)
+                    || (message.type === 'notification' && message.content?.type?.startsWith('follow_'))) {
+                    window.dispatchEvent(new Event('social_update'));
                 }
             
                 const handler = this.messageHandlers.get(message.type);
@@ -142,10 +161,14 @@ export class WebSocketClient implements WebSocketClientInterface {
 
         this.socket.onclose = (event: CloseEvent) => {
             console.warn('WebSocket connection closed:', event.reason || 'Unknown reason');
+            if (this.socket !== connection) return;
             this.clearPingInterval();
+            this.onlineUsers.clear();
+            window.dispatchEvent(new Event('presence_update'));
+            window.dispatchEvent(new CustomEvent('connection_status', { detail: { connected: false } }));
         
             // Only attempt to reconnect if the close wasn't intentional (code 1000)
-            if (event.code !== 1000) {
+            if (!this.stopped && event.code !== 1000) {
                 console.log('Attempting to reconnect in 5 seconds...');
                 this.reconnectTimeout = setTimeout(() => this.connect(), 5000);
             }
@@ -263,6 +286,8 @@ export class WebSocketClient implements WebSocketClientInterface {
     }
     
     close(): void {
+        this.stopped = true;
+        this.clearPingInterval();
         if (this.reconnectTimeout) {
             clearTimeout(this.reconnectTimeout);
             this.reconnectTimeout = null;
