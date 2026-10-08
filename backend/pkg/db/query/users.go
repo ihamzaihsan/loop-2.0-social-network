@@ -10,10 +10,11 @@ func GetAllUsers(currentUserID int) ([]map[string]interface{}, error) {
 	rows, err := db.DBInstance.DB.Query(`
 		SELECT u.id, u.first_name, u.last_name, u.email, u.nickname,
                EXISTS(SELECT 1 FROM followers 
-                      WHERE follower_id = ? AND following_id = u.id AND status = 'accept') as is_following
+                      WHERE follower_id = ? AND following_id = u.id AND status = 'accept') as is_following,
+ EXISTS(SELECT 1 FROM followers WHERE follower_id = ? AND following_id = u.id AND status = 'pending'), u.isprivate
 		FROM users u
 		WHERE u.id != ?
-	`, currentUserID, currentUserID)
+	`, currentUserID, currentUserID, currentUserID)
 	if err != nil {
 		return nil, err
 	}
@@ -24,9 +25,9 @@ func GetAllUsers(currentUserID int) ([]map[string]interface{}, error) {
 		var id int
 		var firstName, lastName, email string
 		var nicknameNull sql.NullString
-		var isFollowing bool
+		var isFollowing, isPending, isPrivate bool
 
-		err := rows.Scan(&id, &firstName, &lastName, &email, &nicknameNull, &isFollowing)
+		err := rows.Scan(&id, &firstName, &lastName, &email, &nicknameNull, &isFollowing, &isPending, &isPrivate)
 		if err != nil {
 			return nil, err
 		}
@@ -37,12 +38,14 @@ func GetAllUsers(currentUserID int) ([]map[string]interface{}, error) {
 		}
 
 		user := map[string]interface{}{
-			"id":        id,
-			"firstName": firstName,
-			"lastName":  lastName,
-			"email":     email,
-			"nickname":  nickname,
-			"following": isFollowing,
+			"id":            id,
+			"firstName":     firstName,
+			"lastName":      lastName,
+			"email":         email,
+			"nickname":      nickname,
+			"following":     isFollowing,
+			"pendingFollow": isPending,
+			"isPrivate":     isPrivate,
 		}
 		users = append(users, user)
 	}

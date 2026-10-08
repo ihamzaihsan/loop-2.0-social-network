@@ -2,8 +2,10 @@ package query
 
 import (
 	"database/sql"
+	"errors"
 	"log"
 	"socialNetwork/pkg/db"
+	"socialNetwork/pkg/websocket"
 )
 
 // HandleGroupMembershipRequest processes a group invitation or join request
@@ -25,6 +27,22 @@ func HandleGroupMembershipRequest(groupID, userID int, action, requestType strin
 	if err != nil {
 		log.Printf("[ERROR] Failed to begin transaction: %v", err)
 		return err
+	}
+	defer tx.Rollback()
+	finish := func() error {
+		if requestType == "invitation" {
+			_, err = tx.Exec(`DELETE FROM notifications WHERE type = 'group_invitation' AND related_id = ? AND user_id = ?`, groupID, userID)
+		} else {
+			_, err = tx.Exec(`DELETE FROM notifications WHERE type = 'group_join_request' AND related_id = ? AND from_user_id = ? AND user_id = (SELECT creator_id FROM groups WHERE id = ?)`, groupID, userID, groupID)
+		}
+		if err != nil {
+			return err
+		}
+		if err := tx.Commit(); err != nil {
+			return err
+		}
+		websocket.PublishChange("groups")
+		return nil
 	}
 
 	if action == "accept" {
@@ -49,10 +67,13 @@ func HandleGroupMembershipRequest(groupID, userID int, action, requestType strin
 		if err != nil || count == 0 {
 			tx.Rollback()
 			log.Printf("[ERROR] Failed to verify group member update: %v", err)
-			return err
+			if err != nil {
+				return err
+			}
+			return errors.New("pending group membership not found")
 		}
 
-		return tx.Commit()
+		return finish()
 	} else {
 		// For rejection, delete the record
 		_, err := tx.Exec(`
@@ -66,6 +87,6 @@ func HandleGroupMembershipRequest(groupID, userID int, action, requestType strin
 			return err
 		}
 
-		return tx.Commit()
+		return finish()
 	}
 }

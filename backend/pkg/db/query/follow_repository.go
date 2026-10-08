@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"log"
-	"strings"
 	"time"
 
 	"socialNetwork/pkg/db"
@@ -12,152 +11,79 @@ import (
 	"socialNetwork/pkg/websocket"
 )
 
-// RequestFollow handles the database operations for a follow request
+// RequestFollow commits the relationship and its notification together.
 func RequestFollow(followerID, followedID uint) (string, error) {
-	// First check if the follow relationship already exists
-	var status string
-	var id int
-	err := db.DBInstance.DB.QueryRow(`
-		SELECT id, status FROM followers 
-		WHERE follower_id = ? AND following_id = ?
-	`, followerID, followedID).Scan(&id, &status)
-
+	if followerID == 0 || followedID == 0 || followerID == followedID {
+		return "", errors.New("invalid follow target")
+	}
+	tx, err := db.DBInstance.DB.Begin()
 	if err != nil {
-		if err == sql.ErrNoRows {
-			// Need to determine if the followed user has a private account
-			var isPrivate bool
-			err := db.DBInstance.DB.QueryRow(`
-				SELECT isprivate FROM users WHERE id = ?
-			`, followedID).Scan(&isPrivate)
-			if err != nil {
-				return "", err
-			}
-
-			// Set initial status based on account privacy
-			initialStatus := "accept"
-			if isPrivate {
-				initialStatus = "pending"
-			}
-
-			// Insert the new follow relationship
-			res, err := db.DBInstance.DB.Exec(`
-				INSERT INTO followers (follower_id, following_id, status, created_at) 
-				VALUES (?, ?, ?, ?)
-			`, followerID, followedID, initialStatus, time.Now())
-			if err != nil {
-				if strings.Contains(err.Error(), "UNIQUE constraint failed") {
-					return "", errors.New("follow relationship already exists")
-				}
-				return "", err
-			}
-
-			// Get the ID of the inserted row
-			followID, _ := res.LastInsertId()
-
-			// Create notification if the request is pending
-			if isPrivate {
-				var firstName, lastName string
-				err = db.DBInstance.DB.QueryRow(`
-					SELECT first_name, last_name FROM users WHERE id = ?
-				`, followerID).Scan(&firstName, &lastName)
-
-				if err == nil {
-					notificationContent := firstName + " " + lastName + " wants to follow you"
-
-					// Create the notification in database
-					notificationID, err := db.DBInstance.DB.Exec(`
-						INSERT INTO notifications (user_id, from_user_id, type, related_id, content, status, created_at)
-						VALUES (?, ?, ?, ?, ?, ?, ?)
-					`, followedID, followerID, "follow_request", followID, notificationContent, "unread", time.Now())
-
-					if err != nil {
-						log.Printf("Error creating notification: %v", err)
-					} else {
-						// Send immediate WebSocket notification
-						id, _ := notificationID.LastInsertId()
-
-						// Send real-time notification via WebSocket if the user is online
-						websocket.SendToUser(int(followedID), websocket.Message{
-							Type: "notification",
-							Content: map[string]interface{}{
-								"id":           id,
-								"type":         "follow_request",
-								"user_id":      followedID,
-								"from_user_id": followerID,
-								"sender_name":  firstName + " " + lastName,
-								"content":      notificationContent,
-								"related_id":   followID,
-								"status":       "unread",
-								"created_at":   time.Now().Format(time.RFC3339),
-								"actions":      []string{"accept", "reject"},
-							},
-						})
-					}
-				}
-
-				return "pending", nil
-			}
-
-			return initialStatus, nil
-		}
 		return "", err
 	}
-
-	// Follow relationship already exists, handle based on current status
-	if status == "pending" {
-		return "pending", nil
-	} else if status == "reject" {
-		// Update rejected request to pending
-		_, err := db.DBInstance.DB.Exec(`
-			UPDATE followers SET status = 'pending', created_at = ? WHERE id = ?
-		`, time.Now(), id)
+	defer tx.Rollback()
+	var followID int64
+	var status string
+	err = tx.QueryRow(`SELECT id, status FROM followers WHERE follower_id = ? AND following_id = ?`, followerID, followedID).Scan(&followID, &status)
+	if err != nil && err != sql.ErrNoRows {
+		return "", err
+	}
+	if err == nil && (status == "accept" || status == "pending") {
+		return status, nil
+	}
+	var private bool
+	if err := tx.QueryRow(`SELECT isprivate FROM users WHERE id = ?`, followedID).Scan(&private); err != nil {
+		return "", err
+	}
+	status = "accept"
+	kind := "new_follower"
+	if private {
+		status = "pending"
+		kind = "follow_request"
+	}
+	if followID == 0 {
+		result, err := tx.Exec(`INSERT INTO followers (follower_id, following_id, status, created_at) VALUES (?, ?, ?, ?)`, followerID, followedID, status, time.Now())
 		if err != nil {
 			return "", err
 		}
-
-		// Create notification
-		notificationRes, err := db.DBInstance.DB.Exec(`
-			INSERT INTO notifications (user_id, type, related_id, status, created_at)
-			VALUES (?, ?, ?, ?, ?)
-		`, followedID, "follow_request", id, "unread", time.Now())
-
+		followID, err = result.LastInsertId()
 		if err != nil {
-			log.Printf("Error creating notification: %v", err)
-		} else {
-			// Also send WebSocket notification for rejected requests that are re-requested
-			notificationID, _ := notificationRes.LastInsertId()
-
-			// Get user details for notification content
-			var firstName, lastName string
-			err = db.DBInstance.DB.QueryRow(`
-				SELECT first_name, last_name FROM users WHERE id = ?
-			`, followerID).Scan(&firstName, &lastName)
-
-			if err == nil {
-				notificationContent := firstName + " " + lastName + " wants to follow you"
-
-				// Send the real-time notification
-				websocket.SendToUser(int(followedID), websocket.Message{
-					Type: "notification",
-					Content: map[string]interface{}{
-						"id":           notificationID,
-						"type":         "follow_request",
-						"user_id":      followedID,
-						"from_user_id": followerID,
-						"sender_name":  firstName + " " + lastName,
-						"content":      notificationContent,
-						"related_id":   id,
-						"status":       "unread",
-						"created_at":   time.Now().Format(time.RFC3339),
-						"actions":      []string{"accept", "reject"},
-					},
-				})
-			}
+			return "", err
 		}
-
-		return "pending", nil
+	} else {
+		if _, err := tx.Exec(`UPDATE followers SET status = ?, created_at = ? WHERE id = ?`, status, time.Now(), followID); err != nil {
+			return "", err
+		}
 	}
-
+	var first, last string
+	if err := tx.QueryRow(`SELECT first_name, last_name FROM users WHERE id = ?`, followerID).Scan(&first, &last); err != nil {
+		return "", err
+	}
+	content := first + " " + last + " started following you"
+	if private {
+		content = first + " " + last + " wants to follow you"
+	}
+	created := time.Now()
+	result, err := tx.Exec(`INSERT INTO notifications (user_id, from_user_id, type, related_id, content, status, created_at) VALUES (?, ?, ?, ?, ?, 'unread', ?)`, followedID, followerID, kind, followID, content, created)
+	if err != nil {
+		return "", err
+	}
+	notificationID, err := result.LastInsertId()
+	if err != nil {
+		return "", err
+	}
+	if err := tx.Commit(); err != nil {
+		return "", err
+	}
+	actions := []string{}
+	if private {
+		actions = []string{"accept", "reject"}
+	}
+	websocket.SendToUser(int(followedID), websocket.Message{Type: "notification", Content: map[string]interface{}{
+		"id": notificationID, "type": kind, "user_id": followedID, "from_user_id": followerID,
+		"sender_name": first + " " + last, "content": content, "related_id": followID,
+		"status": "unread", "created_at": created.Format(time.RFC3339), "actions": actions,
+	}})
+	publishSocialChange(followerID, followedID)
 	return status, nil
 }
 
@@ -168,6 +94,9 @@ func UnfollowUser(followerID, followedID uint) error {
 		WHERE follower_id = ? AND following_id = ?
 	`, followerID, followedID)
 
+	if err == nil {
+		publishSocialChange(followerID, followedID)
+	}
 	return err
 }
 
@@ -291,6 +220,7 @@ func AcceptFollowRequest(requestID int, followedID uint) (uint, error) {
 		}
 	}
 
+	publishSocialChange(followerID, followedID)
 	return followerID, nil
 }
 
@@ -404,6 +334,7 @@ func RejectFollowRequest(requestID int, followedID uint) error {
 		}
 	}
 
+	publishSocialChange(followerID, followedID)
 	return nil
 }
 
@@ -743,4 +674,13 @@ func CheckIfFollowing(userID, targetUserID uint) (bool, error) {
 	}
 
 	return count > 0, nil
+}
+
+// Refresh all relationship views after follow, unfollow, acceptance, or rejection.
+func publishSocialChange(followerID, followedID uint) {
+	message := websocket.Message{Type: "social_graph_updated", Content: map[string]interface{}{
+		"follower_id": followerID, "followed_id": followedID,
+	}}
+	websocket.SendToUser(int(followerID), message)
+	websocket.SendToUser(int(followedID), message)
 }

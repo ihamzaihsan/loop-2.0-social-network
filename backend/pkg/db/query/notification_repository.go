@@ -7,6 +7,7 @@ import (
 
 	"socialNetwork/pkg/db"
 	"socialNetwork/pkg/models"
+	"socialNetwork/pkg/websocket"
 )
 
 // CreateNotification creates a new notification in the database
@@ -132,6 +133,9 @@ func MarkNotificationAsRead(notificationID, userID int) error {
 		SET status = 'read'
 		WHERE id = ? AND user_id = ?
 	`, notificationID, userID)
+	if err == nil {
+		websocket.SendToUser(userID, websocket.Message{Type: "notification_changed", Content: map[string]interface{}{"user_id": userID}})
+	}
 	return err
 }
 
@@ -142,6 +146,9 @@ func MarkAllNotificationsAsRead(userID int) error {
 		SET status = 'read'
 		WHERE user_id = ? AND status = 'unread'
 	`, userID)
+	if err == nil {
+		websocket.SendToUser(userID, websocket.Message{Type: "notification_changed", Content: map[string]interface{}{"user_id": userID}})
+	}
 	return err
 }
 
@@ -161,6 +168,9 @@ func DeleteNotification(notificationID, userID int) error {
 		DELETE FROM notifications
 		WHERE id = ? AND user_id = ?
 	`, notificationID, userID)
+	if err == nil {
+		websocket.SendToUser(userID, websocket.Message{Type: "notification_changed", Content: map[string]interface{}{"user_id": userID}})
+	}
 	return err
 }
 

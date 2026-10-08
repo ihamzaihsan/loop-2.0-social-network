@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	auth "socialNetwork/pkg/auth"
+	"socialNetwork/pkg/db"
 	query "socialNetwork/pkg/db/query"
 	"socialNetwork/pkg/models"
 )
@@ -15,10 +16,7 @@ import (
 // GetUserProfile handles requests to view a specific user's profile
 func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 	// Set CORS headers
-	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-	w.Header().Set("Access-Control-Allow-Credentials", "true")
+
 	w.Header().Set("Content-Type", "application/json")
 
 	// Handle preflight requests
@@ -63,6 +61,8 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if the user is private and not the current user
+	var pendingFollow bool
+	db.DBInstance.DB.QueryRow(`SELECT EXISTS(SELECT 1 FROM followers WHERE follower_id = ? AND following_id = ? AND status = 'pending')`, currentUserID, userID).Scan(&pendingFollow)
 	if user.IsPrivate && userID != currentUserID {
 		// Check if the current user follows this user
 		isFollowing, err := query.CheckIfFollowing(uint(currentUserID), uint(userID))
@@ -80,6 +80,7 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 				"isPrivate":      true,
 				"isCurrentUser":  false,
 				"isFollowing":    false,
+				"pendingFollow":  pendingFollow,
 				"posts":          []models.PostResponse{},
 				"postsCount":     0,
 				"followersCount": 0,
@@ -173,6 +174,7 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 		"following":      following,
 		"isCurrentUser":  userID == currentUserID,
 		"isFollowing":    isFollowing,
+		"pendingFollow":  pendingFollow,
 	}
 
 	json.NewEncoder(w).Encode(profile)
