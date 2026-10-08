@@ -15,9 +15,9 @@
   align-items: flex-start;
   gap: 8px;
   min-width: 0;
-  background: #fffdf9;
-  color: #191622;
-  border: 1px solid #d7d1e4;
+  background: var(--loop-paper);
+  color: var(--loop-ink);
+  border: 1px solid var(--loop-line);
   border-left: 4px solid #7451eb;
   border-radius: 16px;
   box-shadow: 0 8px 30px #19162226;
@@ -37,7 +37,7 @@
 
 .content strong { font-size: 14px; }
 .content span {
-  color: #62596e;
+  color: var(--loop-muted);
   font-size: 13px;
   display: -webkit-box;
   -webkit-line-clamp: 3;
