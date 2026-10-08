@@ -1,0 +1,72 @@
+:root {
+  color-scheme: light;
+  --loop-solid: #171521;
+  --loop-surface: #f7f4ee;
+  --loop-tint: #f3f0ff;
+  --loop-on-accent: #171521;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --loop-canvas: #111018;
+  --loop-paper: #1c1a26;
+  --loop-paper-strong: #211e2d;
+  --loop-surface: #292535;
+  --loop-tint: #302646;
+  --loop-ink: #f3eef9;
+  --loop-ink-soft: #ded6ea;
+  --loop-muted: #b1a6c0;
+  --loop-line: rgba(225, 214, 244, 0.16);
+  --loop-purple-dark: #b7a4ff;
+  --loop-shadow-sm: 0 4px 0 rgba(0, 0, 0, 0.18);
+  --loop-shadow: 0 18px 55px rgba(0, 0, 0, 0.35);
+  --background-light: var(--loop-canvas);
+  --background-card: var(--loop-paper);
+  --text-primary: var(--loop-ink);
+  --text-secondary: var(--loop-ink-soft);
+  --text-muted: var(--loop-muted);
+  --border-light: var(--loop-line);
+  --border-hover: #77668f;
+}
+
+html[data-theme="dark"] body {
+  background: radial-gradient(circle at 85% 0%, rgba(112, 85, 232, 0.12), transparent 25rem), var(--loop-canvas);
+}
+
+/* Bright brand accents keep their dark foreground in both themes. */
+body .sidebar-item.active,
+body .avatar-placeholder,
+body .empty-state-icon,
+body .users-container .user-avatar,
+body .chat-page .contact-avatar,
+body .chat-page .user-avatar,
+body .chat-page .avatar-placeholder,
+body .chat-page .unread-badge,
+body .preview-avatar,
+body .preview-chip {
+  color: var(--loop-on-accent);
+}
+::selection { color: var(--loop-on-accent); }
+
+html[data-theme="dark"] body :is(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), textarea, select) {
+  color: var(--loop-ink);
+  background: var(--loop-paper-strong);
+  border-color: var(--loop-line);
+}
+html[data-theme="dark"] body :is(input, textarea)::placeholder { color: var(--loop-muted); }
+html[data-theme="dark"] body :is(.eyebrow, .section-kicker, .text-link) { color: #b7a4ff; }
+html[data-theme="dark"] body .auth-showcase .eyebrow { color: var(--loop-lime); }
+html[data-theme="dark"] body :is(.error-message, .error-message-enhanced, .reject-button) { background: #40232e; color: #ffb3bf; }
+html[data-theme="dark"] body :is(.success-message, .success-message-enhanced, .privacy-badge.public) { background: #203b2c; color: #a9e6b8; }
+html[data-theme="dark"] body :is(.interaction-btn.active, .image-button, .chat-back-button) { background: var(--loop-tint); color: #c6b7ff; }
+
+/* Remaining legacy group and post surfaces. */
+html[data-theme="dark"] body :is(.group-members-sidebar, .members-list, .group-tabs, .group-tab-content, .posts-container, .chat-messages, .chat-input-container, .event-form, .event-form-container, .event-card, .member-item, .post-form, .create-post-form, .post-comments, .comment-content, .comment-input-wrapper, .message-input-container, .message.received, .message-content, .filter-tab, .search-container, .empty-state-enhanced, .form-section, .privacy-option, .selected-users, .user-selection-item) {
+  background: var(--loop-paper-strong);
+  color: var(--loop-ink);
+  border-color: var(--loop-line);
+}
+html[data-theme="dark"] body :is(.member-name, .message-text, .event-title, .event-description, .event-location, .event-creator, .post-content, .comment-text, .group-name, .user-name-enhanced, .invitation-title, .request-title) { color: var(--loop-ink); }
+html[data-theme="dark"] body :is(.event-time, .message-sender, .member-role, .empty-description, .empty-description-enhanced, .user-details-enhanced, .event-meta, .event-details) { color: var(--loop-muted); }
+html[data-theme="dark"] body .message.sent .message-content { color: #fff; background: transparent; }
+html[data-theme="dark"] body .chat-page .message-content { background: transparent; color: inherit; }

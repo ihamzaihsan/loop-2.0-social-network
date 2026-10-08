@@ -1,0 +1,16 @@
+.authToggle {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid var(--loop-line);
+  border-radius: 12px;
+  color: var(--loop-ink);
+  background: var(--loop-paper);
+  cursor: pointer;
+}
