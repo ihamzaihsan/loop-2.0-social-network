@@ -1,10 +1,11 @@
 'use client'
 
+import { useRealtimeRefresh } from '@/app/webscoket/useRealtimeRefresh'
+
 import { useRouter } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import './home.css'
 import Sidebar from '../../components/Sidebar'
-import { WebSocketClient } from '../webscoket/websocket'
 import { redirectBasedOnSession } from '../../utils/session'
 
 interface Author {
@@ -56,34 +57,14 @@ export default function Home() {
   const [commentImageFiles, setCommentImageFiles] = useState<{[key: number]: File | null}>({});
   const [expandedPosts, setExpandedPosts] = useState<{[postId: number]: boolean}>({});
 
-  // Initialize WebSocket connection
-  useEffect(() => {
-    // Only create a WebSocket connection if we have user data
-    if (userId) {
-        console.log('Getting WebSocket client for user', userId);
-        
-        const client = WebSocketClient.getInstance();
-        
-        // Add message handlers for notifications, new posts, etc.
-        client.addMessageHandler('private_message', (content) => {
-            // Handle incoming private messages
-            console.log('Received private message:', content);
-            // You could show a notification or update a message counter
-        });
-        
-        client.addMessageHandler('new_post', (content) => {
-            // Handle new posts from followed users
-            console.log('New post notification:', content);
-            // You could refresh the posts or add the new post to the list
-            fetchPosts();
-        });
-        
-        // Don't call connect() here - it's handled by getInstance
-        
-    }
-    
-    // No cleanup needed - we want to keep the connection alive
-  }, [userId]); // Only depend on userId
+  const postsRef = useRef<Post[]>([])
+  useEffect(() => { postsRef.current = posts }, [posts])
+  useRealtimeRefresh(['posts', 'comments', 'profiles', 'social'], async () => {
+    await fetchUserData()
+    await fetchPosts(false)
+    await Promise.all(postsRef.current.filter(post => post.showComments).map(post => fetchComments(post.id)))
+  }, !!userId)
+
 
   useEffect(() => {
     redirectBasedOnSession(router, true)
@@ -133,8 +114,8 @@ export default function Home() {
     }
   }, [userId])
 
-  const fetchPosts = async () => {
-    setPostsLoading(true)
+  const fetchPosts = async (showLoading = true) => {
+    if (showLoading) setPostsLoading(true)
     try {
       const response = await fetch('http://localhost:8080/posts?page=1', {
         method: 'GET',
@@ -147,13 +128,10 @@ export default function Home() {
 
       const data = await response.json()
       if (data.success && data.posts) {
-        // Initialize posts with showComments property set to false
-        const postsWithCommentState = data.posts.map((post: Post) => ({
-          ...post,
-          showComments: false,
-          comments: []
+        setPosts(previous => data.posts.map((post: Post) => {
+          const existing = previous.find(item => item.id === post.id)
+          return { ...post, showComments: existing?.showComments ?? false, comments: existing?.comments ?? [] }
         }))
-        setPosts(postsWithCommentState)
       }
     } catch (error: any) {
       console.error('Error fetching posts:', error)

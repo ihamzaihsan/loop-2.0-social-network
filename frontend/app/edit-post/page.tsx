@@ -1,5 +1,7 @@
 'use client'
 
+import { useRealtimeRefresh } from '@/app/webscoket/useRealtimeRefresh'
+
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useState, useEffect, Suspense } from 'react'
 import './edit-post.css'
@@ -24,6 +26,7 @@ function EditPostContent() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [remoteChange, setRemoteChange] = useState(false)
 
   useEffect(() => {
     if (!postId) {
@@ -40,7 +43,9 @@ function EditPostContent() {
       })
   }, [router, postId])
 
-  const fetchPost = async () => {
+  useRealtimeRefresh(['posts'], () => fetchPost(true), !!postId)
+
+  const fetchPost = async (preserveDraft = false) => {
     if (!postId) return
 
     try {
@@ -54,14 +59,23 @@ function EditPostContent() {
           router.push('/')
           return
         }
+        if (response.status === 404) {
+          setError('This post has been deleted.')
+          return
+        }
         throw new Error('Failed to fetch post')
       }
 
       const data = await response.json()
       if (data.success && data.post) {
+        if (preserveDraft && post && (content !== post.content || privacy !== post.privacy)) {
+          setRemoteChange(data.post.content !== post.content || data.post.privacy !== post.privacy)
+          return
+        }
         setPost(data.post)
         setContent(data.post.content)
         setPrivacy(data.post.privacy)
+        setRemoteChange(false)
       } else {
         throw new Error('Post not found')
       }
@@ -125,6 +139,7 @@ function EditPostContent() {
       <main className="main-content">
         <div className="edit-post-container">
           <div className="card edit-post-card">
+            {remoteChange && <p role="status">This post changed in another tab. Your draft is preserved. <button type="button" onClick={() => fetchPost()}>Load saved version</button></p>}
             <h2 className="card-title">Edit Post</h2>
             
             <form onSubmit={handleSubmit} className="edit-post-form">

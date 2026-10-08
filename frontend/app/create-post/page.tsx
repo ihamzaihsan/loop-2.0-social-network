@@ -1,5 +1,7 @@
 'use client'
 
+import { useRealtimeRefresh } from '@/app/webscoket/useRealtimeRefresh'
+
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import './createpost.css'
@@ -63,6 +65,8 @@ export default function CreatePost() {
     }
   }, [privacy])
 
+  useRealtimeRefresh(['social', 'profiles', 'users'], () => fetchFollowers(), privacy === 'private')
+
   // Function to fetch followers
   const fetchFollowers = async () => {
     setIsLoadingUsers(true)
@@ -109,6 +113,7 @@ export default function CreatePost() {
       }));
       
       setFollowers(mappedFollowers)
+      setSelectedUsers(previous => previous.filter(id => mappedFollowers.some((user: Follower) => user.followedId === id)))
     } catch (err: any) {
       console.error('Error fetching followers:', err)
       setError('Failed to load followers. Please try again.')
@@ -275,7 +280,7 @@ export default function CreatePost() {
     <div className="create-post-page">
       <Sidebar activePage="" />
       
-      <div className="create-post-container">
+      <main className="main-content"><div className="create-post-container">
         <div className="create-post-card">
           <h1 className="create-post-title">Create a New Post</h1>
 
@@ -425,7 +430,7 @@ export default function CreatePost() {
             </div>
           </form>
         </div>
-      </div>
+      </div></main>
     </div>
   )
 }
