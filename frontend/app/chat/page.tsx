@@ -1,7 +1,9 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
-import { useState, useEffect, useRef } from 'react'
+import { useRealtimeRefresh } from '@/app/webscoket/useRealtimeRefresh'
+
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import Sidebar from '../../components/Sidebar'
 import './chat.css'
 import { WebSocketClient } from '../webscoket/websocket'
@@ -44,7 +46,13 @@ interface ChatContact {
 }
 
 export default function Chat() {
+  return <Suspense fallback={<div className="chat-page">Loading chat…</div>}><ChatContent /></Suspense>
+}
+
+function ChatContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const requestedContact = Number(searchParams.get('user'))
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [currentUser, setCurrentUser] = useState<User | null>(null)
@@ -57,6 +65,25 @@ export default function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const [wsClient, setWsClient] = useState<WebSocketClient | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const chatViewportRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => { setWsClient(WebSocketClient.getInstance()) }, [])
+
+  useEffect(() => {
+    const viewport = window.visualViewport
+    // Follow the visible viewport when a mobile keyboard reduces the chat area.
+    const resize = () => {
+      const height = viewport?.height ?? window.innerHeight
+      chatViewportRef.current?.style.setProperty('--chat-viewport-height', `${height}px`)
+    }
+    resize()
+    viewport?.addEventListener('resize', resize)
+    window.addEventListener('resize', resize)
+    return () => {
+      viewport?.removeEventListener('resize', resize)
+      window.removeEventListener('resize', resize)
+    }
+  }, [loading])
   
   // Add state for image modal
   const [showImageModal, setShowImageModal] = useState(false)
@@ -94,153 +121,97 @@ export default function Chat() {
     }
   }, [showImageModal])
 
-      useEffect(() => {
-        const client = WebSocketClient.getInstance();
-    
-        if (currentUser) {
-          // Remove the old handler first to avoid duplicates
-          client.messageHandlers.delete('private_message');
-    
-          client.addMessageHandler('private_message', (content) => {
-            console.log('Received private message:', content);
-        
-            // Create the new message object
-            const newMessage = {
-              id: content.id || 0,
-              sender_id: content.sender_id || 0,
-              receiver_id: currentUser.id,
-              content: content.content || "",
-              type: content.type || "text",
-              created_at: content.created_at || new Date().toISOString(),
-              is_read: false,
-              sender: {
-                id: content.sender_id || 0,
-                first_name: typeof content.sender === 'string' ? content.sender.split(' ')[0] : "",
-                last_name: typeof content.sender === 'string' ? (content.sender.split(' ')[1] || "") : "",
-                avatar: undefined
-              }
-            };
+  const [onlineUsers, setOnlineUsers] = useState<number[]>([])
+  const [typingUser, setTypingUser] = useState<number | null>(null)
+  const typingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const selectedId = useRef<number | null>(null)
+  useEffect(() => {
+    const client = WebSocketClient.getInstance()
+    selectedId.current = selectedContact?.id ?? null
+    client.currentChatUser = selectedId.current
+    return () => { client.currentChatUser = null }
+  }, [selectedContact?.id])
 
-            // Add message to current chat if it's from the selected contact
-            setMessages(prev => {
-                // Check if we're currently viewing this contact's chat
-                const currentPath = window.location.pathname;
-                const isInChatPage = currentPath === '/chat';
-                
-                if (isInChatPage && selectedContact && content.sender_id === selectedContact.id) {
-                    // We're viewing this contact's chat, add the message
-                    return [...prev, newMessage];
-                }
-                return prev;
-            });
-        
-            // Update the contact's last message in the contacts list
-            setContacts(prev => {
-                const updatedContacts = [...prev];
-                const contactIndex = updatedContacts.findIndex(c => c.id === content.sender_id);
-          
-                if (contactIndex >= 0) {
-                    // Update existing contact
-                    updatedContacts[contactIndex] = {
-                        ...updatedContacts[contactIndex],
-                        lastMessage: content.type === 'image' || content.content.match(/\.(jpeg|jpg|gif|png)$/i) 
-                            ? '📷 Image' 
-                            : content.content || "",
-                        lastMessageTime: content.created_at || new Date().toISOString(),
-                        unreadCount: selectedContact && selectedContact.id === content.sender_id ? 0 : (updatedContacts[contactIndex].unreadCount || 0) + 1
-                    };
-                    
-                    // Move this contact to the top of the list
-                    const updatedContact = updatedContacts.splice(contactIndex, 1)[0];
-                    return [updatedContact, ...updatedContacts];
-                } else if (content.sender_id) {
-                    // This is a new contact, fetch their info and add them
-                    console.log('New contact detected, fetching user info for ID:', content.sender_id);
-                    
-                    fetch(`http://localhost:8080/user/info?id=${content.sender_id}`, {
-                        credentials: 'include'
-                    })
-                    .then(res => {
-                        if (!res.ok) {
-                            throw new Error(`HTTP error! status: ${res.status}`);
-                        }
-                        return res.json();
-                    })
-                    .then(data => {
-                        if (data.success && data.user) {
-                            const newContact = {
-                                id: content.sender_id,
-                                firstName: data.user.firstName,
-                                lastName: data.user.lastName,
-                                nickname: data.user.nickname,
-                                avatar: data.user.avatar,
-                                lastMessage: content.type === 'image' ? '📷 Image' : content.content || "",
-                                lastMessageTime: content.created_at || new Date().toISOString(),
-                                unreadCount: 1
-                            };
-                            
-                            setContacts(prevContacts => {
-                                // Check if contact was already added by another async operation
-                                const existingIndex = prevContacts.findIndex(c => c.id === content.sender_id);
-                                if (existingIndex >= 0) {
-                                    // Update existing contact
-                                    const updated = [...prevContacts];
-                                    updated[existingIndex] = {
-                                        ...updated[existingIndex],
-                                        lastMessage: newContact.lastMessage,
-                                        lastMessageTime: newContact.lastMessageTime,
-                                        unreadCount: (updated[existingIndex].unreadCount || 0) + 1
-                                    };
-                                    // Move to top
-                                    const updatedContact = updated.splice(existingIndex, 1)[0];
-                                    return [updatedContact, ...updated];
-                                } else {
-                                    // Add new contact at the top
-                                    return [newContact, ...prevContacts];
-                                }
-                            });
-                            
-                            // If we're currently on the chat page and don't have a selected contact,
-                            // and this is the first message from this user, we might want to show it
-                            if (window.location.pathname === '/chat' && !selectedContact) {
-                                console.log('First message from new contact, consider auto-selecting');
-                            }
-                        }
-                    })
-                    .catch(err => {
-                        console.error('Error fetching new contact info:', err);
-                        // Fallback: create contact with basic info from the message
-                        const fallbackContact = {
-                            id: content.sender_id,
-                            firstName: typeof content.sender === 'string' ? content.sender.split(' ')[0] : "Unknown",
-                            lastName: typeof content.sender === 'string' ? (content.sender.split(' ')[1] || "") : "User",
-                            lastMessage: content.type === 'image' ? '📷 Image' : content.content || "",
-                            lastMessageTime: content.created_at || new Date().toISOString(),
-                            unreadCount: 1
-                        };
-                        
-                        setContacts(prevContacts => {
-                            const existingIndex = prevContacts.findIndex(c => c.id === content.sender_id);
-                            if (existingIndex >= 0) {
-                                return prevContacts;
-                            }
-                            return [fallbackContact, ...prevContacts];
-                        });
-                    });
-                    
-                    // Return the current contacts for now, the async operation will update it
-                    return updatedContacts;
-                }
-          
-                return updatedContacts;
-            });
-          });
-      
-          setWsClient(client);
+  useEffect(() => {
+    if (!currentUser || !Number.isInteger(requestedContact) || requestedContact <= 0 || requestedContact === currentUser.id || selectedId.current === requestedContact) return
+    let cancelled = false
+    const selectRequestedContact = async () => {
+      try {
+        const response = await fetch(`http://localhost:8080/user/info?id=${requestedContact}`, { credentials: 'include' })
+        if (!response.ok || cancelled) return
+        const data = await response.json()
+        if (cancelled || !data.user) return
+        selectedId.current = requestedContact
+        setSelectedContact(data.user)
+        setShowUsersList(false)
+        setNewMessage('')
+      } catch (error) { console.error('Failed to open conversation:', error) }
+    }
+    selectRequestedContact()
+    return () => { cancelled = true }
+  }, [currentUser, requestedContact])
+
+  const refreshChat = async () => {
+    const contactId = selectedContact?.id
+    if (contactId) {
+      const history = await fetchMessages(contactId)
+      if (selectedId.current === contactId) {
+        setMessages(history)
+        const throughId = Math.max(0, ...history.filter(message => message.sender_id === contactId && !message.is_read).map(message => message.id))
+        if (throughId && document.visibilityState === 'visible') {
+          await fetch('http://localhost:8080/chat/read', {
+            method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contact_id: contactId, through_id: throughId })
+          })
         }
-    
-        // No cleanup needed as we want to keep the connection alive
-      }, [currentUser, selectedContact]); // Add selectedContact as dependency
+      }
+    }
+    const latest = await fetchChatContacts()
+    setContacts(latest)
+    if (showUsersList) setFollowedUsers(await fetchFollowedUsers())
+  }
+  useRealtimeRefresh(['chat', 'profiles', 'social'], refreshChat, !!currentUser)
+  useEffect(() => { if (currentUser) refreshChat() }, [currentUser, selectedContact?.id])
+
+  useEffect(() => {
+    const client = WebSocketClient.getInstance()
+    const presence = () => setOnlineUsers([...client.onlineUsers].filter(([, online]) => online).map(([id]) => id))
+    let expires: ReturnType<typeof setTimeout> | undefined
+    const typing = (event: Event) => {
+      const content = (event as CustomEvent).detail
+      if (content.sender_id !== selectedContact?.id) return
+      if (expires) clearTimeout(expires)
+      setTypingUser(content.is_typing ? content.sender_id : null)
+      if (content.is_typing) expires = setTimeout(() => setTypingUser(null), 3000)
+    }
+    presence()
+    setTypingUser(null)
+    window.addEventListener('presence_update', presence)
+    window.addEventListener('typing_status', typing)
+    return () => {
+      window.removeEventListener('presence_update', presence)
+      window.removeEventListener('typing_status', typing)
+      if (expires) clearTimeout(expires)
+    }
+  }, [selectedContact?.id])
+
+  useEffect(() => {
+    if (!selectedContact) return
+    const client = WebSocketClient.getInstance()
+    return () => {
+      if (typingTimeout.current) clearTimeout(typingTimeout.current)
+      client.setTypingStatus(selectedContact.id, false)
+    }
+  }, [selectedContact?.id])
+
+  const changeMessage = (value: string) => {
+    setNewMessage(value)
+    if (!selectedContact) return
+    const client = WebSocketClient.getInstance()
+    if (typingTimeout.current) clearTimeout(typingTimeout.current)
+    client.setTypingStatus(selectedContact.id, !!value.trim())
+    typingTimeout.current = setTimeout(() => client.setTypingStatus(selectedContact.id, false), 1500)
+  }
 
       // Add a separate effect to handle message updates when selectedContact changes
       useEffect(() => {
@@ -301,11 +272,13 @@ export default function Chat() {
 
   // Handle selecting a contact
   const handleSelectContact = async (contact: ChatContact) => {
+    if (selectedContact?.id !== contact.id) setNewMessage('');
+    selectedId.current = contact.id;
     setSelectedContact(contact);
     
     // Fetch messages for this contact
     const contactMessages = await fetchMessages(contact.id);
-    setMessages(contactMessages);
+    if (selectedId.current === contact.id) setMessages(contactMessages);
     setShowUsersList(false);
     
     // Mark messages as read
@@ -328,6 +301,7 @@ export default function Chat() {
         return;
       }
 
+      WebSocketClient.getInstance().setTypingStatus(selectedContact.id, false);
       try {
         // Try to send via WebSocket first
         let sentViaWebSocket = false;
@@ -451,6 +425,8 @@ export default function Chat() {
     
     console.log('Starting chat with user:', contact);
     
+    setNewMessage('');
+    selectedId.current = contact.id;
     setSelectedContact(contact);
     setMessages([]);
     setShowUsersList(false);
@@ -552,10 +528,10 @@ export default function Chat() {
   if (error) return <div className="chat-page">Error: {error}</div>;
 
   return (
-    <div className="chat-page">
+    <div ref={chatViewportRef} className="chat-page chat-workspace">
       <Sidebar activePage="chat" />
       
-      <div className="chat-container">
+      <div className={`chat-container ${selectedContact ? 'has-conversation' : ''}`}>
         <div className="chat-sidebar">
           <div className="chat-sidebar-header">
             <h2>Messages</h2>
@@ -570,21 +546,23 @@ export default function Chat() {
               {followedUsers.length > 0 ? (
                 <ul className="users-list">
                   {followedUsers.map(user => (
-                    <li key={user.id} className="user-item" onClick={() => handleStartChat(user)}>
-                      <div className="user-avatar">
-                        {user.avatar ? (
-                          <img src={user.avatar} alt={`${user.firstName}'s avatar`} />
-                        ) : (
-                          <div className="avatar-placeholder">
-                            {user.firstName.charAt(0)}
-                          </div>
-                        )}
-                      </div>
-                      <div className="user-info">
-                        <span className="user-name">
-                          {user.nickname || `${user.firstName} ${user.lastName}`}
-                        </span>
-                      </div>
+                    <li key={user.id} className="user-item">
+                      <button type="button" className="contact-select" onClick={() => handleStartChat(user)}>
+                        <div className="user-avatar">
+                          {user.avatar ? (
+                            <img src={user.avatar} alt={`${user.firstName}'s avatar`} />
+                          ) : (
+                            <div className="avatar-placeholder">
+                              {user.firstName.charAt(0)}
+                            </div>
+                          )}
+                        </div>
+                        <div className="user-info">
+                          <span className="user-name">
+                            {user.nickname || `${user.firstName} ${user.lastName}`}
+                          </span>
+                        </div>
+                      </button>
                     </li>
                   ))}
                 </ul>
@@ -600,32 +578,33 @@ export default function Chat() {
                     <li 
                       key={contact.id} 
                       className={`contact-item ${selectedContact?.id === contact.id ? 'active' : ''}`}
-                      onClick={() => handleSelectContact(contact)}
                     >
-                      <div className="contact-avatar">
-                        {contact.avatar ? (
-                          <img src={contact.avatar} alt={`${contact.firstName}'s avatar`} />
-                        ) : (
-                          <div className="avatar-placeholder">
-                            {contact.firstName.charAt(0)}
-                          </div>
+                      <button type="button" className="contact-select" aria-pressed={selectedContact?.id === contact.id} onClick={() => handleSelectContact(contact)}>
+                        <div className="contact-avatar">
+                          {contact.avatar ? (
+                            <img src={contact.avatar} alt={`${contact.firstName}'s avatar`} />
+                          ) : (
+                            <div className="avatar-placeholder">
+                              {contact.firstName.charAt(0)}
+                            </div>
+                          )}
+                        </div>
+                        <div className="contact-info">
+                          <span className="contact-name">
+                            {contact.nickname || `${contact.firstName} ${contact.lastName}`}
+                          </span>
+                          {contact.lastMessage && (
+                            <p className="last-message">
+                              {contact.lastMessage.match(/\.(jpeg|jpg|gif|png)$/i)
+                                ? '📷 Image'
+                                : contact.lastMessage}
+                            </p>
+                          )}
+                        </div>
+                        {(contact.unreadCount ?? 0) > 0 && (
+                          <div className="unread-badge">{contact.unreadCount}</div>
                         )}
-                      </div>
-                      <div className="contact-info">
-                        <span className="contact-name">
-                          {contact.nickname || `${contact.firstName} ${contact.lastName}`}
-                        </span>
-                        {contact.lastMessage && (
-                          <p className="last-message">
-                            {contact.lastMessage.match(/\.(jpeg|jpg|gif|png)$/i) 
-                              ? '📷 Image' 
-                              : contact.lastMessage}
-                          </p>
-                        )}
-                      </div>
-                      {contact.unreadCount && contact.unreadCount > 0 && (
-                        <div className="unread-badge">{contact.unreadCount}</div>
-                      )}
+                      </button>
                     </li>
                   ))}
                 </ul>
@@ -640,6 +619,9 @@ export default function Chat() {
           {selectedContact ? (
             <>
               <div className="chat-header">
+                <button type="button" className="chat-back-button" aria-label="Back to conversations" onClick={() => setSelectedContact(null)}>
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
+                </button>
                 <div className="chat-contact-info">
                   <div className="contact-avatar">
                     {selectedContact.avatar ? (
@@ -653,6 +635,9 @@ export default function Chat() {
                   <span className="contact-name">
                     {selectedContact.nickname || `${selectedContact.firstName} ${selectedContact.lastName}`}
                   </span>
+                  <span className="chat-presence" aria-live="polite">
+                    {typingUser === selectedContact.id ? 'Typing…' : onlineUsers.includes(selectedContact.id) ? 'Online' : 'Offline'}
+                  </span>
                 </div>
               </div>
               
@@ -664,22 +649,6 @@ export default function Chat() {
                        key={message.id}
                        className={`message ${message.sender_id === currentUser?.id ? 'sent' : 'received'}`}
                      >
-                       {/* Add avatar for received messages */}
-                       {message.sender_id !== currentUser?.id && (
-                         <div className="message-avatar">
-                           {message.sender?.avatar ? (
-                             <img
-                               src={message.sender.avatar.startsWith('http') ? message.sender.avatar : `http://localhost:8080${message.sender.avatar.replace(/\\/g, '/')}`}
-                               alt={`${message.sender.first_name}'s avatar`}
-                               className="avatar-img"
-                             />
-                           ) : (
-                             <div className="avatar-placeholder">
-                               {message.sender?.first_name?.charAt(0) || 'U'}
-                             </div>
-                           )}
-                         </div>
-                       )}
                        <div className="message-content">
                          {typeof message.content === 'string' && message.content.match(/\.(jpeg|jpg|gif|png)$/i) ? (
                            // If the content is an image URL - make it clickable
@@ -702,6 +671,7 @@ export default function Chat() {
                        </div>
                        <div className="message-time">
                          {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                         {message.sender_id === currentUser?.id && <span className="message-receipt">{message.is_read ? 'Read' : 'Sent'}</span>}
                        </div>
                      </div>
                    ))}
@@ -719,6 +689,7 @@ export default function Chat() {
                 <button
                   type="button"
                   className="image-button"
+                  aria-label="Attach an image"
                   onClick={() => fileInputRef.current?.click()}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -730,9 +701,10 @@ export default function Chat() {
                 <input
                   type="text"
                   className="message-input"
+                  aria-label="Message"
                   placeholder="Type a message..."
                   value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
+                  onChange={(e) => changeMessage(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
                   maxLength={100}
                 />
@@ -770,7 +742,7 @@ export default function Chat() {
       {showImageModal && (
         <div className="image-modal" onClick={closeImageModal}>
           <div className="image-modal-content" onClick={(e) => e.stopPropagation()}>
-            <button className="image-modal-close" onClick={closeImageModal}>
+            <button className="image-modal-close" aria-label="Close image" onClick={closeImageModal}>
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
