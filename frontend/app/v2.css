@@ -176,7 +176,7 @@ body .register-container::after {
   color: #fff;
   background:
     linear-gradient(145deg, rgba(255, 255, 255, 0.08), transparent 45%),
-    var(--loop-ink);
+    var(--loop-solid);
   isolation: isolate;
 }
 
@@ -380,7 +380,7 @@ body .register-form-wrapper:hover {
 .auth-progress > span {
   height: 4px;
   border-radius: 999px;
-  background: #f7f4ee;
+  background: var(--loop-surface);
 }
 .auth-progress > span.active { background: var(--loop-purple); }
 .auth-progress small { margin-left: 5px; color: var(--loop-muted); font-weight: 700; }
@@ -448,7 +448,7 @@ body .new-chat-button-large {
   border: 1px solid var(--loop-ink);
   border-radius: 14px;
   color: #fff;
-  background: var(--loop-ink);
+  background: var(--loop-solid);
   box-shadow: 0 5px 0 rgba(23, 21, 33, 0.15);
   font-weight: 760;
   letter-spacing: -0.01em;
@@ -508,7 +508,7 @@ body .sidebar {
   color: #fff;
   background:
     radial-gradient(circle at 20% 5%, rgba(112, 85, 232, 0.42), transparent 13rem),
-    var(--loop-ink);
+    var(--loop-solid);
   box-shadow: 12px 0 42px rgba(28, 22, 45, 0.12);
 }
 
@@ -780,7 +780,7 @@ body .current-user-avatar,
 body .follow-avatar {
   flex: 0 0 auto;
   border-radius: 15px;
-  background: #f7f4ee;
+  background: var(--loop-surface);
 }
 
 body .author-avatar,
@@ -808,7 +808,7 @@ body .post-image-container {
   margin: 18px -8px 0;
   overflow: hidden;
   border-radius: 16px;
-  background: #f7f4ee;
+  background: var(--loop-surface);
 }
 
 body .post-image { width: 100%; max-height: 620px; object-fit: cover; }
@@ -820,7 +820,7 @@ body .interaction-btn {
   border: 1px solid var(--loop-line);
   border-radius: 10px;
   color: var(--loop-muted);
-  background: #f7f4ee;
+  background: var(--loop-surface);
   font-size: 0.75rem;
   font-weight: 700;
 }
@@ -835,7 +835,7 @@ body .comments-section {
   padding: 20px;
   border: 0;
   border-radius: 16px;
-  background: #f7f4ee;
+  background: var(--loop-surface);
 }
 
 body .comment-item { border-color: var(--loop-line); }
@@ -863,7 +863,7 @@ body .empty-list-message {
   border: 1px dashed rgba(23, 21, 33, 0.18);
   border-radius: var(--loop-radius);
   color: var(--loop-muted);
-  background: #f7f4ee;
+  background: var(--loop-surface);
   text-align: center;
 }
 
@@ -949,7 +949,7 @@ body .privacy-badge {
   border: 1px solid var(--loop-line);
   border-radius: 999px;
   color: var(--loop-ink-soft);
-  background: #f7f4ee;
+  background: var(--loop-surface);
 }
 
 body .privacy-badge.public { color: #276231; background: #ecf8e8; }
@@ -966,7 +966,7 @@ body .follow-button {
 body .profile-about {
   border: 1px solid var(--loop-line);
   border-radius: 16px;
-  background: #f7f4ee;
+  background: var(--loop-surface);
 }
 body .profile-about h3 { color: var(--loop-ink); }
 body .profile-about p { color: var(--loop-muted); }
@@ -974,7 +974,7 @@ body .profile-about p { color: var(--loop-muted); }
 body .profile-stats {
   border: 1px solid var(--loop-line);
   border-radius: 16px;
-  background: var(--loop-ink);
+  background: var(--loop-solid);
 }
 body .profile-stats .stat { border-color: rgba(255,255,255,0.1); }
 body .profile-stats .stat-count { color: #fff; }
@@ -1036,7 +1036,7 @@ body .tab-button {
 }
 body .tab-button::after { content: none; }
 body .tab-button.active::after { content: none; }
-body .tab-button.active { color: #fff; background: var(--loop-ink); box-shadow: none; }
+body .tab-button.active { color: #fff; background: var(--loop-solid); box-shadow: none; }
 
 body .page-title { margin: 8px 0 22px; color: var(--loop-ink); font-size: 1.8rem; }
 body .users-container > .page-title { margin-left: auto; margin-right: auto; text-align: left; }
@@ -1089,7 +1089,7 @@ body .edit-post-container { padding-top: 32px; }
 body .create-post-card,
 body .edit-post-card { padding: clamp(22px, 4vw, 38px); }
 body .create-post-title { color: var(--loop-ink); font-size: 2.4rem; }
-body .current-user-section { border: 1px solid var(--loop-line); border-radius: 17px; background: #f7f4ee; }
+body .current-user-section { border: 1px solid var(--loop-line); border-radius: 17px; background: var(--loop-surface); }
 body .current-user-name,
 body .posting-as { color: var(--loop-ink); }
 body .content-textarea { min-height: 180px; padding: 17px; }
@@ -1145,7 +1145,7 @@ body .group-hero-section {
   border: 1px solid rgba(23,21,33,0.08);
   border-radius: var(--loop-radius-lg);
   color: #fff;
-  background: var(--loop-ink);
+  background: var(--loop-solid);
   box-shadow: none;
 }
 
@@ -1278,7 +1278,7 @@ body .spinner {
     border: 1px solid var(--loop-line);
     border-radius: 14px;
     color: #fff;
-    background: var(--loop-ink);
+    background: var(--loop-solid);
     box-shadow: var(--loop-shadow);
   }
   body .mobile-overlay { background: rgba(23,21,33,0.56); backdrop-filter: blur(5px); }
