@@ -52,12 +52,6 @@ func CreateSession(userID int) (*models.Session, error) {
 	if oldSessionID, exists := SessionStore.UserSessions.Load(userID); exists {
 		// Invalidate the old session
 		InvalidateSession(oldSessionID.(string))
-
-		// Publish a session invalidation event
-		events.Publish(events.Event{
-			Type:   events.SessionInvalidated,
-			UserID: userID,
-		})
 	}
 
 	// Create new session with 24-hour expiration
@@ -182,6 +176,7 @@ func InvalidateSession(sessionID string) {
 	if err != nil {
 		log.Printf("Error invalidating session in database: %v", err)
 	}
+	events.Publish(events.Event{Type: events.SessionInvalidated, UserID: session.UserID})
 }
 
 // CleanupExpiredSessions removes expired sessions from database and memory

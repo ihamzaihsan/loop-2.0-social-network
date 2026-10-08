@@ -18,6 +18,9 @@ func main() {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
 	fmt.Println("Database initialized successfully!")
+	if err := auth.InitSessionStore(); err != nil {
+		log.Fatalf("Failed to load sessions: %v", err)
+	}
 
 	routes.SetGroupService(services.NewGroupService())
 

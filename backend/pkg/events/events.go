@@ -34,6 +34,7 @@ func Publish(event Event) {
 	listenersMu.Unlock()
 
 	for _, listener := range eventListeners {
-		go listener(event)
+		// Finish session revocation before a replacement session can connect.
+		listener(event)
 	}
 }
