@@ -8,6 +8,7 @@ import BrandMark from './BrandMark'
 import { WebSocketClient } from '../app/webscoket/websocket'
 import { useRealtimeRefresh } from '../app/webscoket/useRealtimeRefresh'
 import styles from './Sidebar.module.css'
+import ThemeToggle from './ThemeToggle'
 
 export default function Sidebar({ activePage }: { activePage: string }) {
     const router = useRouter()
@@ -162,6 +163,7 @@ export default function Sidebar({ activePage }: { activePage: string }) {
                 </Link>
 
                 <NotificationBell />
+                <ThemeToggle />
 
                 <div className="sidebar-footer">
                     <div className="sidebar-footer-note">

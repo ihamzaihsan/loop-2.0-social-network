@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import "./v2.css";
 import RealtimeAlerts from "../components/RealtimeAlerts";
+import ThemeToggle from "../components/ThemeToggle";
+import "./theme.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,12 +33,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" data-scroll-behavior="smooth">
+    <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: `(function(){var p;try{p=localStorage.getItem('loop-theme')}catch(e){}document.documentElement.dataset.theme=p==='dark'||p==='light'?p:matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'})()` }} />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
         <RealtimeAlerts />
+        <ThemeToggle authOnly />
       </body>
     </html>
   );
