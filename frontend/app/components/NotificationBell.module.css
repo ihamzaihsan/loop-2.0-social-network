@@ -1,32 +1,13 @@
 .notificationContainer {
   position: relative;
-  display: inline-block;
-}
-
-.bellButton {
-  background: none;
-  border: none;
-  cursor: pointer;
-  position: relative;
-  padding: 8px;
-  border-radius: 50%;
-  transition: background-color 0.2s ease;
-}
-
-.bellButton:hover {
-  background-color: rgba(0, 0, 0, 0.05);
-}
-
-.bellIcon {
-  width: 24px;
-  height: 24px;
-  color: #4a5568;
+  display: block;
+  width: 100%;
 }
 
 .badge {
   position: absolute;
-  top: 0;
-  right: 0;
+  top: 6px;
+  right: 6px;
   background-color: #e53e3e;
   color: white;
   border-radius: 50%;

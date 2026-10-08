@@ -1,7 +1,8 @@
+import { useRealtimeRefresh } from '@/app/webscoket/useRealtimeRefresh';
 import React, { useState, useEffect } from 'react';
 import NotificationItem from './NotificationItem';
 import styles from './NotificationDrawer.module.css';
-import { WebSocketClient } from '../webscoket/websocket';
+
 
 interface Notification {
   id: number;
@@ -30,36 +31,18 @@ const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ onClose, onNoti
   useEffect(() => {
     fetchNotifications();
     
-    // Set up WebSocket listener for real-time updates
-    const wsClient = WebSocketClient.getInstance();
-    
-    // Handle follow request accepted/rejected updates
-    wsClient.addMessageHandler('follow_request_handled', (content) => {
-      console.log('Follow request handled:', content);
-      
-      // Remove the handled follow request from the notifications list
-      if (content.notification_id) {
-        setNotifications(prevNotifications => 
-          prevNotifications.filter(notification => 
-            notification.id !== content.notification_id
-          )
-        );
-        
-        // Update the notification count
-        onNotificationRead();
-      }
-    });
-    
+    const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', escape);
     return () => {
-      // Clean up by removing the handler when component unmounts
-      const wsClient = WebSocketClient.getInstance();
-      wsClient.messageHandlers.delete('follow_request_handled');
+      document.removeEventListener('keydown', escape);
     };
-  }, [onNotificationRead]);
+  }, [onNotificationRead, onClose]);
+
+  useRealtimeRefresh(['notifications', 'groups'], async () => { await fetchNotifications(); onNotificationRead(); });
 
   const fetchNotifications = async () => {
     try {
-      setLoading(true);
+      setError(null);
       const response = await fetch('http://localhost:8080/notifications', {
         method: 'GET',
         credentials: 'include',
@@ -128,6 +111,7 @@ const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ onClose, onNoti
             prevNotifications.filter(n => n.id !== notificationId)
           );
           
+          window.dispatchEvent(new Event('social_update'));
           // Update notification count in parent component
           onNotificationRead();
         }
@@ -163,7 +147,7 @@ const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ onClose, onNoti
   };
 
   return (
-    <div className={styles.drawer}>
+    <section className={styles.drawer} role="dialog" aria-label="Notifications" onClick={(event) => event.stopPropagation()}>
       <div className={styles.header}>
         <h3>Notifications</h3>
         <div className={styles.actions}>
@@ -174,7 +158,7 @@ const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ onClose, onNoti
           >
             Mark all as read
           </button>
-          <button className={styles.closeButton} onClick={onClose}>
+          <button className={styles.closeButton} aria-label="Close notifications" onClick={onClose}>
             &times;
           </button>
         </div>
@@ -200,7 +184,7 @@ const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ onClose, onNoti
           </ul>
         )}
       </div>
-    </div>
+    </section>
   );
 };
 

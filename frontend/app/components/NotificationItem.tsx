@@ -41,7 +41,11 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
     // Navigate to appropriate page based on notification type
     switch (notification.type) {
       case 'follow_request':
-        router.push('/followers');
+        router.push('/find-friends?tab=requests');
+        break;
+      case 'new_follower':
+      case 'follow_accept':
+        if (notification.from_user_id) router.push(`/profile/${notification.from_user_id}`);
         break;
       case 'group_invitation':
       case 'group_join_request':
@@ -129,4 +133,4 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
   );
 };
 
-export default NotificationItem; 
+export default NotificationItem;
