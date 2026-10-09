@@ -4,6 +4,7 @@
 !.env.example
 
 # Runtime data
+certs/
 *.db
 *.db-shm
 *.db-wal
