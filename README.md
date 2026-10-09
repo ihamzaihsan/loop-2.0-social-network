@@ -53,7 +53,7 @@ The backend follows a layered structure:
 | Frontend | Next.js 16 App Router, React 19, TypeScript, CSS Modules, Tailwind CSS |
 | Backend | Go 1.23, `net/http`, Gorilla WebSocket |
 | Data | SQLite, `golang-migrate`, versioned SQL migrations |
-| Security | bcrypt password hashing, UUID session tokens, HTTP-only cookies, CORS middleware |
+| Security | TLS 1.2/1.3, bcrypt password hashing, atomic UUID sessions, Secure/HttpOnly cookies, origin checks, HTTP/WebSocket rate limits |
 | Delivery | Multi-stage Docker builds, Docker Compose |
 | Quality | ESLint, TypeScript compiler, `gofmt`, Go tests, npm audit |
 
@@ -104,7 +104,7 @@ The launcher starts containers in the background and uses Compose's `--wait` to 
 
 The launcher uses [http://localhost:3000](http://localhost:3000) for the app and [http://localhost:8081](http://localhost:8081) for the API to avoid port 8080 conflicts. For other API ports, use Compose directly with the `API_PORT` environment variable set to the desired port for both build and subsequent startup commands.
 
-The frontend Docker build accepts an `API_PORT` argument and adjusts the existing localhost API and WebSocket URLs inside the image before compilation. Changing the API port requires a rebuild; source files stay unchanged. This setup is for local use. The launcher leaves containers running until you stop them with `docker compose down`.
+The frontend Docker build accepts `API_PORT` and an optional `NEXT_PUBLIC_API_URL` argument. All requests, media and WebSocket connections use the shared API configuration; changing it requires a rebuild. The HTTP launcher is for local development. Use the HTTPS setup below for encrypted connections. The launcher leaves containers running until you stop them with `docker compose down`.
 
 For the standard ports (frontend 3000, API 8080), use Compose directly:
 
@@ -121,6 +121,38 @@ To stop the stack:
 ```bash
 docker compose down
 ```
+
+## HTTPS and security
+
+Use Docker Compose 2.24.4 or newer for the HTTPS override. Generate your own development certificate once from the repository root; this utility requires Go and refuses to overwrite an existing certificate/key:
+
+```bash
+go run scripts/generate-cert.go
+# Stop the HTTP stack before switching its network configuration.
+docker compose down
+docker compose -f docker-compose.yml -f docker-compose.https.yml up -d --build
+```
+
+Open [https://localhost:8443](https://localhost:8443). [http://localhost:8088](http://localhost:8088) redirects to HTTPS. The API is `/api` on the same origin; WebSockets use `wss://localhost:8443/api/ws`. Backend and frontend ports are private to Docker in this configuration. SQLite and uploads retain the same mounted directories across rebuilds. To stop this configuration, use `docker compose -f docker-compose.yml -f docker-compose.https.yml down`.
+
+The generated ECDSA P-256 certificate covers `localhost`, `127.0.0.1` and `::1` and expires after one year. It is self-signed, so browsers show a trust warning until you explicitly trust `certs/localhost.crt` locally. On Windows, open the certificate, choose **Install Certificate**, select **Current User**, and install this locally generated certificate into **Trusted Root Certification Authorities**; restart your browser if needed. Only trust your own development certificate. The private key stays in the ignored `certs/` directory and is mounted read-only into Nginx; it must never be published. Unix file permissions restrict the key to its owner; use Windows file ACLs when sharing a Windows machine.
+
+Nginx accepts TLS 1.2 and 1.3. TLS 1.2 uses ECDHE with AES-GCM or ChaCha20-Poly1305; TLS 1.3 uses OpenSSL's modern AEAD defaults. Older TLS protocols and session tickets are disabled. See [Nginx's HTTPS documentation](https://nginx.org/en/docs/http/configuring_https_servers.html).
+
+For a public deployment, replace the localhost certificate and key with a CA-issued certificate, configure your domain and port 443 in `deploy/nginx.conf`, update `FRONTEND_URL` and Google's redirect URI, and rebuild the frontend with `/api`. If the CA uses an RSA key, also add the corresponding ECDHE-RSA AEAD cipher suites. Enable HSTS after verifying the public HTTPS domain; the localhost configuration deliberately omits HSTS because browsers apply it across localhost ports. The dedicated Docker subnet is `172.29.247.0/24`; if it conflicts with your network, change both the subnet and `TRUSTED_PROXY_CIDRS` together. Never trust forwarded client addresses from publicly accessible peers.
+
+Implemented protections:
+
+- Passwords are salted bcrypt hashes at cost 10; they are not stored as plaintext or reversible encryption. Google-only accounts have no local password until the user creates one. See [OWASP password storage guidance](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html).
+- Sessions use random UUIDv4 identifiers in server-side SQLite records. A transaction and a unique database index enforce one active session per account, even during concurrent logins. Each request rechecks database expiry, revocation and suspension. Login rotates the identifier; logout, password reset and account suspension revoke sessions.
+- HTTPS session cookies have `Secure`, `HttpOnly`, `SameSite=Lax`, path `/`, and a 24-hour lifetime. Session identifiers are excluded from JSON responses and browser local storage. Origin checks and Fetch Metadata reject untrusted cross-site requests, including WebSocket handshakes.
+- API rate limiting allows 300 requests/minute per client address with a burst of 100. Login, registration and Google authentication additionally share 10 requests/minute with a burst of 10; Google configuration reads use the general limit. Password recovery retains its separate five-attempt/15-minute limit. API rejection returns HTTP 429 with `Retry-After`. Only configured trusted proxies can supply `X-Real-IP`.
+- WebSocket messages share a per-account limit of 120/minute with a burst of 30 across tabs; excessive traffic closes the offending connection with code 1008. Nginx additionally limits dynamic page/API requests to 30/second with a burst of 100. Application limiter maps are bounded and expire idle entries; they are process-local, appropriate to the single-backend deployment. Multiple backend replicas would need a shared rate-limit store.
+- Requests are capped at 10 MiB, with header/body/idle timeouts and security response headers. SQLite uses parameterized queries and foreign-key constraints. The database file itself is not encrypted; database encryption remains an optional extension.
+
+Verification used an isolated database and Docker network. It covered 2,000 concurrent limiter checks, 40 concurrent session rotations, forged/expired/revoked/suspended sessions, a 30-request concurrent login burst (10 authentication failures and 20 HTTP 429 responses), forwarded-IP spoofing, cross-origin mutations, WebSocket flooding, TLS version negotiation, and HTTPS post/comment/media flows with mobile pages in both themes. Go race checks, `go vet`, TypeScript, ESLint and production Docker builds passed. Temporary audit code and fixtures were removed after verification. These checks cover the implemented protections rather than constituting an independent penetration test.
+
+For Google authentication over this HTTPS setup, add `https://localhost:8443/api/auth/google/callback` to the Google web client's authorized redirect URIs. The override supplies this callback and the frontend origin; your private client ID/secret still come from `backend/.env`.
 
 ## Google registration and sign-in
 
