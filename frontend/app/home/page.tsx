@@ -1,4 +1,5 @@
 'use client'
+import { imageSizeError } from "../../utils/images";
 import { API, mediaURL } from "../../utils/api";
 
 import { useRealtimeRefresh } from '@/app/webscoket/useRealtimeRefresh'
@@ -197,7 +198,8 @@ export default function Home() {
 
   const handleCommentFileChange = (postId: number, e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      console.log('File selected:', e.target.files[0].name);
+      const sizeError = imageSizeError(e.target.files[0]);
+      if (sizeError) {setError(sizeError);return;}
       setCommentImageFiles(prev => ({
         ...prev,
         [postId]: e.target.files![0]

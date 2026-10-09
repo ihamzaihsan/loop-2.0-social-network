@@ -55,6 +55,10 @@ var recoveryThrottle = struct {
 }{entries: make(map[string]throttleEntry)}
 
 func AllowRecovery(key string) bool {
+	if db.IsPostgres() {
+		allowed, _ := sharedLimit("recovery", key, 5.0/900, 5)
+		return allowed
+	}
 	recoveryThrottle.Lock()
 	defer recoveryThrottle.Unlock()
 	now := time.Now()

@@ -1,13 +1,17 @@
 package auth
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"math"
 	"net"
 	"net/http"
 	"os"
+	"socialNetwork/pkg/db"
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -20,16 +24,20 @@ type rateBucket struct {
 type rateLimiter struct {
 	sync.Mutex
 	entries   map[string]rateBucket
+	scope     string
 	rate      float64
 	burst     float64
 	nextSweep time.Time
 }
 
-func newRateLimiter(perMinute, burst int) *rateLimiter {
-	return &rateLimiter{entries: make(map[string]rateBucket), rate: float64(perMinute) / 60, burst: float64(burst)}
+func newRateLimiter(scope string, perMinute, burst int) *rateLimiter {
+	return &rateLimiter{scope: scope, entries: make(map[string]rateBucket), rate: float64(perMinute) / 60, burst: float64(burst)}
 }
 
 func (l *rateLimiter) allow(key string, now time.Time) (bool, int) {
+	if db.IsPostgres() {
+		return sharedLimit(l.scope, key, l.rate, l.burst)
+	}
 	l.Lock()
 	defer l.Unlock()
 	if !now.Before(l.nextSweep) {
@@ -62,12 +70,19 @@ func (l *rateLimiter) allow(key string, now time.Time) (bool, int) {
 	return true, 0
 }
 
-var requestLimits = newRateLimiter(300, 100)
-var loginLimits = newRateLimiter(10, 10)
-var socketLimits = newRateLimiter(120, 30)
+var requestLimits = newRateLimiter("requests", 300, 100)
+var loginLimits = newRateLimiter("login", 10, 10)
+var socketLimits = newRateLimiter("socket", 120, 30)
 
 // Forwarded IPs are accepted only from explicitly configured reverse proxies.
 func ClientIP(r *http.Request) string {
+	if os.Getenv("VERCEL") != "" {
+		raw := strings.TrimSpace(strings.Split(r.Header.Get("X-Vercel-Forwarded-For"), ",")[0])
+		if ip := net.ParseIP(raw); ip != nil {
+			return ip.String()
+		}
+	}
+
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		host = r.RemoteAddr
@@ -131,4 +146,20 @@ func SecurityMiddleware(next http.Handler) http.Handler {
 		r.Body = http.MaxBytesReader(w, r.Body, 10<<20)
 		next.ServeHTTP(w, r)
 	})
+}
+
+var sharedSweep atomic.Int64
+
+func sharedLimit(scope, key string, refill, burst float64) (bool, int) {
+	moment := time.Now().Unix()
+	last := sharedSweep.Load()
+	if moment-last >= 60 && sharedSweep.CompareAndSwap(last, moment) {
+		_, _ = db.DBInstance.DB.Exec(`DELETE FROM rate_limits WHERE updated_at<?`, time.Now().Add(-15*time.Minute))
+	}
+	hash := sha256.Sum256([]byte(key))
+	var retry int
+	if db.DBInstance.DB.QueryRow(`SELECT take_rate_limit(?,?,?,?)`, scope, hex.EncodeToString(hash[:]), refill, burst).Scan(&retry) != nil {
+		return false, 60
+	}
+	return retry == 0, retry
 }

@@ -34,3 +34,6 @@ Thumbs.db
 # Editor settings
 .idea/
 .vscode/
+
+# Provider CLI metadata
+.vercel/

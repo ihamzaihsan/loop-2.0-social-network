@@ -26,6 +26,7 @@ export class WebSocketClient implements WebSocketClientInterface {
 
 
     private stopped = false;
+    private reconnectDelay = 1000;
     socket: WebSocket | null = null;
     messageHandlers: Map<string, (content: any) => void> = new Map();
     messageHistory: Map<number, MessageContent[]>;
@@ -62,6 +63,7 @@ export class WebSocketClient implements WebSocketClientInterface {
         const connection = this.socket;
 
         this.socket.onopen = () => {
+            this.reconnectDelay = 1000;
             this.clearPingInterval();
             this.startPingInterval();
             window.dispatchEvent(new CustomEvent('connection_status', { detail: { connected: true } }));
@@ -166,10 +168,12 @@ export class WebSocketClient implements WebSocketClientInterface {
             window.dispatchEvent(new Event('presence_update'));
             window.dispatchEvent(new CustomEvent('connection_status', { detail: { connected: false } }));
         
-            // Only attempt to reconnect if the close wasn't intentional (code 1000)
-            if (!this.stopped && event.code !== 1000) {
-                console.log('Attempting to reconnect in 5 seconds...');
-                this.reconnectTimeout = setTimeout(() => this.connect(), 5000);
+            // Hosted functions can close normally when their duration expires.
+            // Explicit close() sets stopped; all other closes should recover.
+            if (!this.stopped) {
+                const delay = this.reconnectDelay + Math.floor(Math.random() * 500);
+                this.reconnectDelay = Math.min(this.reconnectDelay * 2, 30000);
+                this.reconnectTimeout = setTimeout(() => this.connect(), delay);
             }
         };
 

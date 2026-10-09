@@ -1,8 +1,10 @@
 # Loop 2.0
 
+**Live Demo:** [View the application](https://loop-20-ihamzaihsan.vercel.app)
+
 > A full-stack social platform for sharing moments, building communities, and having real-time conversations.
 
-Loop is a portfolio-scale social network built with **Next.js 16**, **React 19**, **Go**, **SQLite**, and **WebSockets**. It supports the complete journey from account creation and privacy controls to personalized feeds, group communities, event RSVPs, notifications, and direct messaging.
+Loop is a portfolio-scale social network built with **Next.js 16**, **React 19**, **Go**, **SQLite/PostgreSQL**, and **WebSockets**. It supports the complete journey from account creation and privacy controls to personalized feeds, group communities, event RSVPs, notifications, and direct messaging.
 
 The current interface is the second-generation product experience: a responsive design system with an editorial visual language, accessible interaction states, and consistent layouts across authentication, social, and account pages.
 
@@ -51,10 +53,10 @@ The backend follows a layered structure:
 | Layer | Technologies |
 | --- | --- |
 | Frontend | Next.js 16 App Router, React 19, TypeScript, CSS Modules, Tailwind CSS |
-| Backend | Go 1.23, `net/http`, Gorilla WebSocket |
-| Data | SQLite, `golang-migrate`, versioned SQL migrations |
+| Backend | Go 1.27.2, `net/http`, Gorilla WebSocket |
+| Data | SQLite for local use; PostgreSQL with pgx and a private application schema for managed use; versioned SQL migrations |
 | Security | TLS 1.2/1.3, bcrypt password hashing, atomic UUID sessions, Secure/HttpOnly cookies, origin checks, HTTP/WebSocket rate limits |
-| Delivery | Multi-stage Docker builds, Docker Compose |
+| Delivery | Multi-stage Docker builds, Docker Compose; Vercel Services configuration and optional Supabase Storage/Realtime adapters |
 | Quality | ESLint, TypeScript compiler, `gofmt`, Go tests, npm audit |
 
 ## Repository structure
@@ -64,7 +66,7 @@ loop-2.0-social-network/
 ├── backend/
 │   ├── pkg/
 │   │   ├── auth/          # Authentication, sessions, and CORS
-│   │   ├── db/            # SQLite connection, migrations, and queries
+│   │   ├── db/            # Database connections, migrations, and queries
 │   │   ├── models/        # Domain models
 │   │   ├── routes/        # HTTP and WebSocket handlers
 │   │   ├── services/      # Application logic
@@ -184,7 +186,7 @@ See [Google's web-server OAuth guide](https://developers.google.com/identity/pro
 
 - Node.js 20.9 or newer
 - npm 10 or newer
-- Go 1.23 or newer
+- Go 1.27.2 or newer
 - A C compiler supported by `go-sqlite3` (GCC on Windows/Linux or Xcode command-line tools on macOS)
 
 ### 1. Start the backend
@@ -238,11 +240,11 @@ go vet ./...
 
 ## Database lifecycle
 
-The application creates a fresh SQLite database automatically and applies migrations from `backend/pkg/db/migrations/sqlite`. Database files, uploaded media, local environment files, and compiled binaries are intentionally excluded from version control so the repository contains no personal runtime data.
+The application creates a fresh SQLite database automatically and applies migrations from `backend/pkg/db/migrations/sqlite`. When `DATABASE_URL` is set, it uses PostgreSQL with embedded migrations in a private `loop` schema instead. `go run ./cmd/migrate -source PATH_TO_SQLITE` imports durable data into an empty managed schema using a read-only source snapshot; sessions and one-time authentication flows are not transferred. The optional `-uploads PATH_TO_UPLOADS` copies media into a private Supabase bucket. The migration command creates the bucket if needed and refuses a public bucket. Hosted image uploads are limited to 4 MB to fit request limits; local uploads allow 5 MB. Database files, uploaded media, local environment files, and compiled binaries are intentionally excluded from version control so the repository contains no personal runtime data.
 
 ## Engineering decisions
 
-- **SQLite** keeps local setup lightweight while preserving relational modeling, foreign keys, and repeatable migrations.
+- **SQLite** keeps local setup lightweight; **PostgreSQL** supports shared sessions, rate limits, and presence across managed API instances. Supabase credentials remain server-only; the API checks permissions before reading private media. The private realtime relay queues failed delivery in a database outbox.
 - **Go's standard HTTP server** keeps the API explicit and dependency-light.
 - **WebSockets with HTTP fallback** provide responsive messaging while retaining a reliable delivery path.
 - **Server-managed sessions** allow revocation and single-session behavior without exposing session state to client JavaScript.
@@ -251,8 +253,6 @@ The application creates a fresh SQLite database automatically and applies migrat
 ## Roadmap
 
 - Add automated integration and browser tests.
-- Centralize frontend API configuration for multi-environment deployments.
-- Move media storage to an object-storage provider for production scale.
 - Extend pagination and caching to larger conversations.
 - Expand accessibility testing with automated and manual audits.
 

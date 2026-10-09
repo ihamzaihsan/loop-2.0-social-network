@@ -1,4 +1,5 @@
 'use client'
+import { imageSizeError } from "../../utils/images";
 import { API } from "../../utils/api";
 
 import { useRealtimeRefresh } from '@/app/webscoket/useRealtimeRefresh'
@@ -448,6 +449,8 @@ function ChatContent() {
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      const sizeError = imageSizeError(file);
+      if (sizeError) {setError(sizeError);return;}
       const formData = new FormData();
       formData.append('image', file);
   

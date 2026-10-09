@@ -1,0 +1,22 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "frontend": {
+      "root": "frontend",
+      "framework": "nextjs",
+      "installCommand": "npm ci",
+      "buildCommand": "NEXT_PUBLIC_API_URL=/api NEXT_PUBLIC_MAX_IMAGE_MB=4 npm run build"
+    },
+    "backend": {
+      "root": "backend",
+      "framework": "go",
+      "entrypoint": "server.go",
+      "buildCommand": "CGO_ENABLED=0 go build -o server server.go"
+    }
+  },
+  "rewrites": [
+    { "source": "/api/:path*", "destination": { "service": "backend" } },
+    { "source": "/", "destination": { "service": "frontend", "path": "/" } },
+    { "source": "/:path*", "destination": { "service": "frontend" } }
+  ]
+}

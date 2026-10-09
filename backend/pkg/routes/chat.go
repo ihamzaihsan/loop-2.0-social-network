@@ -151,11 +151,10 @@ func GetChatContacts(userID int) ([]ChatContact, error) {
 				END AS contact_id,
 				m.content AS last_message,
 				m.created_at AS last_message_time,
-				MAX(m.id) AS last_message_id
+				m.id AS last_message_id
 			FROM chats c
-			JOIN messages m ON c.id = m.chat_id
+			JOIN messages m ON c.id = m.chat_id AND m.id=(SELECT MAX(latest.id) FROM messages latest WHERE latest.chat_id=c.id)
 			WHERE c.user1_id = ? OR c.user2_id = ?
-			GROUP BY c.id
 		)
 		SELECT 
 			u.id,

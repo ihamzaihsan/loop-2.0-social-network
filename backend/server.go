@@ -1,18 +1,28 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	auth "socialNetwork/pkg/auth"
+	"socialNetwork/pkg/cloud"
 	db "socialNetwork/pkg/db"
 	routes "socialNetwork/pkg/routes"
 	services "socialNetwork/pkg/services"
+	ws "socialNetwork/pkg/websocket"
+	"strings"
 	"time"
 )
 
 func main() {
+	if err := cloud.Validate(); err != nil {
+		log.Fatal(err)
+	}
+	if os.Getenv("VERCEL") != "" && !strings.HasPrefix(os.Getenv("FRONTEND_URL"), "https://") {
+		log.Fatal("FRONTEND_URL must be the HTTPS deployment origin")
+	}
 	// Initialize database
 	err := db.InitDB()
 	if err != nil {
@@ -27,6 +37,9 @@ func main() {
 	}
 
 	routes.SetGroupService(services.NewGroupService())
+	relayContext, cancelRelay := context.WithCancel(context.Background())
+	defer cancelRelay()
+	ws.StartRelay(relayContext)
 
 	// Defer database closure
 	defer func() {
@@ -35,7 +48,7 @@ func main() {
 		}
 	}()
 
-	// Serve uploaded media from the local runtime directory.
+	// Serve authorized media from local storage or a private Supabase bucket.
 	http.HandleFunc("/uploads/", auth.CorsMiddleware(auth.AuthMiddleware(routes.ServeMedia)))
 
 	http.HandleFunc("/auth/google/config", auth.CorsMiddleware(auth.GoogleConfig))
@@ -115,7 +128,16 @@ func main() {
 
 	address := ":" + port
 	fmt.Printf("Server is running on http://0.0.0.0:%s\n", port)
-	server := &http.Server{Addr: address, Handler: auth.SecurityMiddleware(routes.MutationEvents(http.DefaultServeMux)), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 30 * time.Second, WriteTimeout: 30 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 16 << 10}
+	handler := auth.SecurityMiddleware(routes.MutationEvents(http.DefaultServeMux))
+	// Vercel Services forwards the original /api path. Nginx strips it locally.
+	if os.Getenv("VERCEL") != "" {
+		prefix := strings.TrimRight(os.Getenv("PUBLIC_API_PATH"), "/")
+		if prefix != "/api" {
+			log.Fatal("PUBLIC_API_PATH must be /api on Vercel")
+		}
+		handler = http.StripPrefix(prefix, handler)
+	}
+	server := &http.Server{Addr: address, Handler: handler, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 30 * time.Second, WriteTimeout: 30 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 16 << 10}
 	err = server.ListenAndServe()
 	if err != nil {
 		log.Fatalf("Server failed to start: %v", err)

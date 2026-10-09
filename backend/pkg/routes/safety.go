@@ -55,7 +55,7 @@ func Blocks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer tx.Rollback()
-	if _, err = tx.Exec(`INSERT OR IGNORE INTO user_blocks(blocker_id,blocked_id) VALUES (?,?)`, id, target); err != nil {
+	if _, err = tx.Exec(`INSERT INTO user_blocks(blocker_id,blocked_id) VALUES (?,?) ON CONFLICT DO NOTHING`, id, target); err != nil {
 		http.Error(w, "User unavailable", 404)
 		return
 	}

@@ -1,4 +1,5 @@
 'use client'
+import { imageSizeError } from "../../utils/images";
 import { API, mediaURL } from "../../utils/api";
 
 import { useRealtimeRefresh } from '@/app/webscoket/useRealtimeRefresh'
@@ -139,11 +140,8 @@ export default function CreatePost() {
       return 'Invalid image format. Only JPEG, PNG, and GIF files are allowed.'
     }
 
-    // Check file size (5MB limit)
-    const maxSize = 5 * 1024 * 1024 // 5MB in bytes
-    if (file.size > maxSize) {
-      return 'Image file size exceeds 5MB limit.'
-    }
+    const sizeError = imageSizeError(file)
+    if (sizeError) return sizeError
 
     return null
   }

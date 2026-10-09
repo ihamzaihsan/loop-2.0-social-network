@@ -1,4 +1,5 @@
 'use client'
+import { imageSizeError } from "../../utils/images";
 import { API } from "../../utils/api";
 import './register.css'
 import Link from 'next/link'
@@ -125,6 +126,8 @@ export default function Register() {
       let response;
 
       if (formData.avatar) {
+        const sizeError = imageSizeError(formData.avatar);
+        if (sizeError) {setErrorMessage(sizeError);return;}
         // Use FormData for file upload
         const formDataToSend = new FormData()
         formDataToSend.append('email', formData.email)

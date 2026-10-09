@@ -1,8 +1,11 @@
 package query
 
-import "database/sql"
+import (
+	"database/sql"
+	"socialNetwork/pkg/db"
+)
 
-func DeleteGroupTx(tx *sql.Tx, id int) error {
+func DeleteGroupTx(tx *db.Tx, id int) error {
 	statements := []string{
 		`DELETE FROM event_responses WHERE event_id IN(SELECT id FROM group_events WHERE group_id=?)`,
 		`DELETE FROM event_response_options WHERE event_id IN(SELECT id FROM group_events WHERE group_id=?)`,
@@ -24,7 +27,7 @@ func DeleteGroupTx(tx *sql.Tx, id int) error {
 	return nil
 }
 
-func DeleteContentTx(tx *sql.Tx, kind string, id int) error {
+func DeleteContentTx(tx *db.Tx, kind string, id int) error {
 	var statements []string
 	switch kind {
 	case "post":
@@ -48,7 +51,7 @@ func DeleteContentTx(tx *sql.Tx, kind string, id int) error {
 	return nil
 }
 
-func DeleteAccountTx(tx *sql.Tx, id int) error {
+func DeleteAccountTx(tx *db.Tx, id int) error {
 	rows, err := tx.Query(`SELECT id FROM groups WHERE creator_id=?`, id)
 	if err != nil {
 		return err

@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-// SQLite is the authority for session state; never cache revocation or expiry.
+// The database is the authority for session state; never cache revocation or expiry.
 var sessionWrites sync.Mutex
 
 func InitSessions() error {
@@ -34,6 +34,9 @@ func CreateSession(userID int) (*models.Session, error) {
 		return nil, err
 	}
 	defer tx.Rollback()
+	if err = tx.LockUser(userID); err != nil {
+		return nil, err
+	}
 	result, err := tx.Exec(`UPDATE sessions SET is_active=0 WHERE user_id=? AND is_active=1`, userID)
 	if err != nil {
 		return nil, err

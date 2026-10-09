@@ -1,4 +1,4 @@
-FROM golang:1.23.5-alpine AS builder
+FROM golang:1.27.2-alpine AS builder
 
 # Install build dependencies
 RUN apk add --no-cache gcc musl-dev

@@ -3,7 +3,6 @@ package services
 import (
 	"log"
 	"socialNetwork/pkg/events"
-	ws "socialNetwork/pkg/websocket"
 )
 
 // Initialize subscribes to events when the package is loaded
@@ -25,7 +24,6 @@ func handleSessionInvalidation(event events.Event) {
 
 	// Send the invalidation message to the user
 	SendToUser(userID, message)
-	ws.DisconnectUser(userID)
 
 	log.Printf("[INFO] Sent session invalidation message to user %d", userID)
 }

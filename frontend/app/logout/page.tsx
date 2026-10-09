@@ -26,10 +26,10 @@ export default function Logout() {
         
         localStorage.removeItem('sessionToken');
         
-        router.push('/')
+        router.replace('/login')
       } catch (error) {
         console.error('Logout failed:', error)
-        router.push('/')
+        router.replace('/login')
       }
     }
 

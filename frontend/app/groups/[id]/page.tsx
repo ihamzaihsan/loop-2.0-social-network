@@ -1,4 +1,5 @@
 'use client'
+import { imageSizeError } from "../../../utils/images";
 import { API, mediaURL } from "../../../utils/api";
 
 import { useRealtimeRefresh } from '@/app/webscoket/useRealtimeRefresh'
@@ -181,6 +182,8 @@ const fetchGroupDetails = async () => {
 const handleGroupImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      const sizeError = imageSizeError(file);
+      if (sizeError) {setError(sizeError);return;}
       const formData = new FormData();
       formData.append('image', file);
   
@@ -504,11 +507,8 @@ const handleGroupImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) =>
             return 'Invalid image format. Only JPEG, PNG, and GIF files are allowed.'
         }
 
-        // Check file size (5MB limit)
-        const maxSize = 5 * 1024 * 1024 // 5MB in bytes
-        if (file.size > maxSize) {
-            return 'Image file size exceeds 5MB limit.'
-        }
+        const sizeError = imageSizeError(file)
+        if (sizeError) return sizeError
 
         return null
     }

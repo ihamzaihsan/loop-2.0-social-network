@@ -276,7 +276,7 @@ func GoogleCallback(w http.ResponseWriter, r *http.Request) {
 	}
 	// Never link solely by email: a password-authenticated owner must opt in.
 	var exists bool
-	if db.DBInstance.DB.QueryRow(`SELECT EXISTS(SELECT 1 FROM users WHERE email=? COLLATE NOCASE)`, identity.Email).Scan(&exists) != nil {
+	if db.DBInstance.DB.QueryRow(`SELECT EXISTS(SELECT 1 FROM users WHERE LOWER(email)=LOWER(?))`, identity.Email).Scan(&exists) != nil {
 		googleRedirectError(w, r, c, "failed", false)
 		return
 	}

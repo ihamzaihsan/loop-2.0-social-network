@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
@@ -13,6 +14,7 @@ import (
 	"mime/multipart"
 	"os"
 	"path/filepath"
+	"socialNetwork/pkg/cloud"
 	"socialNetwork/pkg/db"
 	"strings"
 	"time"
@@ -21,6 +23,13 @@ import (
 const (
 	MaxImageSize = 5 * 1024 * 1024 // 5MB
 )
+
+func ImageSizeLimit() int64 {
+	if os.Getenv("VERCEL") != "" {
+		return 4 * 1024 * 1024
+	}
+	return MaxImageSize
+}
 
 var allowedImageTypes = map[string]bool{
 	"image/jpeg": true,
@@ -31,8 +40,8 @@ var allowedImageTypes = map[string]bool{
 
 func ValidateImageFile(header *multipart.FileHeader) error {
 	// Check file size
-	if header.Size > MaxImageSize {
-		return errors.New("image file size exceeds 5MB limit")
+	if header.Size > ImageSizeLimit() {
+		return fmt.Errorf("image file size exceeds %dMB limit", ImageSizeLimit()/(1024*1024))
 	}
 
 	// Check file type by MIME type
@@ -87,34 +96,42 @@ func HandleImageUpload(file multipart.File, header *multipart.FileHeader, owner 
 	if _, err = file.Seek(0, 0); err != nil {
 		return "", err
 	}
-	uploadDir := "./uploads"
-	if err := os.MkdirAll(uploadDir, 0755); err != nil {
-		return "", fmt.Errorf("failed to create upload directory: %v", err)
-	}
-
-	// Generate unique filename instead of using original
 	uniqueFilename := generateUniqueFilename(header.Filename)
-	filepath := filepath.Join(uploadDir, uniqueFilename)
-
-	out, err := os.Create(filepath)
-	if err != nil {
-		return "", fmt.Errorf("failed to create file: %v", err)
-	}
-	defer out.Close()
-
-	_, err = io.Copy(out, file)
-	if err != nil {
-		return "", fmt.Errorf("failed to save file: %v", err)
-	}
-
-	// Return web-friendly path with the unique filename
 	webPath := "/uploads/" + uniqueFilename
+	var cleanup func()
+	if cloud.Enabled() {
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		if err = cloud.Upload(ctx, uniqueFilename, header.Header.Get("Content-Type"), io.LimitReader(file, MaxImageSize+1)); err != nil {
+			return "", err
+		}
+		cleanup = func() { _ = cloud.Delete(context.Background(), uniqueFilename) }
+	} else {
+		if err = os.MkdirAll("uploads", 0755); err != nil {
+			return "", err
+		}
+		destination := filepath.Join("uploads", uniqueFilename)
+		out, openErr := os.Create(destination)
+		if openErr != nil {
+			return "", openErr
+		}
+		_, err = io.Copy(out, io.LimitReader(file, MaxImageSize+1))
+		closeErr := out.Close()
+		if err == nil {
+			err = closeErr
+		}
+		if err != nil {
+			os.Remove(destination)
+			return "", err
+		}
+		cleanup = func() { _ = os.Remove(destination) }
+	}
 	if len(owner) > 0 && owner[0] > 0 {
 		if _, err = db.DBInstance.DB.Exec(`INSERT INTO media_uploads(path,owner_id) VALUES (?,?)`, webPath, owner[0]); err != nil {
-			out.Close()
-			os.Remove(filepath)
+			cleanup()
 			return "", err
 		}
 	}
+
 	return webPath, nil
 }

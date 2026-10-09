@@ -13,10 +13,16 @@ func VisiblePosts(viewer, target, limit, offset int, search string) ([]models.Po
 	if err := db.DBInstance.DB.QueryRow(`SELECT COUNT(*) FROM posts p JOIN users u ON u.id=p.user_id WHERE `+condition, target, target, search, search).Scan(&total); err != nil {
 		return nil, 0, err
 	}
-	rows, err := db.DBInstance.DB.Query(`SELECT p.id,p.user_id,COALESCE(p.content,''),COALESCE(p.image,''),p.privacy,p.created_at,
+	statement := `SELECT p.id,p.user_id,COALESCE(p.content,''),COALESCE(p.image,''),p.privacy,p.created_at,
  u.first_name,u.last_name,u.nickname,u.avatar,
  (SELECT COUNT(*) FROM likes l WHERE l.post_id=p.id),EXISTS(SELECT 1 FROM likes l WHERE l.post_id=p.id AND l.user_id=?)
- FROM posts p JOIN users u ON u.id=p.user_id WHERE `+condition+` ORDER BY p.created_at DESC,p.id DESC LIMIT ? OFFSET ?`, viewer, target, target, search, search, limit, offset)
+ FROM posts p JOIN users u ON u.id=p.user_id WHERE ` + condition + ` ORDER BY p.created_at DESC,p.id DESC `
+	args := []any{viewer, target, target, search, search}
+	if limit >= 0 {
+		statement += " LIMIT ? OFFSET ?"
+		args = append(args, limit, offset)
+	}
+	rows, err := db.DBInstance.DB.Query(statement, args...)
 	if err != nil {
 		return nil, 0, err
 	}

@@ -61,7 +61,7 @@ export default function Sidebar({ activePage }: { activePage: string }) {
             if (response.ok) {
                 localStorage.removeItem('sessionToken')
                 WebSocketClient.resetInstance()
-                router.push('/')
+                router.replace('/login')
             } else {
                 console.error('Error logging out')
             }

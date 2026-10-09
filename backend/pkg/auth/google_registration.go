@@ -71,7 +71,7 @@ func GoogleRegistration(w http.ResponseWriter, r *http.Request) {
 	}
 	// Recheck within the write transaction to avoid email races with normal signup.
 	var exists bool
-	if tx.QueryRow(`SELECT EXISTS(SELECT 1 FROM users WHERE email=? COLLATE NOCASE)`, f.Email).Scan(&exists) != nil {
+	if tx.QueryRow(`SELECT EXISTS(SELECT 1 FROM users WHERE LOWER(email)=LOWER(?))`, f.Email).Scan(&exists) != nil {
 		googleJSON(w, 500, map[string]string{"error": "Unable to create account"})
 		return
 	}

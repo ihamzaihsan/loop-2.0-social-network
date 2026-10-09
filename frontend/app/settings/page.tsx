@@ -1,4 +1,5 @@
 "use client";
+import { imageSizeError } from "../../utils/images";
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import GoogleSignIn from "../../components/GoogleSignIn";
@@ -50,6 +51,8 @@ export default function Settings() {
     setError("");
     setMessage("");
     try {
+      const avatar = data.get("avatar");
+      if (avatar instanceof File) {const sizeError = imageSizeError(avatar);if (sizeError) throw new Error(sizeError);}
       await api("/account", {
         method,
         body:

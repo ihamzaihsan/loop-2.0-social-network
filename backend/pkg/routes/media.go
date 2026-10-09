@@ -1,9 +1,12 @@
 package routes
 
 import (
+	"errors"
+	"io"
 	"net/http"
 	"path/filepath"
 	"socialNetwork/pkg/access"
+	"socialNetwork/pkg/cloud"
 	"socialNetwork/pkg/db"
 	"strings"
 )
@@ -47,5 +50,27 @@ func ServeMedia(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Cache-Control", "private, no-store")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
+	if cloud.Enabled() {
+		response, err := cloud.Read(r.Context(), name)
+		if err != nil {
+			var providerError *cloud.HTTPError
+			if errors.As(err, &providerError) && providerError.Status == 404 {
+				http.NotFound(w, r)
+				return
+			}
+			http.Error(w, "Media unavailable", http.StatusBadGateway)
+			return
+		}
+		defer response.Body.Close()
+		for _, header := range []string{"Content-Type", "Content-Length"} {
+			if value := response.Header.Get(header); value != "" {
+				w.Header().Set(header, value)
+			}
+		}
+		if r.Method == http.MethodGet {
+			_, _ = io.Copy(w, response.Body)
+		}
+		return
+	}
 	http.ServeFile(w, r, filepath.Join("uploads", name))
 }

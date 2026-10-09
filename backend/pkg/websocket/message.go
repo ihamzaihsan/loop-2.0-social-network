@@ -2,7 +2,9 @@ package websocket
 
 import (
 	"database/sql"
+	"github.com/google/uuid"
 	"log"
+	"socialNetwork/pkg/cloud"
 	"socialNetwork/pkg/db"
 	"sync"
 	"time"
@@ -18,8 +20,10 @@ type Message struct {
 
 // SafeConn is a thread-safe WebSocket connection wrapper
 type SafeConn struct {
-	conn *gorilla.Conn
-	mu   sync.Mutex
+	conn  *gorilla.Conn
+	mu    sync.Mutex
+	token string
+	id    string
 }
 
 // Keep every connection for a user so one tab cannot replace another.
@@ -34,6 +38,11 @@ func (sc *SafeConn) WriteJSON(v interface{}) error {
 }
 
 func SendToUser(userID int, message Message) bool {
+	publishRelay(userID, message)
+	return sendLocal(userID, message)
+}
+
+func sendLocal(userID int, message Message) bool {
 	clientsMutex.RLock()
 	connections := make([]*SafeConn, 0, len(clients[userID]))
 	for _, client := range clients[userID] {
@@ -42,14 +51,30 @@ func SendToUser(userID int, message Message) bool {
 	clientsMutex.RUnlock()
 	sent := false
 	for _, client := range connections {
+		valid := validConnection(client)
+		if message.Type == "session_invalidated" && valid {
+			continue
+		}
+		if message.Type != "session_invalidated" && !valid {
+			client.conn.Close()
+			continue
+		}
 		if err := client.WriteJSON(message); err == nil {
 			sent = true
 		}
+	}
+	if message.Type == "session_invalidated" {
+		DisconnectRevoked(userID)
 	}
 	return sent
 }
 
 func BroadcastMessage(message Message) {
+	publishRelay(0, message)
+	broadcastLocal(message)
+}
+
+func broadcastLocal(message Message) {
 	clientsMutex.RLock()
 	ids := make([]int, 0, len(clients))
 	for id := range clients {
@@ -57,23 +82,31 @@ func BroadcastMessage(message Message) {
 	}
 	clientsMutex.RUnlock()
 	for _, id := range ids {
-		SendToUser(id, message)
+		sendLocal(id, message)
 	}
 }
 
-func RegisterClient(userID int, conn *gorilla.Conn) {
+func RegisterClient(userID int, conn *gorilla.Conn, token string) {
 	clientsMutex.Lock()
 	wasOffline := len(clients[userID]) == 0
 	if clients[userID] == nil {
 		clients[userID] = make(map[*gorilla.Conn]*SafeConn)
 	}
-	clients[userID][conn] = &SafeConn{conn: conn}
+	clients[userID][conn] = &SafeConn{conn: conn, token: token, id: uuid.NewString()}
 	ids := make([]int, 0, len(clients))
 	for id := range clients {
 		ids = append(ids, id)
 	}
 	client := clients[userID][conn]
 	clientsMutex.Unlock()
+	if cloud.Enabled() {
+		_, err := db.DBInstance.DB.Exec(`INSERT INTO presence(connection_id,user_id,expires_at) VALUES(?,?,?)`, client.id, userID, time.Now().Add(90*time.Second))
+		if err != nil {
+			conn.Close()
+			return
+		}
+		ids = onlineIDs()
+	}
 	client.WriteJSON(Message{Type: "presence_snapshot", Content: map[string]interface{}{"user_ids": ids, "user_id": userID}})
 	if wasOffline {
 		BroadcastMessage(Message{Type: "presence_changed", Content: map[string]interface{}{"user_id": userID, "online": true}})
@@ -82,12 +115,22 @@ func RegisterClient(userID int, conn *gorilla.Conn) {
 
 func UnregisterClient(userID int, conn *gorilla.Conn) {
 	clientsMutex.Lock()
+	client := clients[userID][conn]
 	delete(clients[userID], conn)
 	isOffline := len(clients[userID]) == 0
 	if isOffline {
 		delete(clients, userID)
 	}
 	clientsMutex.Unlock()
+	if cloud.Enabled() && client != nil {
+		_, _ = db.DBInstance.DB.Exec(`DELETE FROM presence WHERE connection_id=?`, client.id)
+		var count int
+		if db.DBInstance.DB.QueryRow(`SELECT COUNT(*) FROM presence WHERE user_id=? AND expires_at>?`, userID, time.Now()).Scan(&count) != nil {
+			isOffline = false
+		} else {
+			isOffline = count == 0
+		}
+	}
 	if isOffline {
 		BroadcastMessage(Message{Type: "presence_changed", Content: map[string]interface{}{"user_id": userID, "online": false}})
 	}
@@ -95,18 +138,6 @@ func UnregisterClient(userID int, conn *gorilla.Conn) {
 
 func PublishChange(resource string) {
 	BroadcastMessage(Message{Type: "resource_changed", Content: map[string]string{"resource": resource}})
-}
-
-func DisconnectUser(userID int) {
-	clientsMutex.RLock()
-	connections := make([]*gorilla.Conn, 0, len(clients[userID]))
-	for conn := range clients[userID] {
-		connections = append(connections, conn)
-	}
-	clientsMutex.RUnlock()
-	for _, conn := range connections {
-		conn.Close()
-	}
 }
 
 // GetClient returns the exact connection so keepalive replies reach the requesting tab.
@@ -195,4 +226,49 @@ func BroadcastGroupPost(groupID, userID int, postID int64, content, image string
 		Type:    "group_post",
 		Content: post,
 	})
+}
+
+func onlineIDs() []int {
+	ids := []int{}
+	rows, err := db.DBInstance.DB.Query(`SELECT DISTINCT user_id FROM presence WHERE expires_at>?`, time.Now())
+	if err != nil {
+		return ids
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id int
+		if rows.Scan(&id) == nil {
+			ids = append(ids, id)
+		}
+	}
+	return ids
+}
+func RefreshPresence(userID int, conn *gorilla.Conn) {
+	if !cloud.Enabled() {
+		return
+	}
+	client, exists := GetClient(userID, conn)
+	if !exists {
+		return
+	}
+	_, _ = db.DBInstance.DB.Exec(`UPDATE presence SET expires_at=? WHERE connection_id=?`, time.Now().Add(90*time.Second), client.id)
+	_, _ = db.DBInstance.DB.Exec(`DELETE FROM presence WHERE expires_at<?`, time.Now())
+	_ = client.WriteJSON(Message{Type: "presence_snapshot", Content: map[string]any{"user_ids": onlineIDs(), "user_id": userID}})
+}
+func validConnection(client *SafeConn) bool {
+	var valid bool
+	return db.DBInstance.DB.QueryRow(`SELECT EXISTS(SELECT 1 FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token=? AND s.is_active=1 AND julianday(s.expires_at)>julianday(?) AND u.is_suspended=0)`, client.token, time.Now()).Scan(&valid) == nil && valid
+}
+func DisconnectRevoked(userID int) {
+	clientsMutex.RLock()
+	connections := []*SafeConn{}
+	for _, client := range clients[userID] {
+		connections = append(connections, client)
+	}
+	clientsMutex.RUnlock()
+	for _, client := range connections {
+		if !validConnection(client) {
+			client.conn.Close()
+		}
+	}
 }

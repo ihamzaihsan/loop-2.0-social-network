@@ -46,6 +46,11 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("[INFO] User ID %d authenticated for WebSocket connection", userID)
 
+	if err = ws.WaitForRelay(r.Context()); err != nil {
+		http.Error(w, "Realtime service unavailable", 503)
+		return
+	}
+
 	// Upgrade the HTTP connection to a WebSocket connection
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -66,7 +71,8 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	log.Printf("[INFO] Retrieved user info for %s %s (ID: %d)", user.FirstName, user.LastName, userID)
 
 	// Register the client using the websocket package
-	ws.RegisterClient(userID, conn)
+	cookie, _ := r.Cookie("session_token")
+	ws.RegisterClient(userID, conn, cookie.Value)
 
 	log.Printf("[INFO] Registered client for user %d", userID)
 
@@ -168,6 +174,7 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		case "ping":
+			ws.RefreshPresence(userID, conn)
 			log.Printf("[INFO] Handling ping from user %d", userID)
 			client, exists := ws.GetClient(userID, conn)
 			if exists {

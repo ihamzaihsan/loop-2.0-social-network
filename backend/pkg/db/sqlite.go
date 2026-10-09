@@ -13,12 +13,22 @@ import (
 )
 
 type Database struct {
-	DB *sql.DB
+	DB *Store
 }
 
 var DBInstance Database
 
 func InitDB() error {
+	if databaseURL := os.Getenv("DATABASE_URL"); databaseURL != "" {
+		store, err := openPostgres(databaseURL)
+		if err == nil {
+			DBInstance.DB = store
+		}
+		return err
+	}
+	if os.Getenv("VERCEL") != "" {
+		return fmt.Errorf("DATABASE_URL is required on Vercel")
+	}
 	var err error
 
 	// Get database path from environment variable or use default
@@ -32,11 +42,12 @@ func InitDB() error {
 		separator = "&"
 	}
 	// Driver options apply to every pooled connection, including new connections.
-	DBInstance.DB, err = sql.Open("sqlite3", dbPath+separator+"_foreign_keys=on&_busy_timeout=5000")
+	raw, err := sql.Open("sqlite3", dbPath+separator+"_foreign_keys=on&_busy_timeout=5000")
 	if err != nil {
 		return fmt.Errorf("error opening database: %v", err)
 	}
 
+	DBInstance.DB = &Store{DB: raw}
 	err = DBInstance.DB.Ping()
 	if err != nil {
 		return fmt.Errorf("error pinging database: %v", err)
@@ -47,48 +58,8 @@ func InitDB() error {
 		return fmt.Errorf("error enabling foreign keys: %v", err)
 	}
 
-	// Check if comments table has image column
-	var hasImageColumn bool
-	err = DBInstance.DB.QueryRow(`
-		SELECT COUNT(*) > 0
-		FROM pragma_table_info('comments')
-		WHERE name = 'image'
-	`).Scan(&hasImageColumn)
-
-	if err == nil && !hasImageColumn {
-		// Add image column if it doesn't exist
-		fmt.Println("Adding image column to comments table...")
-		_, err = DBInstance.DB.Exec(`ALTER TABLE comments ADD COLUMN image TEXT`)
-		if err != nil {
-			fmt.Printf("Error adding image column: %v\n", err)
-			// Continue anyway, as migrations might handle this
-		} else {
-			fmt.Println("Image column added successfully")
-		}
-	}
-
-	// Check if users table has isprivate column
-	var hasIsPrivateColumn bool
-	err = DBInstance.DB.QueryRow(`
-		SELECT COUNT(*) > 0
-		FROM pragma_table_info('users')
-		WHERE name = 'isprivate'
-	`).Scan(&hasIsPrivateColumn)
-
-	if err == nil && !hasIsPrivateColumn {
-		// Add isprivate column if it doesn't exist
-		fmt.Println("Adding isprivate column to users table...")
-		_, err = DBInstance.DB.Exec(`ALTER TABLE users ADD COLUMN isprivate BOOLEAN DEFAULT 0`)
-		if err != nil {
-			fmt.Printf("Error adding isprivate column: %v\n", err)
-			// Continue anyway, as migrations might handle this
-		} else {
-			fmt.Println("IsPrivate column added successfully")
-		}
-	}
-
 	// Run migrations
-	err = RunMigrations(DBInstance.DB)
+	err = RunMigrations(DBInstance.DB.DB)
 	if err != nil {
 		return fmt.Errorf("error running migrations: %v", err)
 	}

@@ -84,7 +84,7 @@ func PostLike(w http.ResponseWriter, r *http.Request) {
 	}
 	var err error
 	if r.Method == http.MethodPut {
-		_, err = db.DBInstance.DB.Exec(`INSERT OR IGNORE INTO likes(post_id,user_id) VALUES (?,?)`, id, actor)
+		_, err = db.DBInstance.DB.Exec(`INSERT INTO likes(post_id,user_id) VALUES (?,?) ON CONFLICT DO NOTHING`, id, actor)
 	} else {
 		_, err = db.DBInstance.DB.Exec(`DELETE FROM likes WHERE post_id=? AND user_id=?`, id, actor)
 	}

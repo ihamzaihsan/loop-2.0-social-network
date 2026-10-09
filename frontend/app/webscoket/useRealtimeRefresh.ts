@@ -32,7 +32,8 @@ export function useRealtimeRefresh(resources: string[], refresh: () => void | Pr
       if (!disposed && !timer) timer = setTimeout(run, 100)
     }
     const changed = (event: Event) => {
-      if (watched.has((event as CustomEvent<{resource: string}>).detail.resource)) schedule()
+      const resource = (event as CustomEvent<{resource: string}>).detail.resource
+      if (resource === 'all' || watched.has(resource)) schedule()
     }
     const visible = () => { if (document.visibilityState === 'visible') schedule() }
     window.addEventListener('realtime_changed', changed)
