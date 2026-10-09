@@ -19,8 +19,7 @@ import (
 
 var upgrader = gorilla.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
-		origin := r.Header.Get("Origin")
-		return origin == "" || origin == "http://localhost:3000" || origin == "http://localhost:3001"
+		return auth.AllowedOrigin(r.Header.Get("Origin"))
 	},
 }
 
@@ -91,6 +90,11 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		var msg Message
 		if err := conn.ReadJSON(&msg); err != nil {
 			log.Printf("[INFO] WebSocket read error for user %d: %v", userID, err)
+			break
+		}
+
+		if !auth.AllowSocketMessage(userID) {
+			conn.WriteControl(gorilla.CloseMessage, gorilla.FormatCloseMessage(gorilla.ClosePolicyViolation, "Message rate limit exceeded"), time.Now().Add(time.Second))
 			break
 		}
 
@@ -165,7 +169,7 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 			}
 		case "ping":
 			log.Printf("[INFO] Handling ping from user %d", userID)
-			client, exists := ws.GetClient(userID)
+			client, exists := ws.GetClient(userID, conn)
 			if exists {
 				err = client.WriteJSON(Message{
 					Type: "pong",

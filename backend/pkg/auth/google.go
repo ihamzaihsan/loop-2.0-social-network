@@ -45,7 +45,7 @@ func loadGoogleConfig() (googleConfig, bool) {
 		return err == nil && u.Host != "" && u.User == nil && u.RawQuery == "" && u.Fragment == "" && (u.Scheme == "https" || u.Scheme == "http" && (u.Hostname() == "localhost" || u.Hostname() == "127.0.0.1"))
 	}
 	u, _ := url.Parse(c.redirectURI)
-	return c, c.clientID != "" && c.secret != "" && validURL(c.frontend) && validURL(c.redirectURI) && u.Path == "/auth/google/callback"
+	return c, c.clientID != "" && c.secret != "" && validURL(c.frontend) && validURL(c.redirectURI) && u.Path == strings.TrimRight(os.Getenv("PUBLIC_API_PATH"), "/")+"/auth/google/callback"
 }
 
 func googleJSON(w http.ResponseWriter, status int, value interface{}) {
@@ -56,7 +56,7 @@ func googleJSON(w http.ResponseWriter, status int, value interface{}) {
 }
 
 func googleCookie(w http.ResponseWriter, c googleConfig, value string, age int) {
-	http.SetCookie(w, &http.Cookie{Name: googleFlowCookie, Value: value, Path: "/auth/google", HttpOnly: true, Secure: strings.HasPrefix(c.redirectURI, "https:"), SameSite: http.SameSiteLaxMode, MaxAge: age})
+	http.SetCookie(w, &http.Cookie{Name: googleFlowCookie, Value: value, Path: strings.TrimRight(os.Getenv("PUBLIC_API_PATH"), "/") + "/auth/google", HttpOnly: true, Secure: strings.HasPrefix(c.redirectURI, "https:"), SameSite: http.SameSiteLaxMode, MaxAge: age})
 }
 
 func randomGoogleToken() (string, error) {
@@ -326,6 +326,6 @@ func RecentGoogleAuthentication(r *http.Request) bool {
 		return false
 	}
 	var recent bool
-	err = db.DBInstance.DB.QueryRow(`SELECT EXISTS(SELECT 1 FROM sessions WHERE token=? AND is_active=1 AND auth_provider='google' AND created_at>?)`, cookie.Value, time.Now().Add(-10*time.Minute)).Scan(&recent)
+	err = db.DBInstance.DB.QueryRow(`SELECT EXISTS(SELECT 1 FROM sessions WHERE token=? AND is_active=1 AND auth_provider='google' AND julianday(created_at)>julianday(?))`, cookie.Value, time.Now().Add(-10*time.Minute)).Scan(&recent)
 	return err == nil && recent
 }

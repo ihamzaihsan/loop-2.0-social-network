@@ -109,14 +109,12 @@ func DisconnectUser(userID int) {
 	}
 }
 
-// GetClient is retained for handlers that send a response to a connected user.
-func GetClient(userID int) (*SafeConn, bool) {
+// GetClient returns the exact connection so keepalive replies reach the requesting tab.
+func GetClient(userID int, conn *gorilla.Conn) (*SafeConn, bool) {
 	clientsMutex.RLock()
 	defer clientsMutex.RUnlock()
-	for _, client := range clients[userID] {
-		return client, true
-	}
-	return nil, false
+	client, exists := clients[userID][conn]
+	return client, exists
 }
 
 // BroadcastToGroupMembers broadcasts a message to all members of a group except the sender

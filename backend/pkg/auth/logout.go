@@ -3,7 +3,6 @@ package auth
 import (
 	"encoding/json"
 	"net/http"
-	"time"
 )
 
 func Logout(w http.ResponseWriter, r *http.Request) {
@@ -33,13 +32,7 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 		InvalidateSession(session.ID)
 	}
 
-	http.SetCookie(w, &http.Cookie{
-		Name:     "session_token",
-		Value:    "",
-		Path:     "/",
-		Expires:  time.Now().Add(-1 * time.Hour),
-		HttpOnly: true,
-	})
+	ClearSessionCookie(w)
 
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,

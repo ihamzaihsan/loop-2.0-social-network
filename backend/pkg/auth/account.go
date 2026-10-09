@@ -16,8 +16,6 @@ import (
 	"net/smtp"
 	"os"
 	"socialNetwork/pkg/db"
-	"socialNetwork/pkg/models"
-	ws "socialNetwork/pkg/websocket"
 	"strconv"
 	"strings"
 	"sync"
@@ -44,18 +42,6 @@ func IsModerator(userID int) bool {
 		}
 	}
 	return false
-}
-
-// RevokeUserSessions updates both persistent and in-memory session state.
-func RevokeUserSessions(userID int) {
-	db.DBInstance.DB.Exec(`UPDATE sessions SET is_active=0 WHERE user_id=?`, userID)
-	SessionStore.Sessions.Range(func(key, value interface{}) bool {
-		if session, ok := value.(*models.Session); ok && session.UserID == userID {
-			InvalidateSession(key.(string))
-		}
-		return true
-	})
-	ws.DisconnectUser(userID)
 }
 
 type throttleEntry struct {
@@ -150,7 +136,7 @@ func ForgotPassword(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", 405)
 		return
 	}
-	host, _, _ := net.SplitHostPort(r.RemoteAddr)
+	host := ClientIP(r)
 	if !AllowRecovery("forgot:" + host) {
 		http.Error(w, "Try again in 15 minutes", 429)
 		return
@@ -214,7 +200,7 @@ func ResetPassword(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", 405)
 		return
 	}
-	host, _, _ := net.SplitHostPort(r.RemoteAddr)
+	host := ClientIP(r)
 	if !AllowRecovery("reset:" + host) {
 		http.Error(w, "Try again in 15 minutes", 429)
 		return

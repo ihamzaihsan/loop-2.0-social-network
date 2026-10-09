@@ -9,6 +9,7 @@ import (
 	db "socialNetwork/pkg/db"
 	routes "socialNetwork/pkg/routes"
 	services "socialNetwork/pkg/services"
+	"time"
 )
 
 func main() {
@@ -21,7 +22,7 @@ func main() {
 	if err := auth.BootstrapModerator(); err != nil {
 		log.Fatalf("Moderator setup failed: %v", err)
 	}
-	if err := auth.InitSessionStore(); err != nil {
+	if err := auth.InitSessions(); err != nil {
 		log.Fatalf("Failed to load sessions: %v", err)
 	}
 
@@ -114,7 +115,8 @@ func main() {
 
 	address := ":" + port
 	fmt.Printf("Server is running on http://0.0.0.0:%s\n", port)
-	err = http.ListenAndServe(address, routes.MutationEvents(http.DefaultServeMux))
+	server := &http.Server{Addr: address, Handler: auth.SecurityMiddleware(routes.MutationEvents(http.DefaultServeMux)), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 30 * time.Second, WriteTimeout: 30 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 16 << 10}
+	err = server.ListenAndServe()
 	if err != nil {
 		log.Fatalf("Server failed to start: %v", err)
 	}

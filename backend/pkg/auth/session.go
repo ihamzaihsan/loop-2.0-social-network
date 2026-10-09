@@ -2,6 +2,8 @@ package auth
 
 import (
 	"database/sql"
+	"errors"
+	"github.com/google/uuid"
 	"log"
 	"net/http"
 	"os"
@@ -9,221 +11,120 @@ import (
 	"socialNetwork/pkg/events"
 	"socialNetwork/pkg/models"
 	"strings"
+	"sync"
 	"time"
-
-	"github.com/google/uuid"
 )
 
-var SessionStore = models.SessionStore{}
+// SQLite is the authority for session state; never cache revocation or expiry.
+var sessionWrites sync.Mutex
 
-// InitSessionStore loads active sessions from database into memory
-func InitSessionStore() error {
-	log.Println("Initializing session store from database...")
-
-	rows, err := db.DBInstance.DB.Query(`
-		SELECT token, user_id, is_active, expires_at, created_at 
-		FROM sessions 
-		WHERE is_active = 1 AND expires_at > datetime('now')
-	`)
-	if err != nil {
-		return err
-	}
-	defer rows.Close()
-
-	count := 0
-	for rows.Next() {
-		var session models.Session
-		if err := rows.Scan(&session.ID, &session.UserID, &session.IsActive, &session.ExpiresAt, &session.CreatedAt); err != nil {
-			log.Printf("Error scanning session row: %v", err)
-			continue
-		}
-
-		// Store in memory
-		SessionStore.Sessions.Store(session.ID, &session)
-		SessionStore.UserSessions.Store(session.UserID, session.ID)
-		count++
-	}
-
-	log.Printf("Loaded %d active sessions into memory", count)
-	return nil
+func InitSessions() error {
+	_, err := db.DBInstance.DB.Exec(`UPDATE sessions SET is_active=0 WHERE julianday(expires_at)<=julianday(?)`, time.Now().UTC())
+	return err
 }
 
-// CreateSession creates a new session for a user
+// Rotation and insertion commit together, including concurrent logins.
 func CreateSession(userID int) (*models.Session, error) {
-	// Check if user already has an active session
-	if oldSessionID, exists := SessionStore.UserSessions.Load(userID); exists {
-		// Invalidate the old session
-		InvalidateSession(oldSessionID.(string))
-	}
-
-	// Create new session with 24-hour expiration
-	expiresAt := time.Now().Add(24 * time.Hour)
-	session := &models.Session{
-		ID:        uuid.New().String(),
-		UserID:    userID,
-		IsActive:  true,
-		ExpiresAt: expiresAt,
-		CreatedAt: time.Now(),
-	}
-
-	// Store in database
-	_, err := db.DBInstance.DB.Exec(`
-		INSERT INTO sessions (token, user_id, is_active, expires_at, created_at)
-		VALUES (?, ?, ?, ?, ?)
-	`, session.ID, session.UserID, session.IsActive, session.ExpiresAt, session.CreatedAt)
-
+	sessionWrites.Lock()
+	defer sessionWrites.Unlock()
+	now := time.Now().UTC()
+	session := &models.Session{ID: uuid.NewString(), UserID: userID, IsActive: true, CreatedAt: now, ExpiresAt: now.Add(24 * time.Hour)}
+	tx, err := db.DBInstance.DB.Begin()
 	if err != nil {
-		log.Printf("Error storing session in database: %v", err)
 		return nil, err
 	}
-
-	// Store in memory
-	SessionStore.Sessions.Store(session.ID, session)
-	SessionStore.UserSessions.Store(userID, session.ID)
-
+	defer tx.Rollback()
+	result, err := tx.Exec(`UPDATE sessions SET is_active=0 WHERE user_id=? AND is_active=1`, userID)
+	if err != nil {
+		return nil, err
+	}
+	if _, err = tx.Exec(`INSERT INTO sessions(token,user_id,is_active,expires_at,created_at) VALUES(?,?,1,?,?)`, session.ID, userID, session.ExpiresAt, now); err != nil {
+		return nil, err
+	}
+	if err = tx.Commit(); err != nil {
+		return nil, err
+	}
+	if count, _ := result.RowsAffected(); count > 0 {
+		events.Publish(events.Event{Type: events.SessionInvalidated, UserID: userID})
+	}
 	return session, nil
 }
 
-// SetSessionCookie sets the session cookie in the response
+func sessionCookie() *http.Cookie {
+	return &http.Cookie{Name: "session_token", Path: "/", HttpOnly: true, Secure: strings.HasPrefix(os.Getenv("FRONTEND_URL"), "https://"), SameSite: http.SameSiteLaxMode}
+}
+
 func SetSessionCookie(w http.ResponseWriter, session *models.Session) {
-	cookie := &http.Cookie{
-		Name:     "session_token",
-		Secure:   strings.HasPrefix(os.Getenv("FRONTEND_URL"), "https://"),
-		Value:    session.ID,
-		HttpOnly: true,
-		Path:     "/",
-		SameSite: http.SameSiteLaxMode,
-		Expires:  session.ExpiresAt,
-	}
+	cookie := sessionCookie()
+	cookie.Value, cookie.Expires, cookie.MaxAge = session.ID, session.ExpiresAt, 86400
 	http.SetCookie(w, cookie)
 }
 
-// GetSessionFromCookie retrieves a session from a cookie
+func ClearSessionCookie(w http.ResponseWriter) {
+	cookie := sessionCookie()
+	cookie.Expires, cookie.MaxAge = time.Unix(1, 0), -1
+	http.SetCookie(w, cookie)
+}
+
 func GetSessionFromCookie(r *http.Request) (*models.Session, error) {
 	cookie, err := r.Cookie("session_token")
 	if err != nil {
 		return nil, err
 	}
-
-	sessionID := cookie.Value
-	var active bool
-	if db.DBInstance.DB.QueryRow(`SELECT EXISTS(SELECT 1 FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token=? AND s.is_active=1 AND u.is_suspended=0)`, sessionID).Scan(&active) != nil || !active {
+	if _, err = uuid.Parse(cookie.Value); err != nil || len(cookie.Value) != 36 {
 		return nil, nil
 	}
-
-	// Try to get from memory first
-	if sessionInterface, ok := SessionStore.Sessions.Load(sessionID); ok {
-		if session, ok := sessionInterface.(*models.Session); ok {
-			// Check if session is expired
-			if time.Now().After(session.ExpiresAt) {
-				InvalidateSession(sessionID)
-				return nil, nil
-			}
-			return session, nil
-		}
-	}
-
-	// If not in memory, try database
 	var session models.Session
-	err = db.DBInstance.DB.QueryRow(`
-		SELECT token, user_id, is_active, expires_at, created_at 
-		FROM sessions 
-		WHERE token = ? AND is_active = 1 AND expires_at > datetime('now')
-	`, sessionID).Scan(&session.ID, &session.UserID, &session.IsActive, &session.ExpiresAt, &session.CreatedAt)
-
+	err = db.DBInstance.DB.QueryRow(`SELECT s.token,s.user_id,s.is_active,s.expires_at,s.created_at FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token=? AND s.is_active=1 AND julianday(s.expires_at)>julianday(?) AND u.is_suspended=0`, cookie.Value, time.Now().UTC()).Scan(&session.ID, &session.UserID, &session.IsActive, &session.ExpiresAt, &session.CreatedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
 		return nil, err
 	}
-
-	// Store in memory for future use
-	SessionStore.Sessions.Store(session.ID, &session)
-	SessionStore.UserSessions.Store(session.UserID, session.ID)
-
 	return &session, nil
 }
 
-// GetUserID gets the user ID from a session
 func GetUserID(r *http.Request) (int, error) {
 	session, err := GetSessionFromCookie(r)
-	if err != nil || session == nil {
+	if err != nil {
 		return 0, err
+	}
+	if session == nil {
+		return 0, errors.New("no active session")
 	}
 	return session.UserID, nil
 }
 
-// InvalidateSession invalidates a session
-func InvalidateSession(sessionID string) {
-	// Get session from memory
-	sessionInterface, ok := SessionStore.Sessions.Load(sessionID)
-	if !ok {
+func InvalidateSession(token string) {
+	sessionWrites.Lock()
+	defer sessionWrites.Unlock()
+	var userID int
+	err := db.DBInstance.DB.QueryRow(`UPDATE sessions SET is_active=0 WHERE token=? AND is_active=1 RETURNING user_id`, token).Scan(&userID)
+	if errors.Is(err, sql.ErrNoRows) {
 		return
 	}
-
-	session, ok := sessionInterface.(*models.Session)
-	if !ok {
-		return
-	}
-
-	// Remove from user sessions map
-	SessionStore.UserSessions.Delete(session.UserID)
-
-	// Remove from sessions map
-	SessionStore.Sessions.Delete(sessionID)
-
-	// Update database
-	_, err := db.DBInstance.DB.Exec(`
-		UPDATE sessions 
-		SET is_active = 0 
-		WHERE token = ?
-	`, sessionID)
-
 	if err != nil {
-		log.Printf("Error invalidating session in database: %v", err)
+		log.Printf("Session revocation failed: %v", err)
+		return
 	}
-	events.Publish(events.Event{Type: events.SessionInvalidated, UserID: session.UserID})
+	events.Publish(events.Event{Type: events.SessionInvalidated, UserID: userID})
 }
 
-// CleanupExpiredSessions removes expired sessions from database and memory
-func CleanupExpiredSessions() {
-	log.Println("Cleaning up expired sessions...")
-
-	// Update database
-	result, err := db.DBInstance.DB.Exec(`
-		UPDATE sessions 
-		SET is_active = 0 
-		WHERE expires_at <= datetime('now') AND is_active = 1
-	`)
-
-	if err != nil {
-		log.Printf("Error cleaning up expired sessions in database: %v", err)
+func RevokeUserSessions(userID int) {
+	sessionWrites.Lock()
+	defer sessionWrites.Unlock()
+	if _, err := db.DBInstance.DB.Exec(`UPDATE sessions SET is_active=0 WHERE user_id=?`, userID); err != nil {
+		log.Printf("Session revocation failed: %v", err)
 		return
 	}
+	events.Publish(events.Event{Type: events.SessionInvalidated, UserID: userID})
+}
 
-	rowsAffected, _ := result.RowsAffected()
-	log.Printf("Marked %d expired sessions as inactive in database", rowsAffected)
-
-	// Clean memory
-	// This is a bit tricky with sync.Map since we can't iterate and modify
-	// We'll collect keys to delete first
-	var keysToDelete []string
-
-	SessionStore.Sessions.Range(func(key, value interface{}) bool {
-		if session, ok := value.(*models.Session); ok {
-			if time.Now().After(session.ExpiresAt) {
-				keysToDelete = append(keysToDelete, key.(string))
-				SessionStore.UserSessions.Delete(session.UserID)
-			}
-		}
-		return true
-	})
-
-	// Now delete the collected keys
-	for _, key := range keysToDelete {
-		SessionStore.Sessions.Delete(key)
+func CleanupExpiredSessions() {
+	sessionWrites.Lock()
+	defer sessionWrites.Unlock()
+	if _, err := db.DBInstance.DB.Exec(`UPDATE sessions SET is_active=0 WHERE julianday(expires_at)<=julianday(?) AND is_active=1`, time.Now().UTC()); err != nil {
+		log.Printf("Session cleanup failed: %v", err)
 	}
-
-	log.Printf("Removed %d expired sessions from memory", len(keysToDelete))
 }

@@ -104,7 +104,7 @@ func AccountSettings(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		auth.RevokeUserSessions(id)
-		http.SetCookie(w, &http.Cookie{Name: "session_token", Value: "", Path: "/", MaxAge: -1, HttpOnly: true})
+		auth.ClearSessionCookie(w)
 		respond(w, map[string]bool{"success": true})
 		return
 	}

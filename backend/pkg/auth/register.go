@@ -234,6 +234,5 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"message": "User registered successfully",
 		"user":    user,
-		"token":   session.ID,
 	})
 }

@@ -3,7 +3,6 @@ package auth
 import (
 	"encoding/json"
 	"net/http"
-	"os"
 	"strings"
 )
 
@@ -38,23 +37,10 @@ func CorsMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Allow multiple frontend origins for both Docker (3000) and direct execution (3001)
 		origin := r.Header.Get("Origin")
-		allowedOrigins := []string{
-			"http://localhost:3000",
-			"http://localhost:3001",
-		}
-
-		if configured := strings.TrimRight(os.Getenv("FRONTEND_URL"), "/"); configured != "" {
-			allowedOrigins = append(allowedOrigins, configured)
-		}
 		w.Header().Add("Vary", "Origin")
-		allowed := origin == ""
-		// Check if the origin is in our allowed list
-		for _, allowedOrigin := range allowedOrigins {
-			if origin == allowedOrigin {
-				allowed = true
-				w.Header().Set("Access-Control-Allow-Origin", origin)
-				break
-			}
+		allowed := AllowedOrigin(origin)
+		if allowed && origin != "" {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
 		}
 
 		if !allowed {
