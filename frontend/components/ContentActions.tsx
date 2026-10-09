@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { FlagIcon } from "@heroicons/react/24/outline";
 import ActionDialog from "./ActionDialog";
 import { api, refreshResources } from "../utils/api";
 
@@ -105,7 +106,8 @@ export default function ContentActions({
         </>
       )}
       {reportable && (
-        <button type="button" onClick={() => open("report")}>
+        <button type="button" className="content-report-button" onClick={() => open("report")}>
+          <FlagIcon aria-hidden="true" />
           Report
         </button>
       )}
