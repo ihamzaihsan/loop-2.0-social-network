@@ -3,6 +3,8 @@
 import { useRealtimeRefresh } from '@/app/webscoket/useRealtimeRefresh'
 
 import { useState, useEffect, useRef } from 'react'
+import GroupManagement from '@/components/GroupManagement'
+import ContentActions from '@/components/ContentActions'
 import Sidebar from '@/components/Sidebar'
 import { useRouter, useParams } from 'next/navigation'
 import './groupChat.css'
@@ -68,6 +70,7 @@ interface EventResponseOption {
 }
 
 interface GroupEvent {
+    creator_id: number
     id: number
     title: string
     description: string
@@ -165,7 +168,7 @@ const fetchGroupDetails = async () => {
                 router.push('/');
                 return;
             }
-            setError('Failed to load group');
+            setGroup(null);setMembers([]);setPosts([]);setEvents([]);setMessages([]);setError('Group unavailable. You may no longer be a member.');
         }
     } catch (error) {
         console.error('Error fetching group details:', error);
@@ -283,8 +286,8 @@ const handleGroupImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) =>
 
                 if (messagesResponse.ok) {
                     const messagesData = await messagesResponse.json();
-                    if (messagesData.success && messagesData.messages) {
-                        setMessages(messagesData.messages);
+                    if (messagesData.success) {
+                        setMessages(messagesData.messages ?? []);
                     }
                 }
 
@@ -296,8 +299,13 @@ const handleGroupImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) =>
 
                 if (postsResponse.ok) {
                     const postsData = await postsResponse.json();
-                    if (postsData.success && postsData.posts) {
-                        setPosts(postsData.posts);
+                    if (postsData.success) {
+                        const nextPosts: GroupPost[] = postsData.posts ?? [];
+                        setPosts(nextPosts);
+                        setSelectedPost(prev => nextPosts.some(post => post.id === prev) ? prev : null);
+                        setPostComments(prev => Object.fromEntries(
+                            nextPosts.filter(post => prev[post.id]).map(post => [post.id, prev[post.id]])
+                        ));
                     }
                 }
 
@@ -309,8 +317,8 @@ const handleGroupImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) =>
 
                 if (eventsResponse.ok) {
                     const eventsData = await eventsResponse.json();
-                    if (eventsData.success && eventsData.events) {
-                        setEvents(eventsData.events);
+                    if (eventsData.success) {
+                        setEvents(eventsData.events ?? []);
                     }
                 }
             } catch (error) {
@@ -564,19 +572,8 @@ const handleGroupImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) =>
             console.log(currentUser);
             const newPost = await createGroupPostWithFile(groupId, newPostContent, newPostImage || undefined, currentUser);
             if (newPost) {
-                // Only add to posts if it's not already there (might be added by WebSocket)
-                setPosts(prev => {
-                    // Check if this post is already in the list (by content and timestamp)
-                    const isDuplicate = prev.some(p =>
-                        p.content === newPostContent &&
-                        (new Date().getTime() - new Date(p.created_at).getTime()) < 5000
-                    );
-
-                    if (!isDuplicate) {
-                        return [newPost, ...prev];
-                    }
-                    return prev;
-                });
+                // Use the persisted ID to reconcile our response with socket updates.
+                setPosts(prev => [newPost, ...prev.filter(post => post.id !== newPost.id)]);
 
                 setNewPostContent('');
                 setNewPostImage(null);
@@ -608,60 +605,18 @@ const handleGroupImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) =>
         }
     };
 
-// Handle creating a comment
+// Wait for the persisted comment before enabling edit/delete actions.
 const handleCreateComment = async (postId: number) => {
     if (!newComment.trim()) return;
-
     try {
-        // Try to send via WebSocket first
-        let sentViaWebSocket = false;
-        if (wsClient && wsClient.socket && wsClient.socket.readyState === WebSocket.OPEN) {
-            console.log('Attempting to send group comment via WebSocket');
-            sentViaWebSocket = wsClient.sendGroupComment(postId, newComment);
-            console.log('WebSocket send result:', sentViaWebSocket);
-            
-            // If sent via WebSocket, update the local state immediately
-            if (sentViaWebSocket && currentUser) {
-                // Create a temporary comment object
-                const tempComment = {
-                    id: Date.now(), // Temporary ID
-                    post_id: postId,
-                    user_id: currentUser.id,
-                    content: newComment,
-                    created_at: new Date().toISOString(),
-                    first_name: currentUser.firstName,
-                    last_name: currentUser.lastName,
-                    avatar: currentUser.avatar
-                };
-                
-                // Update posts comment count
-                setPosts(prev =>
-                    prev.map(post =>
-                        post.id === postId
-                            ? { ...post, comment_count: (post.comment_count || 0) + 1 }
-                            : post
-                    )
-                );
-                
-                // Add to comments
-                setPostComments(prev => ({
-                    ...prev,
-                    [postId]: [...(prev[postId] || []), tempComment]
-                }));
-            }
-        } else {
-            // If WebSocket failed or not available, use HTTP
-            console.log('Sending group comment via HTTP');
-            await createGroupComment(postId, newComment);
-            
-            // Refresh comments for this post if using HTTP
-            await loadCommentsForPost(postId);
-        }
-
-        // Clear the comment input
+        const comment = await createGroupComment(postId, newComment);
+        if (!comment) throw new Error('Unable to create comment');
         setNewComment('');
+        await loadCommentsForPost(postId);
+        await fetchGroupData();
     } catch (error) {
         console.error('Error creating comment:', error);
+        setError('Failed to create comment. Please try again.');
     }
 };
 
@@ -702,19 +657,8 @@ const handleCreateComment = async (postId: number) => {
             );
 
             if (createdEvent) {
-                // Only add to events if it's not already there (might be added by WebSocket)
-                setEvents(prev => {
-                    // Check if this event is already in the list (by title and timestamp)
-                    const isDuplicate = prev.some(e =>
-                        e.title === eventTitle &&
-                        (new Date().getTime() - new Date(e.created_at).getTime()) < 5000
-                    );
-
-                    if (!isDuplicate) {
-                        return [createdEvent, ...prev];
-                    }
-                    return prev;
-                });
+                // Reload persisted events rather than exposing temporary IDs.
+                await fetchGroupData();
 
                 // Reset the form
                 setEventTitle('');
@@ -740,12 +684,13 @@ const handleCreateComment = async (postId: number) => {
 
             if (response.ok) {
                 const data = await response.json();
-                if (data.success && data.events) {
-                    setEvents(data.events);
+                if (data.success) {
+                    const nextEvents = data.events ?? [];
+                    setEvents(nextEvents);
 
                     // Initialize user responses from the fetched data
                     const userResponses: { [eventId: number]: number } = {};
-                    data.events.forEach((event: any) => {
+                    nextEvents.forEach((event: any) => {
                         if (event.user_response_id) {
                             userResponses[event.id] = event.user_response_id;
                         }
@@ -880,7 +825,7 @@ const handleCreateComment = async (postId: number) => {
             <Sidebar activePage="groups" />
 
             <main className="main-content">
-                <div className="group-layout">
+                {group && currentUser && <GroupManagement id={group.id} title={group.title} description={group.description} owner={group.creator_id===currentUser.id} members={members} currentId={currentUser.id} />}<div className="group-layout">
                     {/* Left Members Sidebar */}
                     <aside className="group-members-sidebar">
                         <div className="members-sidebar-header">
@@ -1184,7 +1129,7 @@ const handleCreateComment = async (postId: number) => {
                                                     </header>
 
                                                     <div className="post-content">
-                                                        {post.content && <p>{post.content}</p>}
+                                                        {post.content && <p>{post.content}</p>}<ContentActions kind="group_post" id={post.id} content={post.content} canManage={post.user_id===currentUser?.id || group?.creator_id===currentUser?.id} reportable={post.user_id!==currentUser?.id} />
                                                         {post.image && (
                                                             <div className="post-image">
                                                                 <img
@@ -1233,7 +1178,7 @@ const handleCreateComment = async (postId: number) => {
                                                                                 </span>
                                                                             </div>
                                                                             <div className="comment-content">
-                                                                                {comment.content}
+                                                                                {comment.content}<ContentActions kind="group_comment" id={comment.id} content={comment.content} canManage={comment.user_id===currentUser?.id || group?.creator_id===currentUser?.id} reportable={comment.user_id!==currentUser?.id} />
                                                                             </div>
                                                                         </div>
                                                                     ))}
@@ -1372,7 +1317,7 @@ const handleCreateComment = async (postId: number) => {
                                                 </div>
                                             </div>
                                             <div className="event-details">
-                                                <h3 className="event-title">{event.title}</h3>
+                                                <h3 className="event-title">{event.title}</h3><ContentActions kind="group_event" id={event.id} eventValues={{title:event.title,description:event.description,eventTime:event.event_time}} canManage={event.creator_id===currentUser?.id || group?.creator_id===currentUser?.id} reportable={event.creator_id!==currentUser?.id} />
                                                 <p className="event-description">{event.description}</p>
                                                 <div className="event-time">
                                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

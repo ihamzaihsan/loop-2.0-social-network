@@ -5,6 +5,8 @@ import { useRealtimeRefresh } from '@/app/webscoket/useRealtimeRefresh'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect, useRef } from 'react'
 import './home.css'
+import LikeButton from '../../components/LikeButton'
+import ContentActions from '../../components/ContentActions'
 import Sidebar from '../../components/Sidebar'
 import { redirectBasedOnSession } from '../../utils/session'
 
@@ -57,6 +59,9 @@ export default function Home() {
   const [commentImageFiles, setCommentImageFiles] = useState<{[key: number]: File | null}>({});
   const [expandedPosts, setExpandedPosts] = useState<{[postId: number]: boolean}>({});
 
+  const loadedPages = useRef(1)
+  const [totalPosts,setTotalPosts] = useState(0)
+  const [loadError,setLoadError] = useState('')
   const postsRef = useRef<Post[]>([])
   useEffect(() => { postsRef.current = posts }, [posts])
   useRealtimeRefresh(['posts', 'comments', 'profiles', 'social'], async () => {
@@ -117,16 +122,14 @@ export default function Home() {
   const fetchPosts = async (showLoading = true) => {
     if (showLoading) setPostsLoading(true)
     try {
-      const response = await fetch('http://localhost:8080/posts?page=1', {
-        method: 'GET',
-        credentials: 'include'
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch posts')
-      }
-
-      const data = await response.json()
+      const pages = await Promise.all(Array.from({length:loadedPages.current}, async (_,i) => {
+        const response = await fetch(`http://localhost:8080/posts?page=${i+1}`, {credentials:'include'})
+        if (!response.ok) throw new Error('Failed to fetch posts')
+        return response.json()
+      }))
+      const data = {...pages[0], posts:Array.from(new Map(pages.flatMap(page=>page.posts||[]).map((post:Post)=>[post.id,post])).values())}
+      setTotalPosts(pages[0].total || 0)
+      setLoadError('')
       if (data.success && data.posts) {
         setPosts(previous => data.posts.map((post: Post) => {
           const existing = previous.find(item => item.id === post.id)
@@ -134,7 +137,7 @@ export default function Home() {
         }))
       }
     } catch (error: any) {
-      console.error('Error fetching posts:', error)
+      setLoadError(error.message || 'Unable to load posts')
     } finally {
       setPostsLoading(false)
     }
@@ -361,7 +364,7 @@ export default function Home() {
               </button>
             </div>
             
-            <div className="posts-container">
+            {loadError && <p role="alert">{loadError}</p>}<div className="posts-container">
               {postsLoading ? (
                 <div className="loading-posts">
                   <div className="loading-spinner"></div>
@@ -474,7 +477,7 @@ export default function Home() {
                     </div>
                     
                     <footer className="post-footer">
-                      <div className="post-interactions">
+                      <div className="post-interactions"><LikeButton id={post.id} count={post.likeCount} liked={post.isLiked} /><ContentActions kind="post" id={post.id} reportable={post.userId !== userId} />
                         <button 
                           className={`interaction-btn comments-btn ${post.showComments ? 'active' : ''}`}
                           onClick={() => toggleComments(post.id)}
@@ -522,7 +525,7 @@ export default function Home() {
                                       </time>
                                     </div>
                                     <div className="comment-body">
-                                      <p className="comment-text">{comment.content}</p>
+                                      <p className="comment-text">{comment.content}</p><ContentActions kind="comment" id={comment.id} content={comment.content} canManage={comment.userId === userId} reportable={comment.userId !== userId} />
                                       {comment.image && (
                                         <div className="comment-image-container">
                                           <img
@@ -646,6 +649,7 @@ export default function Home() {
                 </div>
               )}
             </div>
+            {posts.length < totalPosts && <button className="primary-button" disabled={postsLoading} onClick={()=>{loadedPages.current+=1;fetchPosts()}}>Load older posts</button>}
           </div>
           
         </div>

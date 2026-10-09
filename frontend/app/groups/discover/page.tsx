@@ -10,6 +10,8 @@ import { Group } from '../types'
 
 
 export default function DiscoverPage() {
+  const [search,setSearch]=useState('')
+  useEffect(()=>{setSearch(new URLSearchParams(window.location.search).get('search')||'')},[])
   const [allGroups, setAllGroups] = useState<Group[]>([])
   const [userGroups, setUserGroups] = useState<Group[]>([])
   const [loading, setLoading] = useState(true)
@@ -145,7 +147,7 @@ export default function DiscoverPage() {
       <div className="home-page">
               <Sidebar activePage="groups" />
 
-            <main className="main-content">
+            <main className="main-content"><label className="feature-form">Search groups<input value={search} onChange={e=>setSearch(e.target.value)} maxLength={100} /></label>
                 <div className="dashboard">
                     <div className="card feed-card">
                         <div className="discover-hero-section">
@@ -258,7 +260,7 @@ export default function DiscoverPage() {
                                         </div>
                                     </div>
                                     <div className="discover-grid-enhanced">
-                                        {Array.isArray(allGroups) && allGroups.map((group, index) => (
+                                        {Array.isArray(allGroups) && allGroups.filter(g=>(g.title+' '+g.description).toLowerCase().includes(search.toLowerCase())).map((group, index) => (
                                             <div
                                                 key={group.id}
                                                 className="discover-card-enhanced"

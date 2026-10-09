@@ -1,5 +1,6 @@
 import { WebSocketClientInterface } from '../webscoket/types';
 import { WebSocketClient } from '../webscoket/websocket';
+import { api } from '../../utils/api';
 
 interface User {
     id: number;
@@ -426,6 +427,7 @@ export const sendMessage = async (
                 if (data.success) {
                     return {
                         id: data.post_id,
+                        user_id: currentUser?.id,
                         content: content,
                         image: data.image || null,
                         created_at: new Date().toISOString(),
@@ -442,83 +444,6 @@ export const sendMessage = async (
             }
         };
 
-        // Create a group post (legacy function for URL-based images)
-        export const createGroupPost = async (
-        groupId: number,
-        content: string,
-        image?: string,
-        currentUser?: User | null
-        ): Promise<any | null> => {
-            try {
-                // Try to send via WebSocket first
-                const wsClient = WebSocketClient.getInstance();
-                let sentViaWebSocket = false;
-
-                if (wsClient && wsClient.socket && wsClient.socket.readyState === WebSocket.OPEN) {
-                    console.log('Attempting to send group post via WebSocket');
-                    sentViaWebSocket = wsClient.sendGroupPost(groupId, content, image);
-                    console.log('WebSocket send result:', sentViaWebSocket);
-                } else {
-                    console.log('WebSocket not available, using HTTP');
-                }
-
-                // If WebSocket failed or not available, use HTTP
-                if (!sentViaWebSocket) {
-                    console.log('Sending group post via HTTP');
-                    const response = await fetch('http://localhost:8080/groups/posts/create', {
-                        method: 'POST',
-                        credentials: 'include',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            group_id: groupId,
-                            content: content,
-                            image: image
-                        }),
-                    });
-
-                    if (!response.ok) {
-                        throw new Error('Failed to create group post');
-                    }
-                    
-                    const data = await response.json();
-                    if (data.success && data.post_id) {
-                        // Return a constructed post object using server response
-                        return {
-                            id: data.post_id,
-                            user_id: currentUser?.id,
-                            content: content,
-                            image: data.image || image,
-                            created_at: new Date().toISOString(),
-                            comment_count: 0,
-                            first_name: currentUser?.firstName || "",
-                            last_name: currentUser?.lastName || "",
-                            avatar: currentUser?.avatar
-                        };
-                    }
-                } else {
-                    // If sent via WebSocket, return a temporary object with user info
-                    return {
-                        id: Date.now(), // Temporary ID
-                        user_id: currentUser?.id,
-                        content: content,
-                        image: image,
-                        created_at: new Date().toISOString(),
-                        comment_count: 0,
-                        first_name: currentUser?.firstName || "",
-                        last_name: currentUser?.lastName || "",
-                        avatar: currentUser?.avatar
-                    };
-                }
-                
-                return null;
-            } catch (error) {
-                console.error('Error creating group post:', error);
-                return null;
-            }
-        };
-        
         // Create a comment on a group post
         export const createGroupComment = async (
         postId: number,
@@ -556,83 +481,24 @@ export const sendMessage = async (
         }
         };
         
-        // Create a group event
+        // HTTP acknowledges the persisted ID; mutation events update other viewers.
         export const createGroupEvent = async (
             groupId: number,
             title: string,
             description: string,
             eventTime: string,
-            options: string[] = ["Going", "Not Going"] // Default options if none provided
-        ): Promise<any | null> => {
-            try {
-                // Try to send via WebSocket first
-                const wsClient = WebSocketClient.getInstance();
-                let sentViaWebSocket = false;
-                
-                if (wsClient && wsClient.socket && wsClient.socket.readyState === WebSocket.OPEN) {
-                    console.log('Attempting to send group event via WebSocket');
-                    sentViaWebSocket = wsClient.sendGroupEvent(groupId, title, description, eventTime, options);
-                    console.log('WebSocket send result:', sentViaWebSocket);
-                } else {
-                    console.log('WebSocket not available, using HTTP');
+            options: string[] = ["Going", "Not Going"]
+        ): Promise<{ id: number } | null> => {
+            const data = await api<{ success: boolean; event_id: number }>(
+                '/groups/events/create',
+                {
+                    method: 'POST',
+                    body: JSON.stringify({ group_id: groupId, title, description, event_time: eventTime, options })
                 }
-                
-                // If WebSocket failed or not available, use HTTP
-                if (!sentViaWebSocket) {
-                    console.log('Sending group event via HTTP');
-                    const response = await fetch('http://localhost:8080/groups/events/create', {
-                        method: 'POST',
-                        credentials: 'include',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            group_id: groupId,
-                            title: title,
-                            description: description,
-                            event_time: eventTime,
-                            options: options
-                        }),
-                    });
-                    
-                    if (!response.ok) {
-                        const errorData = await response.json().catch(() => ({}));
-                        console.error("Server error response:", errorData);
-                        throw new Error('Failed to create event');
-                    }
-                    
-                    const data = await response.json();
-                    if (data.success && data.event_id) {
-                        // Return a constructed event object
-                        return {
-                            id: data.event_id,
-                            title: title,
-                            description: description,
-                            event_time: eventTime,
-                            created_at: new Date().toISOString(),
-                            options: options
-                        };
-                    }
-                } else {
-                    // If sent via WebSocket, return a temporary object
-                    // The real object will come through the WebSocket handler
-                    return {
-                        id: Date.now(), // Temporary ID
-                        title: title,
-                        description: description,
-                        event_time: eventTime,
-                        created_at: new Date().toISOString(),
-                        options: options
-                    };
-                }
-                
-                return null;
-            } catch (error) {
-                console.error('Error creating event:', error);
-                return null;
-            }
+            );
+            return data.success && data.event_id ? { id: data.event_id } : null;
         };
-        
+
         // Respond to a group event
         export const respondToEvent = async (
             eventId: number,
