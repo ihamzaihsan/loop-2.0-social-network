@@ -4,10 +4,11 @@
 
 Loop is a portfolio-scale social network built with **Next.js 16**, **React 19**, **Go**, **SQLite**, and **WebSockets**. It supports the complete journey from account creation and privacy controls to personalized feeds, group communities, event RSVPs, notifications, and direct messaging.
 
-The current interface is the second-generation product experience: a responsive design system with an editorial visual language, accessible interaction states, and consistent layouts across all 16 routes.
+The current interface is the second-generation product experience: a responsive design system with an editorial visual language, accessible interaction states, and consistent layouts across authentication, social, and account pages.
 
 ## Product highlights
 
+- **Google authentication** ? register and sign in through Google OAuth when configured; connect Google to an existing account from Settings, with a required profile completion step for new accounts.
 - **Authentication and sessions** — registration, login, logout, protected routes, HTTP-only session cookies, and session expiry.
 - **Profiles and privacy** — avatars, biographies, public/private accounts, follower and following lists, and privacy controls.
 - **Social graph** — discover users, follow public accounts, send requests to private accounts, accept or reject requests, and view mutual friends.
@@ -121,6 +122,30 @@ To stop the stack:
 docker compose down
 ```
 
+## Google registration and sign-in
+
+Google authentication requires credentials from your own Google Cloud project. Until configured, the Google buttons show that sign-in is unavailable; email/password authentication continues to work.
+
+1. Open [Google Auth Platform](https://console.cloud.google.com/auth/overview) in a Google Cloud project. Configure Branding and Audience for your application. If the app is in Testing, add the Google accounts that will test it as test users.
+2. In **Clients**, create an OAuth client of type **Web application**. Add `http://localhost:8081/auth/google/callback` to its **Authorized redirect URIs** when using `start-docker.cmd`. For standard Compose on API port 8080, use `http://localhost:8080/auth/google/callback` instead. The URI must match exactly.
+3. Copy the client ID and client secret into the ignored `backend/.env` file:
+
+   ```dotenv
+   FRONTEND_URL=http://localhost:3000
+   GOOGLE_CLIENT_ID=your-web-client-id.apps.googleusercontent.com
+   GOOGLE_CLIENT_SECRET=your-client-secret
+   GOOGLE_REDIRECT_URI=http://localhost:8081/auth/google/callback
+   ```
+
+4. Run `start-docker.cmd` again to recreate the backend with the new environment. Compose reads `backend/.env`; direct Go runs require exporting these variables in the shell, as `.env` files are not loaded automatically.
+5. Select **Continue with Google** on either Login or Register. New users finish their name/date-of-birth profile and receive a private account. Returning users sign in immediately. Existing email/password users sign in normally first and select **Connect Google** in Settings.
+
+The backend uses Google's authorization-code flow, S256 PKCE, a browser-bound one-use state cookie, and Google UserInfo over HTTPS. Identity links use Google's stable `sub`, never just email. Provider access tokens and secrets stay on the server; provider tokens are not retained. Sign-in uses Loop's existing HTTP-only session cookie and single active session policy. In production, use HTTPS and the same site for frontend/API cookies; HTTPS frontend configuration enables secure session cookies. Google-only users can confirm with Google again before changing their email, setting an optional password, or deleting their account; this confirmation lasts ten minutes.
+
+Local verification covered the backend sign-in and account-management paths with simulated Google responses, plus browser form/navigation checks in both themes. A live Google consent flow still requires your configured OAuth credentials.
+
+See [Google's web-server OAuth guide](https://developers.google.com/identity/protocols/oauth2/web-server) for credential setup and deployment requirements.
+
 ## Local development
 
 ### Prerequisites
@@ -196,7 +221,7 @@ The application creates a fresh SQLite database automatically and applies migrat
 - Add automated integration and browser tests.
 - Centralize frontend API configuration for multi-environment deployments.
 - Move media storage to an object-storage provider for production scale.
-- Add pagination and caching for larger feeds and conversations.
+- Extend pagination and caching to larger conversations.
 - Expand accessibility testing with automated and manual audits.
 
 ## Author
