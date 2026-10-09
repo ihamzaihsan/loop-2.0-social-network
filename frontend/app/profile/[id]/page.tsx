@@ -1,4 +1,5 @@
 'use client'
+import { API, mediaURL } from "../../../utils/api";
 
 import { useRealtimeRefresh } from '@/app/webscoket/useRealtimeRefresh'
 
@@ -6,7 +7,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import '../../home/home.css'
 import '../profile.css'
-import { mediaURL } from '@/utils/api'
+
 import LikeButton from '@/components/LikeButton'
 import ContentActions from '@/components/ContentActions'
 import UserSafetyActions from '@/components/UserSafetyActions'
@@ -81,7 +82,7 @@ export default function UserProfile() {
 
   const fetchProfile = async () => {
     try {
-      const response = await fetch(`http://localhost:8080/profile/${userId}`, {
+      const response = await fetch(`${API}/profile/${userId}`, {
         method: 'GET',
         credentials: 'include'
       })
@@ -117,7 +118,7 @@ export default function UserProfile() {
     
     try {
       const endpoint = profile.isFollowing ? '/unfollow' : '/follow'
-      const response = await fetch(`http://localhost:8080${endpoint}`, {
+      const response = await fetch(`${API}${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -176,7 +177,7 @@ export default function UserProfile() {
                 <div className="profile-avatar">
                   {profile.user.avatar ? (
                     <img
-                      src={`http://localhost:8080${encodeURI(profile.user.avatar)}`}
+                      src={`${API}${encodeURI(profile.user.avatar)}`}
                       alt={`${profile.user.firstName}'s avatar`}
                       className="avatar-image"
                     />
@@ -298,7 +299,7 @@ export default function UserProfile() {
                           {post.image && (
                             <div className="post-image-container">
                               <img
-                                src={post.image.startsWith('http') ? post.image : `http://localhost:8080${encodeURI(post.image.replace(/\\/g, '/'))}`}
+                                src={mediaURL(post.image)}
                                 alt="Post image"
                                 className="post-image"
                               />

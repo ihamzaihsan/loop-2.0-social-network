@@ -1,4 +1,5 @@
 'use client'
+import { API } from "../utils/api";
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
@@ -87,7 +88,7 @@ export default function RealtimeAlerts() {
   const open = (alert: Alert) => {
     dismiss(alert.id)
     if (alert.notificationId) {
-      fetch(`http://localhost:8080/notifications/read?id=${alert.notificationId}`, { method: 'POST', credentials: 'include' })
+      fetch(`${API}/notifications/read?id=${alert.notificationId}`, { method: 'POST', credentials: 'include' })
         .catch(error => console.error('Failed to mark notification read:', error))
     }
   }

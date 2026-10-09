@@ -1,4 +1,5 @@
 'use client'
+import { API, mediaURL } from "../../../utils/api";
 
 import { useRealtimeRefresh } from '@/app/webscoket/useRealtimeRefresh'
 
@@ -149,7 +150,7 @@ const fetchGroupDetails = async () => {
 
     try {
         // Fetch group details
-        const response = await fetch(`http://localhost:8080/groups/details?id=${groupId}`, {
+        const response = await fetch(`${API}/groups/details?id=${groupId}`, {
             method: 'GET',
             credentials: 'include'
         });
@@ -184,7 +185,7 @@ const handleGroupImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) =>
       formData.append('image', file);
   
       try {
-        const response = await fetch('http://localhost:8080/chat/upload-image', {
+        const response = await fetch(`${API}/chat/upload-image`, {
           method: 'POST',
           credentials: 'include',
           body: formData,
@@ -231,7 +232,7 @@ const handleGroupImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) =>
     useEffect(() => {
         const fetchUserData = async () => {
             try {
-                const response = await fetch('http://localhost:8080/profile', {
+                const response = await fetch(`${API}/profile`, {
                     method: 'GET',
                     credentials: 'include'
                 });
@@ -279,7 +280,7 @@ const handleGroupImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) =>
 
             try {
                 // Fetch group messages
-                const messagesResponse = await fetch(`http://localhost:8080/groups/messages?id=${groupId}`, {
+                const messagesResponse = await fetch(`${API}/groups/messages?id=${groupId}`, {
                     method: 'GET',
                     credentials: 'include'
                 });
@@ -292,7 +293,7 @@ const handleGroupImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) =>
                 }
 
                 // Fetch group posts
-                const postsResponse = await fetch(`http://localhost:8080/groups/posts?group_id=${groupId}`, {
+                const postsResponse = await fetch(`${API}/groups/posts?group_id=${groupId}`, {
                     method: 'GET',
                     credentials: 'include'
                 });
@@ -310,7 +311,7 @@ const handleGroupImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) =>
                 }
 
                 // Fetch group events
-                const eventsResponse = await fetch(`http://localhost:8080/groups/events?group_id=${groupId}`, {
+                const eventsResponse = await fetch(`${API}/groups/events?group_id=${groupId}`, {
                     method: 'GET',
                     credentials: 'include'
                 });
@@ -348,7 +349,7 @@ const handleGroupImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) =>
     // Fetch all users for invitation
     const fetchUsers = async () => {
         try {
-            const response = await fetch('http://localhost:8080/users', {
+            const response = await fetch(`${API}/users`, {
                 method: 'GET',
                 headers: {
                     'Accept': 'application/json'
@@ -395,7 +396,7 @@ const handleGroupImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) =>
         setInviteSuccess('')
 
         try {
-            const response = await fetch('http://localhost:8080/groups/invite', {
+            const response = await fetch(`${API}/groups/invite`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -677,7 +678,7 @@ const handleCreateComment = async (postId: number) => {
 
     const fetchGroupEvents = async () => {
         try {
-            const response = await fetch(`http://localhost:8080/groups/events?group_id=${groupId}`, {
+            const response = await fetch(`${API}/groups/events?group_id=${groupId}`, {
                 method: 'GET',
                 credentials: 'include'
             });
@@ -985,9 +986,9 @@ const handleCreateComment = async (postId: number) => {
                                                         <div className="message-content">
                                                             {message.content.match(/\.(jpeg|jpg|gif|png)$/i) ? (
                                                                 <img
-                                                                    src={`http://localhost:8080${encodeURI(message.content)}`}
+                                                                    src={`${API}${encodeURI(message.content)}`}
                                                                     alt="User uploaded content"
-                                                                    onClick={() => handleImageClick(`http://localhost:8080${encodeURI(message.content)}`)}
+                                                                    onClick={() => handleImageClick(`${API}${encodeURI(message.content)}`)}
                                                                     style={{ cursor: 'pointer' }}
                                                                 />
                                                             ) : (
@@ -1108,7 +1109,7 @@ const handleCreateComment = async (postId: number) => {
                                                         <div className="post-author">
                                                             <div className="author-avatar">
                                                                 {post.avatar ? (
-                                                                    <img src={post.avatar.startsWith('http') ? post.avatar : `http://localhost:8080${encodeURI(post.avatar)}`} alt={`${post.first_name}'s avatar`} />
+                                                                    <img src={mediaURL(post.avatar)} alt={`${post.first_name}'s avatar`} />
                                                                 ) : (
                                                                     <div className="avatar-placeholder">
                                                                         {post.first_name ? post.first_name.charAt(0) : 'U'}
@@ -1133,9 +1134,9 @@ const handleCreateComment = async (postId: number) => {
                                                         {post.image && (
                                                             <div className="post-image">
                                                                 <img
-                                                                    src={post.image.startsWith('http') ? post.image : `http://localhost:8080${encodeURI(post.image.replace(/\\/g, '/'))}`}
+                                                                    src={mediaURL(post.image)}
                                                                     alt="Post content"
-                                                                    onClick={() => post.image && handleImageClick(post.image.startsWith('http') ? post.image : `http://localhost:8080${encodeURI(post.image.replace(/\\/g, '/'))}`)}
+                                                                    onClick={() => post.image && handleImageClick(mediaURL(post.image))}
                                                                     style={{ cursor: 'pointer' }}
                                                                 />
                                                             </div>
@@ -1164,7 +1165,7 @@ const handleCreateComment = async (postId: number) => {
                                                                                 <div className="author-avatar">
                                                                                     {comment.avatar ? (
                                                                                         <img
-                                                                                            src={comment.avatar.startsWith('http') ? comment.avatar : `http://localhost:8080${comment.avatar}`}
+                                                                                            src={mediaURL(comment.avatar)}
                                                                                             alt={`${comment.first_name}'s avatar`}
                                                                                         />
                                                                                     ) : (

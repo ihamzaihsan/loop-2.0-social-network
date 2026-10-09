@@ -1,4 +1,5 @@
 'use client'
+import { API } from "../../../utils/api";
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -39,7 +40,7 @@ export default function CreateGroupPage() {
         setError('')
 
         try {
-            const response = await fetch('http://localhost:8080/groups/create', {
+            const response = await fetch(`${API}/groups/create`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

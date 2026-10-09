@@ -1,4 +1,5 @@
 'use client'
+import { API } from "../../../utils/api";
 
 import { useRealtimeRefresh } from '@/app/webscoket/useRealtimeRefresh'
 
@@ -23,13 +24,13 @@ export default function DiscoverPage() {
     const fetchGroups = async () => {
         try {
             // Fetch all available groups
-            const allGroupsResponse = await fetch('http://localhost:8080/groups/all', {
+            const allGroupsResponse = await fetch(`${API}/groups/all`, {
                 method: 'GET',
                 credentials: 'include'
             })
 
             // Fetch user's groups to check membership
-            const userGroupsResponse = await fetch('http://localhost:8080/groups/user', {
+            const userGroupsResponse = await fetch(`${API}/groups/user`, {
                 method: 'GET',
                 credentials: 'include'
             })
@@ -92,7 +93,7 @@ export default function DiscoverPage() {
       setError('')
 
       try {
-          const response = await fetch('http://localhost:8080/groups/join/request', {
+          const response = await fetch(`${API}/groups/join/request`, {
               method: 'POST',
               headers: {
                   'Content-Type': 'application/json',

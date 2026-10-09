@@ -1,3 +1,4 @@
+import { webSocketURL } from "../../utils/api";
 import { WebSocketClientInterface, MessageContent } from './types';
 
 export class WebSocketClient implements WebSocketClientInterface {
@@ -6,12 +7,10 @@ export class WebSocketClient implements WebSocketClientInterface {
     static getInstance(): WebSocketClient {
         if (!WebSocketClient.instance) {
             WebSocketClient.instance = new WebSocketClient();
+            // Remove credentials left by older versions; authentication uses cookies.
+            localStorage.removeItem('sessionToken');
         
-            // Automatically connect if we have a session token
-            const sessionToken = localStorage.getItem('sessionToken');
-            if (sessionToken) {
-                WebSocketClient.instance.connect();
-            }
+
         }
         return WebSocketClient.instance;
     }
@@ -59,7 +58,7 @@ export class WebSocketClient implements WebSocketClientInterface {
         this.stopped = false;
         if (this.reconnectTimeout) clearTimeout(this.reconnectTimeout);
         // Authentication uses the HTTP-only session cookie, never a URL token.
-        this.socket = new WebSocket('ws://localhost:8080/ws');
+        this.socket = new WebSocket(webSocketURL());
         const connection = this.socket;
 
         this.socket.onopen = () => {

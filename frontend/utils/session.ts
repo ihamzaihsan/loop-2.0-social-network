@@ -1,14 +1,18 @@
-export const checkSession = async (): Promise<boolean> => {
+import { API } from "./api";
+export const checkSession = async (): Promise<boolean | null> => {
   try {
-    const response = await fetch('http://localhost:8080/profile', {
+    const response = await fetch(`${API}/profile`, {
       method: 'GET',
       credentials: 'include'
     });
     
-    return response.ok;
+    if (response.ok) return true;
+    if (response.status === 401) return false;
+    // Rate limits and temporary server failures do not mean the session expired.
+    return null;
   } catch (error) {
     console.error('Session check failed:', error);
-    return false;
+    return null;
   }
 };
 
@@ -21,7 +25,7 @@ export const redirectBasedOnSession = async (
   
   if (hasSession && !isProtectedRoute) {
     router.push('/home');
-  } else if (!hasSession && isProtectedRoute) {
+  } else if (hasSession === false && isProtectedRoute) {
     router.push('/login');
   }
 };

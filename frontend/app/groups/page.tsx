@@ -1,4 +1,5 @@
 'use client'
+import { API } from "../../utils/api";
 
 import { useRealtimeRefresh } from '@/app/webscoket/useRealtimeRefresh'
 
@@ -15,7 +16,7 @@ export default function GroupsPage() {
 
     const fetchGroups = async () => {
         try {
-            const response = await fetch('http://localhost:8080/groups/user', {
+            const response = await fetch(`${API}/groups/user`, {
                 method: 'GET',
                 credentials: 'include'
             })

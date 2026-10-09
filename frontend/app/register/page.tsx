@@ -1,4 +1,5 @@
 'use client'
+import { API } from "../../utils/api";
 import './register.css'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
@@ -136,14 +137,14 @@ export default function Register() {
         formDataToSend.append('isPrivate', formData.isPrivate.toString())
         formDataToSend.append('avatar', formData.avatar)
 
-        response = await fetch('http://localhost:8080/register', {
+        response = await fetch(`${API}/register`, {
           method: 'POST',
           body: formDataToSend,
           credentials: 'include'
         })
       } else {
         // Use JSON for simple registration
-        response = await fetch('http://localhost:8080/register', {
+        response = await fetch(`${API}/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -165,11 +166,7 @@ export default function Register() {
         setErrorMessage(data.error || "Registration failed. Please check your input.")
         return
       }
-
-      // Store session token if provided
-      if (data.token) {
-        localStorage.setItem('sessionToken', data.token)
-      }
+        localStorage.removeItem('sessionToken');
 
       const wsClient = WebSocketClient.getInstance()
       setTimeout(() => wsClient.connect(), 100)

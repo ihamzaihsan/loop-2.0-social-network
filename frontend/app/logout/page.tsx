@@ -1,4 +1,5 @@
 'use client'
+import { API } from "../../utils/api";
 
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
@@ -10,7 +11,7 @@ export default function Logout() {
   useEffect(() => {
     const performLogout = async () => {
       try {
-        await fetch('http://localhost:8080/logout', {
+        await fetch(`${API}/logout`, {
           method: 'POST',
           credentials: 'include'
         })

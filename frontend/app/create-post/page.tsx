@@ -1,4 +1,5 @@
 'use client'
+import { API, mediaURL } from "../../utils/api";
 
 import { useRealtimeRefresh } from '@/app/webscoket/useRealtimeRefresh'
 
@@ -37,7 +38,7 @@ export default function CreatePost() {
   useEffect(() => {
     const fetchCurrentUser = async () => {
       try {
-        const response = await fetch('http://localhost:8080/profile', {
+        const response = await fetch(`${API}/profile`, {
           method: 'GET',
           credentials: 'include',
         })
@@ -72,7 +73,7 @@ export default function CreatePost() {
     setIsLoadingUsers(true)
     try {
       // Get the current user ID first (this should be available from the session)
-      const userProfileResponse = await fetch('http://localhost:8080/profile', {
+      const userProfileResponse = await fetch(`${API}/profile`, {
         method: 'GET',
         credentials: 'include',
       });
@@ -85,7 +86,7 @@ export default function CreatePost() {
       const userId = userProfileData.user.id;
       
       // Now fetch following users (people the current user follows) for private post sharing
-      const response = await fetch(`http://localhost:8080/user/${userId}/connections/following`, {
+      const response = await fetch(`${API}/user/${userId}/connections/following`, {
         method: 'GET',
         credentials: 'include',
       })
@@ -221,7 +222,7 @@ export default function CreatePost() {
           // Add viewer IDs as JSON string
           formData.append('viewerIds', JSON.stringify(selectedUsers))
           
-          const response = await fetch('http://localhost:8080/posts', {
+          const response = await fetch(`${API}/posts`, {
             method: 'POST',
             credentials: 'include',
             body: formData,
@@ -233,7 +234,7 @@ export default function CreatePost() {
           }
         } else {
           // If no image, we can use JSON directly
-          const response = await fetch('http://localhost:8080/posts', {
+          const response = await fetch(`${API}/posts`, {
             method: 'POST',
             credentials: 'include',
             headers: {
@@ -256,7 +257,7 @@ export default function CreatePost() {
           formData.append('image', image)
         }
         
-        const response = await fetch('http://localhost:8080/posts', {
+        const response = await fetch(`${API}/posts`, {
           method: 'POST',
           credentials: 'include',
           body: formData,
@@ -290,7 +291,7 @@ export default function CreatePost() {
               <div className="current-user-avatar">
                 {currentUser.avatar ? (
                   <img
-                    src={currentUser.avatar.startsWith('http') ? currentUser.avatar : `http://localhost:8080${currentUser.avatar.replace(/\\/g, '/')}`}
+                    src={mediaURL(currentUser.avatar)}
                     alt={`${currentUser.firstName}'s avatar`}
                     className="avatar-img"
                   />

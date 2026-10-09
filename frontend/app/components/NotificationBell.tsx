@@ -1,3 +1,4 @@
+import { API } from "../../utils/api";
 import { useRealtimeRefresh } from '@/app/webscoket/useRealtimeRefresh';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
@@ -11,7 +12,7 @@ const NotificationBell: React.FC = () => {
   const close = useCallback(() => setIsOpen(false), []);
   const fetchUnreadCount = useCallback(async () => {
     try {
-      const response = await fetch('http://localhost:8080/notifications/count', { credentials: 'include' });
+      const response = await fetch(`${API}/notifications/count`, { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
         if (data.success) setUnreadCount(data.unread_count);

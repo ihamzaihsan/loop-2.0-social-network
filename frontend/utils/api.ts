@@ -1,4 +1,10 @@
-export const API = "http://localhost:8080";
+export const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+
+export function webSocketURL() {
+  const url = new URL(API + "/ws", window.location.origin);
+  url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+  return url.toString();
+}
 
 export async function api<T>(
   path: string,
@@ -34,6 +40,7 @@ export function refreshResources(...resources: string[]) {
 }
 
 export function mediaURL(path: string) {
+  path = path.replace(/^https?:\/\/localhost:808[01](?=\/)/, "");
   if (/^https?:\/\//.test(path)) return path;
   const normalized = path.replace(/\\/g, "/").replace(/^\.\//, "");
   return API + "/" + normalized.replace(/^\//, "");

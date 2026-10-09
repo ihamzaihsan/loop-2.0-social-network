@@ -1,4 +1,5 @@
 'use client'
+import { API } from "../../utils/api";
 import Link from 'next/link'
 import './login.css'
 import { Suspense, useState, useEffect } from 'react'
@@ -36,7 +37,7 @@ function LoginContent() {
     setError('')
     
     try {
-      const response = await fetch('http://localhost:8080/login', {
+      const response = await fetch(`${API}/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -48,16 +49,13 @@ function LoginContent() {
       const data = await response.json();
       
       if (response.ok) {
-        // Get the token from the response
-        if (data.token) {
-          localStorage.setItem('sessionToken', data.token);
-        }
+        localStorage.removeItem('sessionToken');
         
         // Initialize WebSocket connection immediately after successful login
         console.log('Login successful, initializing WebSocket connection...');
         const wsClient = WebSocketClient.getInstance();
         
-        // Small delay to ensure token is properly stored
+        // Connect after the browser has accepted the HttpOnly cookie
         setTimeout(() => {
           wsClient.connect();
           console.log('WebSocket connection initiated after login');

@@ -1,4 +1,5 @@
 'use client'
+import { API } from "../utils/api";
 
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
@@ -19,7 +20,7 @@ export default function Sidebar({ activePage }: { activePage: string }) {
 
     const refreshUnreadMessages = async () => {
         try {
-            const response = await fetch('http://localhost:8080/chat/contacts', { credentials: 'include' })
+            const response = await fetch(`${API}/chat/contacts`, { credentials: 'include' })
             if (!response.ok) return
             const data = await response.json()
             setUnreadMessages((data.contacts ?? []).reduce((total: number, contact: { unreadCount: number }) => total + (contact.unreadCount ?? 0), 0))
@@ -52,7 +53,7 @@ export default function Sidebar({ activePage }: { activePage: string }) {
 
     const handleLogout = async () => {
         try {
-            const response = await fetch('http://localhost:8080/logout', {
+            const response = await fetch(`${API}/logout`, {
                 method: 'POST',
                 credentials: 'include'
             })

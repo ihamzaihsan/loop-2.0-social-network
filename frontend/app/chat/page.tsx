@@ -1,4 +1,5 @@
 'use client'
+import { API } from "../../utils/api";
 
 import { useRealtimeRefresh } from '@/app/webscoket/useRealtimeRefresh'
 
@@ -137,7 +138,7 @@ function ChatContent() {
     let cancelled = false
     const selectRequestedContact = async () => {
       try {
-        const response = await fetch(`http://localhost:8080/user/info?id=${requestedContact}`, { credentials: 'include' })
+        const response = await fetch(`${API}/user/info?id=${requestedContact}`, { credentials: 'include' })
         if (!response.ok || cancelled) return
         const data = await response.json()
         if (cancelled || !data.user) return
@@ -159,7 +160,7 @@ function ChatContent() {
         setMessages(history)
         const throughId = Math.max(0, ...history.filter(message => message.sender_id === contactId && !message.is_read).map(message => message.id))
         if (throughId && document.visibilityState === 'visible') {
-          await fetch('http://localhost:8080/chat/read', {
+          await fetch(`${API}/chat/read`, {
             method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ contact_id: contactId, through_id: throughId })
           })
@@ -229,7 +230,7 @@ function ChatContent() {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const response = await fetch('http://localhost:8080/profile', {
+        const response = await fetch(`${API}/profile`, {
           method: 'GET',
           credentials: 'include'
         });
@@ -316,7 +317,7 @@ function ChatContent() {
         // If WebSocket failed or not available, use HTTP
         if (!sentViaWebSocket) {
           console.log('Sending message via HTTP');
-          const response = await fetch('http://localhost:8080/messages', {
+          const response = await fetch(`${API}/messages`, {
             method: 'POST',
             credentials: 'include',
             headers: {
@@ -451,7 +452,7 @@ function ChatContent() {
       formData.append('image', file);
   
       try {
-        const response = await fetch('http://localhost:8080/chat/upload-image', {
+        const response = await fetch(`${API}/chat/upload-image`, {
           method: 'POST',
           credentials: 'include',
           body: formData,
@@ -465,7 +466,7 @@ function ChatContent() {
               wsClient.sendMessage(selectedContact.id, data.imageUrl);
             } else {
               // Fallback to HTTP
-              await fetch('http://localhost:8080/messages', {
+              await fetch(`${API}/messages`, {
                 method: 'POST',
                 credentials: 'include',
                 headers: {
@@ -653,9 +654,9 @@ function ChatContent() {
                          {typeof message.content === 'string' && message.content.match(/\.(jpeg|jpg|gif|png)$/i) ? (
                            // If the content is an image URL - make it clickable
                            <img
-                             src={`http://localhost:8080${message.content.replace(/\\/g, '/')}`}
+                             src={`${API}${message.content.replace(/\\/g, '/')}`}
                              alt="User uploaded content"
-                             onClick={() => handleImageClick(`http://localhost:8080${message.content.replace(/\\/g, '/')}`)}
+                             onClick={() => handleImageClick(`${API}${message.content.replace(/\\/g, '/')}`)}
                              style={{ cursor: 'pointer' }}
                            />
                          ) : typeof message.content === 'number' ? (

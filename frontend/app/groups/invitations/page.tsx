@@ -1,4 +1,5 @@
 'use client'
+import { API } from "../../../utils/api";
 
 import { useRealtimeRefresh } from '@/app/webscoket/useRealtimeRefresh'
 
@@ -42,13 +43,13 @@ export default function GroupInvitationsPage() {
         try {
 
             // Fetch invitations
-            const invitationsResponse = await fetch('http://localhost:8080/groups/invitations', {
+            const invitationsResponse = await fetch(`${API}/groups/invitations`, {
                 method: 'GET',
                 credentials: 'include'
             })
 
             // Fetch join requests for groups where user is creator
-            const joinRequestsResponse = await fetch('http://localhost:8080/groups/join/requests', {
+            const joinRequestsResponse = await fetch(`${API}/groups/join/requests`, {
                 method: 'GET',
                 credentials: 'include'
             })
@@ -94,7 +95,7 @@ export default function GroupInvitationsPage() {
         setSuccess('')
 
         try {
-            const response = await fetch('http://localhost:8080/groups/membership/handle', {
+            const response = await fetch(`${API}/groups/membership/handle`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -136,7 +137,7 @@ export default function GroupInvitationsPage() {
         setSuccess('')
 
         try {
-            const response = await fetch('http://localhost:8080/groups/membership/handle', {
+            const response = await fetch(`${API}/groups/membership/handle`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

@@ -1,4 +1,5 @@
 'use client'
+import { API, mediaURL } from "../../utils/api";
 
 import { useRealtimeRefresh } from '@/app/webscoket/useRealtimeRefresh'
 
@@ -6,7 +7,7 @@ import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import '../home/home.css'
 import './profile.css'
-import { mediaURL } from '@/utils/api'
+
 import LikeButton from '@/components/LikeButton'
 import Sidebar from '../../components/Sidebar'
 
@@ -75,7 +76,7 @@ export default function Profile() {
 
   const fetchProfile = async () => {
     try {
-      const response = await fetch('http://localhost:8080/profile', {
+      const response = await fetch(`${API}/profile`, {
         method: 'GET',
         credentials: 'include'
       })
@@ -115,7 +116,7 @@ export default function Profile() {
         
         try {
           // Fetch user profile from the profile endpoint
-          const response = await fetch(`http://localhost:8080/profile/${user.id}`, {
+          const response = await fetch(`${API}/profile/${user.id}`, {
             method: 'GET',
             credentials: 'include'
           })
@@ -163,7 +164,7 @@ export default function Profile() {
     setIsUpdating(true)
     
     try {
-      const response = await fetch('http://localhost:8080/profile/privacy', {
+      const response = await fetch(`${API}/profile/privacy`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
@@ -211,7 +212,7 @@ export default function Profile() {
   const handleDeletePost = async (postId: number) => {
     if (confirm('Are you sure you want to delete this post?')) {
       try {
-        const response = await fetch(`http://localhost:8080/posts?id=${postId}`, {
+        const response = await fetch(`${API}/posts?id=${postId}`, {
           method: 'DELETE',
           credentials: 'include',
         })
@@ -279,7 +280,7 @@ export default function Profile() {
                 <div className="profile-avatar">
                   {profile.user.avatar ? (
                     <img
-                      src={`http://localhost:8080${encodeURI(profile.user.avatar)}`}
+                      src={`${API}${encodeURI(profile.user.avatar)}`}
                       alt={`${profile.user.firstName}'s avatar`}
                       className="avatar-image"
                     />
@@ -394,7 +395,7 @@ export default function Profile() {
                         {post.image && (
                           <div className="post-image-container">
                             <img
-                              src={post.image.startsWith('http') ? post.image : `http://localhost:8080${encodeURI(post.image.replace(/\\/g, '/'))}`}
+                              src={mediaURL(post.image)}
                               alt="Post image"
                               className="post-image"
                             />
@@ -434,7 +435,7 @@ export default function Profile() {
                         <div className="follow-avatar">
                           {follower.avatar ? (
                             <img
-                              src={follower.avatar.startsWith('http') ? follower.avatar : `http://localhost:8080${encodeURI(follower.avatar)}`}
+                              src={mediaURL(follower.avatar)}
                               alt="Follower avatar"
                             />
                           ) : (
@@ -475,7 +476,7 @@ export default function Profile() {
                 <div className="follow-avatar">
                   {followedUser.avatar ? (
                     <img
-                      src={followedUser.avatar.startsWith('http') ? followedUser.avatar : `http://localhost:8080${followedUser.avatar}`}
+                      src={mediaURL(followedUser.avatar)}
                       alt="User avatar"
                     />
                   ) : (

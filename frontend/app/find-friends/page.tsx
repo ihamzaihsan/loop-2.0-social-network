@@ -1,4 +1,5 @@
 'use client'
+import { API } from "../../utils/api";
 
 import { useRealtimeRefresh } from '@/app/webscoket/useRealtimeRefresh'
 
@@ -50,7 +51,7 @@ export default function FindFriends() {
     const fetchData = async () => {
       try {
         // First, get the current user profile to know who we are
-        const profileResponse = await fetch('http://localhost:8080/profile', {
+        const profileResponse = await fetch(`${API}/profile`, {
           method: 'GET',
           credentials: 'include',
           headers: {
@@ -97,7 +98,7 @@ export default function FindFriends() {
   }, [router])
 
   useRealtimeRefresh(['users', 'profiles', 'social'], async () => {
-    const response = await fetch('http://localhost:8080/profile', { credentials: 'include' })
+    const response = await fetch(`${API}/profile`, { credentials: 'include' })
     if (!response.ok) return
     const data = await response.json()
     await Promise.all([fetchUsers(data.user.id), fetchFriends(), fetchFollowRequests()])
@@ -105,7 +106,7 @@ export default function FindFriends() {
 
   const fetchUsers = async (currentUserId: number) => {
     try {
-      const usersResponse = await fetch('http://localhost:8080/users', {
+      const usersResponse = await fetch(`${API}/users`, {
         method: 'GET',
         credentials: 'include',
         headers: {
@@ -141,7 +142,7 @@ export default function FindFriends() {
 
   const fetchFollowRequests = async () => {
     try {
-      const response = await fetch('http://localhost:8080/follow-requests', {
+      const response = await fetch(`${API}/follow-requests`, {
         method: 'GET',
         credentials: 'include',
         headers: {
@@ -176,7 +177,7 @@ export default function FindFriends() {
 
   const fetchFriends = async () => {
     try {
-      const response = await fetch('http://localhost:8080/api/friends', {
+      const response = await fetch(`${API}/api/friends`, {
         method: 'GET',
         credentials: 'include',
         headers: {
@@ -222,7 +223,7 @@ export default function FindFriends() {
       if (isFollowing) {
         // Unfollow logic
         console.log('Sending unfollow request for user:', userId);
-        const response = await fetch('http://localhost:8080/unfollow', {
+        const response = await fetch(`${API}/unfollow`, {
           method: 'POST',
           credentials: 'include',
           headers: {
@@ -257,7 +258,7 @@ export default function FindFriends() {
         const requestBody = JSON.stringify({ followed_id: userId });
         console.log('Request body:', requestBody);
         
-        const response = await fetch('http://localhost:8080/follow', {
+        const response = await fetch(`${API}/follow`, {
           method: 'POST',
           credentials: 'include',
           headers: {
@@ -313,7 +314,7 @@ export default function FindFriends() {
     try {
       console.log(`Sending ${action} request for request ID: ${requestId}`)
 
-      const response = await fetch(`http://localhost:8080/follow-request?id=${requestId}`, {
+      const response = await fetch(`${API}/follow-request?id=${requestId}`, {
         method: 'POST',
         credentials: 'include',
         headers: {

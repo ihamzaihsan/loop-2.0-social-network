@@ -1,4 +1,5 @@
 'use client'
+import { API } from "../../utils/api";
 
 import { useRealtimeRefresh } from '@/app/webscoket/useRealtimeRefresh'
 
@@ -49,7 +50,7 @@ function EditPostContent() {
     if (!postId) return
 
     try {
-      const response = await fetch(`http://localhost:8080/posts?id=${postId}`, {
+      const response = await fetch(`${API}/posts?id=${postId}`, {
         method: 'GET',
         credentials: 'include'
       })
@@ -94,7 +95,7 @@ function EditPostContent() {
     setSubmitting(true)
     
     try {
-      const response = await fetch(`http://localhost:8080/posts?id=${postId}`, {
+      const response = await fetch(`${API}/posts?id=${postId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'

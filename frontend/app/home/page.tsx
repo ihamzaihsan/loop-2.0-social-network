@@ -1,4 +1,5 @@
 'use client'
+import { API, mediaURL } from "../../utils/api";
 
 import { useRealtimeRefresh } from '@/app/webscoket/useRealtimeRefresh'
 
@@ -83,7 +84,7 @@ export default function Home() {
   const fetchUserData = async () => {
     try {
       // Fetch user data from the backend
-      const response = await fetch('http://localhost:8080/profile', {
+      const response = await fetch(`${API}/profile`, {
         method: 'GET',
         credentials: 'include'
       })
@@ -123,7 +124,7 @@ export default function Home() {
     if (showLoading) setPostsLoading(true)
     try {
       const pages = await Promise.all(Array.from({length:loadedPages.current}, async (_,i) => {
-        const response = await fetch(`http://localhost:8080/posts?page=${i+1}`, {credentials:'include'})
+        const response = await fetch(`${API}/posts?page=${i+1}`, {credentials:'include'})
         if (!response.ok) throw new Error('Failed to fetch posts')
         return response.json()
       }))
@@ -146,7 +147,7 @@ export default function Home() {
   const fetchComments = async (postId: number) => {
     try {
       console.log(`Fetching comments for post ${postId}`);
-      const response = await fetch(`http://localhost:8080/comments?postId=${postId}`, {
+      const response = await fetch(`${API}/comments?postId=${postId}`, {
         method: 'GET',
         credentials: 'include'
       });
@@ -238,7 +239,7 @@ export default function Home() {
         console.log(`${key}: ${value instanceof File ? value.name : value}`);
       }
       
-      const response = await fetch(`http://localhost:8080/comments?postId=${postId}`, {
+      const response = await fetch(`${API}/comments?postId=${postId}`, {
         method: 'POST',
         credentials: 'include',
         // Don't set Content-Type header manually - let the browser set it with the boundary
@@ -293,7 +294,7 @@ export default function Home() {
   const handleDeletePost = async (postId: number) => {
     if (confirm('Are you sure you want to delete this post?')) {
       try {
-        const response = await fetch(`http://localhost:8080/posts?id=${postId}`, {
+        const response = await fetch(`${API}/posts?id=${postId}`, {
           method: 'DELETE',
           credentials: 'include',
         })
@@ -384,7 +385,7 @@ export default function Home() {
                         <div className="author-avatar">
                           {post.author.avatar ? (
                             <img
-                              src={post.author.avatar.startsWith('http') ? post.author.avatar : `http://localhost:8080${encodeURI(post.author.avatar.replace(/\\/g, '/'))}`}
+                              src={mediaURL(post.author.avatar)}
                               alt={`${post.author.firstName}'s avatar`}
                               className="avatar-img"
                             />
@@ -448,20 +449,7 @@ export default function Home() {
                       {post.image && (
                         <div className="post-image-container">
                           <img
-                            src={(() => {
-                              if (post.image.startsWith('http')) {
-                                return post.image;
-                              }
-                              // Normalize the path - remove leading ./ and ensure it starts with /
-                              let normalizedPath = post.image.replace(/\\/g, '/');
-                              if (normalizedPath.startsWith('./')) {
-                                normalizedPath = normalizedPath.substring(1); // Remove the dot, keep the slash
-                              }
-                              if (!normalizedPath.startsWith('/')) {
-                                normalizedPath = '/' + normalizedPath;
-                              }
-                              return `http://localhost:8080${encodeURI(normalizedPath)}`;
-                            })()}
+                            src={mediaURL(post.image)}
                             alt="Post image"
                             className="post-image"
                             onError={(e) => {
@@ -504,7 +492,7 @@ export default function Home() {
                                   <div className="comment-avatar">
                                     {comment.author?.avatar ? (
                                       <img
-                                        src={comment.author.avatar.startsWith('http') ? comment.author.avatar : `http://localhost:8080${comment.author.avatar.replace(/\\/g, '/')}`}
+                                        src={mediaURL(comment.author.avatar)}
                                         alt={`${comment.author.firstName}'s avatar`}
                                         className="avatar-img"
                                       />
@@ -529,7 +517,7 @@ export default function Home() {
                                       {comment.image && (
                                         <div className="comment-image-container">
                                           <img
-                                            src={comment.image.startsWith('http') ? comment.image : `http://localhost:8080${comment.image.replace(/\\/g, '/')}`}
+                                            src={mediaURL(comment.image)}
                                             alt="Comment image"
                                             className="comment-image"
                                           />

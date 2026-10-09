@@ -1,6 +1,6 @@
 import { WebSocketClientInterface } from '../webscoket/types';
 import { WebSocketClient } from '../webscoket/websocket';
-import { api } from '../../utils/api';
+import { API, api } from '../../utils/api';
 
 interface User {
     id: number;
@@ -54,7 +54,7 @@ interface ChatContact {
 // Fetch chat contacts (users with message history)
 export const fetchChatContacts = async (): Promise<ChatContact[]> => {
     try {
-        const response = await fetch('http://localhost:8080/chat/contacts', {
+        const response = await fetch(`${API}/chat/contacts`, {
             method: 'GET',
             credentials: 'include'
         });
@@ -78,7 +78,7 @@ export const fetchChatContacts = async (): Promise<ChatContact[]> => {
 // Fetch messages for a selected contact
 export const fetchMessages = async (contactId: number): Promise<Message[]> => {
     try {
-        const response = await fetch(`http://localhost:8080/messages/${contactId}`, {
+        const response = await fetch(`${API}/messages/${contactId}`, {
             method: 'GET',
             credentials: 'include'
         });
@@ -101,7 +101,7 @@ export const fetchMessages = async (contactId: number): Promise<Message[]> => {
 // Fetch group messages
 export const fetchGroupMessages = async (groupId: number): Promise<GroupMessage[]> => {
     try {
-        const response = await fetch(`http://localhost:8080/groups/messages?id=${groupId}`, {
+        const response = await fetch(`${API}/groups/messages?id=${groupId}`, {
             method: 'GET',
             credentials: 'include'
         });
@@ -124,7 +124,7 @@ export const fetchGroupMessages = async (groupId: number): Promise<GroupMessage[
 // Fetch group posts
 export const fetchGroupPosts = async (groupId: number): Promise<any[]> => {
     try {
-        const response = await fetch(`http://localhost:8080/groups/posts?group_id=${groupId}`, {
+        const response = await fetch(`${API}/groups/posts?group_id=${groupId}`, {
             method: 'GET',
             credentials: 'include'
         });
@@ -147,7 +147,7 @@ export const fetchGroupPosts = async (groupId: number): Promise<any[]> => {
 // Fetch group events
 export const fetchGroupEvents = async (groupId: number): Promise<any[]> => {
     try {
-        const response = await fetch(`http://localhost:8080/groups/events?group_id=${groupId}`, {
+        const response = await fetch(`${API}/groups/events?group_id=${groupId}`, {
             method: 'GET',
             credentials: 'include'
         });
@@ -171,7 +171,7 @@ export const fetchGroupEvents = async (groupId: number): Promise<any[]> => {
 export const fetchFollowedUsers = async (): Promise<User[]> => {
     try {
         // Use the new endpoint specifically for fetching followed users
-        const response = await fetch('http://localhost:8080/chat/followed', {
+        const response = await fetch(`${API}/chat/followed`, {
             method: 'GET',
             credentials: 'include'
         });
@@ -200,7 +200,7 @@ export const sendMessage = async (
     content: string
 ): Promise<Message | null> => {
     try {
-        const response = await fetch('http://localhost:8080/messages', {
+        const response = await fetch(`${API}/messages`, {
             method: 'POST',
             credentials: 'include',
             headers: {
@@ -368,7 +368,7 @@ export const sendMessage = async (
         content: string
         ): Promise<any | null> => {
         try {
-            const response = await fetch('http://localhost:8080/messages', {
+            const response = await fetch(`${API}/messages`, {
             method: 'POST',
             credentials: 'include',
             headers: {
@@ -412,7 +412,7 @@ export const sendMessage = async (
                     formData.append('image', imageFile)
                 }
 
-                const response = await fetch('http://localhost:8080/groups/posts/create', {
+                const response = await fetch(`${API}/groups/posts/create`, {
                     method: 'POST',
                     credentials: 'include',
                     body: formData,
@@ -450,7 +450,7 @@ export const sendMessage = async (
         content: string
         ): Promise<any | null> => {
         try {
-            const response = await fetch('http://localhost:8080/groups/posts/comments/create', {
+            const response = await fetch(`${API}/groups/posts/comments/create`, {
             method: 'POST',
             credentials: 'include',
             headers: {
@@ -522,7 +522,7 @@ export const sendMessage = async (
                 // If WebSocket failed or not available, use HTTP
                 if (!sentViaWebSocket) {
                     console.log('Sending event response via HTTP');
-                    const response = await fetch('http://localhost:8080/groups/events/respond', {
+                    const response = await fetch(`${API}/groups/events/respond`, {
                         method: 'POST',
                         credentials: 'include',
                         headers: {
@@ -555,7 +555,7 @@ export const sendMessage = async (
         // Add this function to fetch comments for a group post
         export const fetchGroupPostComments = async (postId: number): Promise<any[]> => {
             try {
-                const response = await fetch(`http://localhost:8080/groups/posts/comments?post_id=${postId}`, {
+                const response = await fetch(`${API}/groups/posts/comments?post_id=${postId}`, {
                     method: 'GET',
                     credentials: 'include'
                 });

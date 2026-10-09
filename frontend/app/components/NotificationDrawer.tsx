@@ -1,3 +1,4 @@
+import { API } from "../../utils/api";
 import { useRealtimeRefresh } from '@/app/webscoket/useRealtimeRefresh';
 import React, { useState, useEffect } from 'react';
 import NotificationItem from './NotificationItem';
@@ -43,7 +44,7 @@ const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ onClose, onNoti
   const fetchNotifications = async () => {
     try {
       setError(null);
-      const response = await fetch('http://localhost:8080/notifications', {
+      const response = await fetch(`${API}/notifications`, {
         method: 'GET',
         credentials: 'include',
       });
@@ -70,7 +71,7 @@ const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ onClose, onNoti
 
   const handleMarkAllRead = async () => {
     try {
-      const response = await fetch('http://localhost:8080/notifications/read-all', {
+      const response = await fetch(`${API}/notifications/read-all`, {
         method: 'POST',
         credentials: 'include',
       });
@@ -94,7 +95,7 @@ const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ onClose, onNoti
 
   const handleNotificationAction = async (notificationId: number, action: string) => {
     try {
-      const response = await fetch(`http://localhost:8080/notifications/action?id=${notificationId}`, {
+      const response = await fetch(`${API}/notifications/action?id=${notificationId}`, {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -123,7 +124,7 @@ const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ onClose, onNoti
 
   const handleMarkAsRead = async (notificationId: number) => {
     try {
-      const response = await fetch(`http://localhost:8080/notifications/read?id=${notificationId}`, {
+      const response = await fetch(`${API}/notifications/read?id=${notificationId}`, {
         method: 'POST',
         credentials: 'include',
       });

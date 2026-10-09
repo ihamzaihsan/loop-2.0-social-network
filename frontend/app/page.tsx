@@ -7,6 +7,7 @@ import { checkSession } from '../utils/session'
 export default function RootPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     const verifySession = async () => {
@@ -15,12 +16,14 @@ export default function RootPage() {
 
         if (hasSession) {
           router.push('/home')
-        } else {
+        } else if (hasSession === false) {
           router.push('/login')
+        } else {
+          setError('We could not check your connection. Please try again in a moment.')
         }
       } catch (error) {
         console.error('Session verification failed:', error)
-        router.push('/login')
+        setError('We could not check your connection. Please try again in a moment.')
       } finally {
         setLoading(false)
       }
@@ -33,4 +36,6 @@ export default function RootPage() {
     return <div>Loading...</div>
   }
 
+  if (error) return <main className="feature-page"><p role="alert">{error}</p><button onClick={() => window.location.reload()}>Try again</button></main>
+  return null
 }
