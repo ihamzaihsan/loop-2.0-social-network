@@ -828,7 +828,7 @@ body .interaction-btn {
 body .delete-post-btn:hover { color: #ae3038; border-color: #f0b5b8; background: #fff3f3; }
 body .edit-post-btn:hover,
 body .interaction-btn:hover,
-body .interaction-btn.active { color: var(--loop-purple-dark); border-color: #d7cefb; background: #f3f0ff; }
+body .interaction-btn.active { color: var(--loop-purple-dark); border-color: var(--loop-line); background: var(--loop-tint); }
 
 body .comments-section {
   margin: 18px 0 0;
@@ -837,6 +837,58 @@ body .comments-section {
   border-radius: 16px;
   background: var(--loop-surface);
 }
+
+/* Feed controls use theme tokens, including populated and hovered comments. */
+body .post-interactions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  background: var(--loop-paper-strong);
+  border-color: var(--loop-line);
+}
+
+body .comments-header,
+body .comment-form-container {
+  background: var(--loop-surface);
+  border-color: var(--loop-line);
+}
+
+body .comments-title,
+body .comment-author { color: var(--loop-ink); }
+body .comment-author:hover { color: var(--loop-purple-dark); }
+body .comment-text { color: var(--loop-ink-soft); }
+body .no-comments,
+body .comment-char-count,
+body .preview-filename { color: var(--loop-muted); }
+body .comment-item:hover { background: var(--loop-tint); }
+body .comment-input-footer { border-color: var(--loop-line); }
+body .comment-input-wrapper:focus-within { background: var(--loop-paper-strong); }
+
+body .comment-image-button,
+body .comment-image-preview {
+  background: var(--loop-paper-strong);
+  color: var(--loop-ink-soft);
+  border-color: var(--loop-line);
+}
+body .comment-image-button:hover { background: var(--loop-tint); color: var(--loop-ink); }
+body .comments-list::-webkit-scrollbar-track { background: var(--loop-surface); }
+body .comments-list::-webkit-scrollbar-thumb { background: var(--loop-muted); }
+
+body .author-avatar .avatar-placeholder {
+  font-size: 22px;
+  line-height: 1;
+  color: var(--loop-on-accent);
+}
+body .comment-avatar .avatar-placeholder,
+body .current-user-avatar .avatar-placeholder {
+  background: var(--loop-lime);
+  color: var(--loop-on-accent);
+  font-size: 14px;
+  line-height: 1;
+}
+body .comment-avatar,
+body .current-user-avatar { border-color: var(--loop-line); }
 
 body .comment-item { border-color: var(--loop-line); }
 body .comment-content { border-radius: 14px; background: var(--loop-paper-strong); }
@@ -1161,6 +1213,53 @@ body .hero-description { color: rgba(255,255,255,0.58); }
 body .hero-stats { border-color: rgba(255,255,255,0.12); background: rgba(255,255,255,0.06); }
 body .hero-stats .stat-number { color: #fff; }
 body .hero-stats .stat-label { color: rgba(255,255,255,0.48); }
+
+/* Scope landing-page headers so group-chat styles cannot change their layout. */
+body :is(.groups-hero-section, .discover-hero-section, .invitations-hero-section, .create-hero-section) .hero-content {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  width: 100%;
+  padding: 0;
+  gap: 28px;
+}
+body :is(.groups-hero-section, .discover-hero-section, .invitations-hero-section, .create-hero-section) .hero-text {
+  display: block;
+  flex: 1 1 320px;
+  min-width: 0;
+  width: auto;
+}
+body :is(.groups-hero-section, .discover-hero-section, .invitations-hero-section, .create-hero-section) .hero-title {
+  display: block;
+  font-size: clamp(1.8rem, 3.5vw, 3.5rem);
+  overflow-wrap: normal;
+  word-break: normal;
+}
+body :is(.groups-hero-section, .discover-hero-section, .invitations-hero-section, .create-hero-section) .title-icon {
+  display: inline-block;
+  margin-right: 12px;
+  font-size: 0.65em;
+}
+body :is(.groups-hero-section, .discover-hero-section, .invitations-hero-section, .create-hero-section) .hero-actions {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+body :is(.groups-hero-section, .discover-hero-section, .invitations-hero-section) .hero-stats {
+  width: fit-content;
+  max-width: 100%;
+  padding: 14px 18px;
+  border-radius: 14px;
+}
+@media (max-width: 768px) {
+  body :is(.groups-hero-section, .discover-hero-section, .invitations-hero-section, .create-hero-section) .hero-text {
+    flex: 0 1 auto;
+    width: 100%;
+  }
+  body :is(.groups-hero-section, .discover-hero-section, .invitations-hero-section) .hero-stats {
+    margin-inline: auto;
+  }
+}
+
 
 body .groups-content-section,
 body .discover-content-section,

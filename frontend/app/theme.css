@@ -70,3 +70,9 @@ html[data-theme="dark"] body :is(.member-name, .message-text, .event-title, .eve
 html[data-theme="dark"] body :is(.event-time, .message-sender, .member-role, .empty-description, .empty-description-enhanced, .user-details-enhanced, .event-meta, .event-details) { color: var(--loop-muted); }
 html[data-theme="dark"] body .message.sent .message-content { color: #fff; background: transparent; }
 html[data-theme="dark"] body .chat-page .message-content { background: transparent; color: inherit; }
+
+html[data-theme="dark"] body .delete-post-btn:hover {
+  background: #40232e;
+  color: #ffb3bf;
+  border-color: var(--loop-line);
+}
