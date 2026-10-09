@@ -123,7 +123,7 @@ function LoginContent() {
           <div className="register-link">
             New around here? <Link href="/register" className="text-link">Create an account</Link>
           </div>
-        </form>
+        </form><a href="/forgot-password">Forgot password?</a>
       </div>
     </div>
   );

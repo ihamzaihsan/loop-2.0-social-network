@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import '../home/home.css'
 import './profile.css'
+import { mediaURL } from '@/utils/api'
+import LikeButton from '@/components/LikeButton'
 import Sidebar from '../../components/Sidebar'
 
 interface User {
@@ -261,7 +263,7 @@ export default function Profile() {
     <div className="profile-page">
       <Sidebar activePage="profile" />
       
-      <main className="main-content">
+      <main className="main-content"><a href="/settings" className="primary-button">Edit account settings</a>
         {profile && (
           <div className="profile-container">
             <header className="page-intro profile-page-intro">
@@ -356,7 +358,7 @@ export default function Profile() {
                       <div className="post-author" onClick={() => router.push(`/profile/${post.userId}`)}>
                     <div className="author-avatar">
                       {post.author.avatar ? (
-                        <img src={post.author.avatar} alt={`${post.author.firstName}'s avatar`} />
+                        <img src={mediaURL(post.author.avatar)} alt={`${post.author.firstName}'s avatar`} />
                       ) : (
                         <div className="avatar-placeholder">
                           {post.author.firstName.charAt(0)}
@@ -387,7 +389,7 @@ export default function Profile() {
                         </div>
                       </div>
                       
-                      <div className="post-content">
+                      <div className="post-content"><LikeButton id={post.id} count={post.likeCount} liked={post.isLiked} />
                         {post.content && <p className="post-text">{post.content}</p>}
                         {post.image && (
                           <div className="post-image-container">

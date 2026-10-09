@@ -40,7 +40,7 @@ function getTheme(): Theme {
 export default function ThemeToggle({ authOnly = false }: { authOnly?: boolean }) {
     const pathname = usePathname()
     const theme = useSyncExternalStore(subscribe, getTheme, () => 'light' as Theme)
-    if (authOnly && pathname !== '/login' && pathname !== '/register') return null
+    if (authOnly && pathname !== '/login' && pathname !== '/register' && pathname !== '/forgot-password' && pathname !== '/reset-password') return null
 
     const toggle = () => {
         const nextTheme = theme === 'dark' ? 'light' : 'dark'

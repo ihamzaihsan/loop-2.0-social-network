@@ -6,6 +6,10 @@ import { useRouter, useParams } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import '../../home/home.css'
 import '../profile.css'
+import { mediaURL } from '@/utils/api'
+import LikeButton from '@/components/LikeButton'
+import ContentActions from '@/components/ContentActions'
+import UserSafetyActions from '@/components/UserSafetyActions'
 import Sidebar from '../../../components/Sidebar'
 
 interface User {
@@ -164,7 +168,7 @@ export default function UserProfile() {
     <div className="profile-page">
       <Sidebar activePage="profile" />
       
-      <main className="main-content">
+      <main className="main-content">{profile && !profile.isCurrentUser && <UserSafetyActions id={profile.user.id} name={profile.user.firstName || "this user"} />}
         {profile && (
           <div className="profile-container">
             <div className="card profile-card">
@@ -271,7 +275,7 @@ export default function UserProfile() {
                               onClick={() => router.push(`/profile/${post.userId}`)}
                             >
                               {post.author.avatar ? (
-                                <img src={post.author.avatar} alt={`${post.author.firstName}'s avatar`} />
+                                <img src={mediaURL(post.author.avatar)} alt={`${post.author.firstName}'s avatar`} />
                               ) : (
                                 <div className="avatar-placeholder">
                                   {post.author.firstName.charAt(0)}
@@ -289,7 +293,7 @@ export default function UserProfile() {
                           </div>
                         </div>
                         
-                        <div className="post-content">
+                        <div className="post-content"><ContentActions kind="post" id={post.id} reportable={!profile.isCurrentUser} /><LikeButton id={post.id} count={post.likeCount} liked={post.isLiked} />
                           {post.content && <p className="post-text">{post.content}</p>}
                           {post.image && (
                             <div className="post-image-container">
@@ -346,7 +350,7 @@ export default function UserProfile() {
                           <li key={follower.id} className="follow-item" onClick={() => navigateToProfile(follower.id)}>
                             <div className="follow-avatar">
                               {follower.avatar ? (
-                                <img src={follower.avatar} alt={`${follower.firstName}'s avatar`} />
+                                <img src={mediaURL(follower.avatar)} alt={`${follower.firstName}'s avatar`} />
                               ) : (
                                 <div className="avatar-placeholder">
                                   {(follower.firstName?.charAt(0).toUpperCase() ?? '?')}
@@ -386,7 +390,7 @@ export default function UserProfile() {
                           <li key={following.id} className="follow-item" onClick={() => navigateToProfile(following.id)}>
                             <div className="follow-avatar">
                               {following.avatar ? (
-                                <img src={following.avatar} alt={`${following.firstName}'s avatar`} />
+                                <img src={mediaURL(following.avatar)} alt={`${following.firstName}'s avatar`} />
                               ) : (
                                 <div className="avatar-placeholder">
                                   {(following.firstName?.charAt(0).toUpperCase() ?? '?')}
