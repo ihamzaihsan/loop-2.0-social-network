@@ -38,7 +38,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 	var user models.User
 	err := db.DBInstance.DB.QueryRow(
-		"SELECT id, email, password, first_name, last_name, dob, avatar, nickname, about_me, isprivate, created_at FROM users WHERE email = ?",
+		"SELECT id, email, password, first_name, last_name, dob, avatar, nickname, about_me, isprivate, created_at FROM users WHERE email = ? AND is_suspended=0",
 		loginReq.Email,
 	).Scan(&user.ID, &user.Email, &user.Password, &user.FirstName, &user.LastName, &user.DOB, &user.Avatar, &user.Nickname, &user.AboutMe, &user.IsPrivate, &user.CreatedAt)
 

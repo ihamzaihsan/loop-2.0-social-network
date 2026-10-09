@@ -24,7 +24,7 @@ func CreateGroupEventService(groupID, userID int, title, description string, eve
 	}
 
 	// Create event
-	eventID, err := query.CreateGroupEvent(groupID, title, description, eventTime)
+	eventID, err := query.CreateGroupEvent(groupID, userID, title, description, eventTime)
 	if err != nil {
 		log.Printf("[ERROR] Failed to create event: %v", err)
 		return 0, err

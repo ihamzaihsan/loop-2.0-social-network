@@ -3,6 +3,7 @@ package routes
 import (
 	"encoding/json"
 	"net/http"
+	"socialNetwork/pkg/access"
 	auth "socialNetwork/pkg/auth"
 	query "socialNetwork/pkg/db/query"
 	"socialNetwork/pkg/models"
@@ -58,6 +59,10 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
+			if !validPrivacy(jsonRequest.Privacy) {
+				http.Error(w, "Choose public, friends or private", 400)
+				return
+			}
 			// Create post using the JSON data
 			post, err := query.CreatePostQuery(userID, jsonRequest)
 			if err != nil {
@@ -79,6 +84,10 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 	var request models.PostRequest
 	request.Content = r.FormValue("content")
 	request.Privacy = r.FormValue("privacy")
+	if !validPrivacy(request.Privacy) {
+		http.Error(w, "Choose public, friends or private", 400)
+		return
+	}
 
 	// Validate content length
 	if len(request.Content) > 100 {
@@ -110,7 +119,7 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 	file, header, err := r.FormFile("image")
 	if err == nil {
 		defer file.Close()
-		imagePath, err := utils.HandleImageUpload(file, header)
+		imagePath, err := utils.HandleImageUpload(file, header, viewer(r))
 		if err != nil {
 			http.Error(w, "Failed to upload image", http.StatusInternalServerError)
 			return
@@ -172,11 +181,16 @@ func UpdatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !validPrivacy(request.Privacy) || !validText(request.Content, 100, post.Image == "") {
+		http.Error(w, "Check content and privacy", 400)
+		return
+	}
 	// Update only the fields that are allowed to be updated
 	// In this case, content and privacy
 	updateData := models.PostRequest{
-		Content: request.Content,
-		Privacy: request.Privacy,
+		Content:   request.Content,
+		Privacy:   request.Privacy,
+		ViewerIDs: request.ViewerIDs,
 		// Don't allow image to be updated
 		Image: post.Image,
 	}
@@ -253,7 +267,7 @@ func GetPosts(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if post.UserID != userID && post.Privacy != "public" {
+		if !access.CanViewPost(userID, postID) {
 			http.Error(w, "Unauthorized to view this post", http.StatusForbidden)
 			return
 		}
@@ -272,6 +286,10 @@ func GetPosts(w http.ResponseWriter, r *http.Request) {
 		page = 1
 	}
 	limit := 10
+	if page > 100000 {
+		http.Error(w, "Invalid page", 400)
+		return
+	}
 	offset := (page - 1) * limit
 
 	posts, total, err := query.GetVisiblePosts(userID, limit, offset)
@@ -290,4 +308,8 @@ func GetPosts(w http.ResponseWriter, r *http.Request) {
 		"total":   total,
 		"page":    page,
 	})
+}
+
+func validPrivacy(value string) bool {
+	return value == "public" || value == "friends" || value == "private"
 }

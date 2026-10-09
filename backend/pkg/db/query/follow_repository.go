@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"log"
+	"socialNetwork/pkg/access"
 	"time"
 
 	"socialNetwork/pkg/db"
@@ -15,6 +16,9 @@ import (
 func RequestFollow(followerID, followedID uint) (string, error) {
 	if followerID == 0 || followedID == 0 || followerID == followedID {
 		return "", errors.New("invalid follow target")
+	}
+	if access.Blocked(int(followerID), int(followedID)) {
+		return "", errors.New("user unavailable")
 	}
 	tx, err := db.DBInstance.DB.Begin()
 	if err != nil {

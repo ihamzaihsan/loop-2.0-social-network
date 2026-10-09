@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"socialNetwork/pkg/access"
 	"strconv"
 	"strings"
 
@@ -52,6 +53,12 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var active bool
+	db.DBInstance.DB.QueryRow(`SELECT is_suspended=0 FROM users WHERE id=?`, userID).Scan(&active)
+	if !active || access.Blocked(currentUserID, userID) {
+		http.Error(w, "Profile unavailable", 404)
+		return
+	}
 	// Get user info
 	user, err := query.GetUserInfo(userID)
 	if err != nil {

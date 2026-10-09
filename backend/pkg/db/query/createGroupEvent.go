@@ -6,16 +6,16 @@ import (
 )
 
 // CreateGroupEvent creates a new event in a group
-func CreateGroupEvent(groupID int, title, description string, eventTime time.Time) (int, error) {
+func CreateGroupEvent(groupID, creatorID int, title, description string, eventTime time.Time) (int, error) {
 	tx, err := db.DBInstance.DB.Begin()
 	if err != nil {
 		return 0, err
 	}
 
 	result, err := tx.Exec(`
-		INSERT INTO group_events (group_id, title, description, event_time, created_at)
-		VALUES (?, ?, ?, ?, ?)
-	`, groupID, title, description, eventTime, time.Now())
+		INSERT INTO group_events (group_id, title, description, event_time, created_at, creator_id)
+		VALUES (?, ?, ?, ?, ?, ?)
+	`, groupID, title, description, eventTime, time.Now(), creatorID)
 
 	if err != nil {
 		tx.Rollback()

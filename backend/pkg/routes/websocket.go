@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"log"
 	"net/http"
+	"socialNetwork/pkg/access"
 	"time"
 
 	"socialNetwork/pkg/auth"
@@ -18,7 +19,8 @@ import (
 
 var upgrader = gorilla.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
-		return true
+		origin := r.Header.Get("Origin")
+		return origin == "" || origin == "http://localhost:3000" || origin == "http://localhost:3001"
 	},
 }
 
@@ -92,6 +94,9 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
+		if session, err := auth.GetSessionFromCookie(r); err != nil || session == nil {
+			break
+		}
 		log.Printf("[INFO] Received message of type '%s' from user %d", msg.Type, userID)
 
 		switch msg.Type {
@@ -152,7 +157,7 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 		case "typing_status":
 			if content, ok := msg.Content.(map[string]interface{}); ok {
-				if receiver, ok := content["receiver_id"].(float64); ok && receiver > 0 && receiver != float64(userID) {
+				if receiver, ok := content["receiver_id"].(float64); ok && receiver > 0 && receiver != float64(userID) && !access.Blocked(userID, int(receiver)) {
 					if typing, ok := content["is_typing"].(bool); ok {
 						ws.SendToUser(int(receiver), Message{Type: "typing_status", Content: map[string]interface{}{"sender_id": userID, "is_typing": typing}})
 					}
@@ -209,6 +214,10 @@ func handlePrivateMessage(userID int, content map[string]interface{}) {
 		return
 	}
 	receiverID := int(receiverIDFloat)
+	if access.Blocked(userID, receiverID) {
+		ws.SendToUser(userID, Message{Type: "error", Content: map[string]string{"error": "Messaging unavailable"}})
+		return
+	}
 
 	// Extract message content
 	messageContent, ok := content["content"].(string)

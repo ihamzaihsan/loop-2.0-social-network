@@ -13,8 +13,8 @@ func GetAllUsers(currentUserID int) ([]map[string]interface{}, error) {
                       WHERE follower_id = ? AND following_id = u.id AND status = 'accept') as is_following,
  EXISTS(SELECT 1 FROM followers WHERE follower_id = ? AND following_id = u.id AND status = 'pending'), u.isprivate
 		FROM users u
-		WHERE u.id != ?
-	`, currentUserID, currentUserID, currentUserID)
+		WHERE u.id != ? AND u.is_suspended=0 AND NOT EXISTS(SELECT 1 FROM user_blocks WHERE (blocker_id=? AND blocked_id=u.id) OR (blocker_id=u.id AND blocked_id=?))
+	`, currentUserID, currentUserID, currentUserID, currentUserID, currentUserID)
 	if err != nil {
 		return nil, err
 	}

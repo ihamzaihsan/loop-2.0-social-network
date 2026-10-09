@@ -61,7 +61,7 @@ func HandleGroupEventCreation(userID int, content map[string]interface{}) {
 	}
 
 	// Create the event
-	eventID, err := createEventInDatabase(groupID, title, description, eventTime, content)
+	eventID, err := createEventInDatabase(groupID, userID, title, description, eventTime, content)
 	if err != nil {
 		log.Printf("[ERROR] Failed to create event: %v", err)
 		return
@@ -97,7 +97,7 @@ func HandleGroupEventCreation(userID int, content map[string]interface{}) {
 }
 
 // Helper function to create event in database
-func createEventInDatabase(groupID int, title, description string, eventTime time.Time, content map[string]interface{}) (int64, error) {
+func createEventInDatabase(groupID, userID int, title, description string, eventTime time.Time, content map[string]interface{}) (int64, error) {
 	// Insert the event
 	tx, err := db.DBInstance.DB.Begin()
 	if err != nil {
@@ -106,9 +106,9 @@ func createEventInDatabase(groupID int, title, description string, eventTime tim
 	defer tx.Rollback()
 
 	result, err := tx.Exec(`
-        INSERT INTO group_events (group_id, title, description, event_time, created_at)
-        VALUES (?, ?, ?, ?, ?)
-    `, groupID, title, description, eventTime, time.Now())
+        INSERT INTO group_events (group_id, title, description, event_time, created_at, creator_id)
+        VALUES (?, ?, ?, ?, ?, ?)
+    `, groupID, title, description, eventTime, time.Now(), userID)
 
 	if err != nil {
 		return 0, err

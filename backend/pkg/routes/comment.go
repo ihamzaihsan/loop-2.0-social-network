@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"socialNetwork/pkg/access"
 	auth "socialNetwork/pkg/auth"
 	query "socialNetwork/pkg/db/query"
 	"socialNetwork/pkg/models"
@@ -26,6 +27,12 @@ func HandleComments(w http.ResponseWriter, r *http.Request) {
 		GetComments(w, r)
 	case http.MethodPost:
 		CreateComment(w, r)
+	case http.MethodPut, http.MethodDelete:
+		values := r.URL.Query()
+		values.Set("type", "comment")
+		r.URL.RawQuery = values.Encode()
+		ManageContent(w, r)
+		return
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
@@ -43,6 +50,10 @@ func CreateComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !access.CanViewPost(viewer(r), postID) {
+		http.Error(w, "Post unavailable", 404)
+		return
+	}
 	// Check if post exists
 	_, err = query.GetPostByIDQuery(postID)
 	if err != nil {
@@ -87,7 +98,7 @@ func CreateComment(w http.ResponseWriter, r *http.Request) {
 				header.Filename, header.Size)
 
 			// Use the utils function to handle the image upload
-			imagePath, err := utils.HandleImageUpload(file, header)
+			imagePath, err := utils.HandleImageUpload(file, header, viewer(r))
 			if err != nil {
 				log.Printf("Error uploading image: %v", err)
 				http.Error(w, "Failed to upload image", http.StatusInternalServerError)
@@ -143,6 +154,10 @@ func GetComments(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !access.CanViewPost(viewer(r), postID) {
+		http.Error(w, "Post unavailable", 404)
+		return
+	}
 	// Check if post exists
 	_, err = query.GetPostByIDQuery(postID)
 	if err != nil {

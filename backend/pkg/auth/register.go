@@ -116,6 +116,11 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	email = strings.TrimSpace(email)
+	if !ValidEmail(email) || !ValidPassword(password) {
+		http.Error(w, "Use a valid email and a password of 8?72 bytes", 400)
+		return
+	}
 	if email == "" || password == "" || firstName == "" || lastName == "" || dob == "" {
 		http.Error(w, "Missing required fields", http.StatusBadRequest)
 		return
@@ -196,17 +201,27 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := db.DBInstance.DB.Exec(`
-    INSERT INTO users (email, password, first_name, last_name, dob, avatar, nickname, about_me, isprivate)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		user.Email, hashedPassword, user.FirstName, user.LastName, user.DOB, user.Avatar, user.Nickname, user.AboutMe, user.IsPrivate)
+	tx, err := db.DBInstance.DB.Begin()
 	if err != nil {
-		log.Printf("Database error during user creation: %v", err)
-		http.Error(w, "Error creating user: "+err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Error creating user", 500)
 		return
 	}
-
-	userID, _ := result.LastInsertId()
+	defer tx.Rollback()
+	allocation, err := tx.Exec(`INSERT INTO user_ids DEFAULT VALUES`)
+	if err != nil {
+		http.Error(w, "Error creating user", 500)
+		return
+	}
+	userID, err := allocation.LastInsertId()
+	if err != nil {
+		http.Error(w, "Error creating user", 500)
+		return
+	}
+	_, err = tx.Exec(`INSERT INTO users(id,email,password,first_name,last_name,dob,avatar,nickname,about_me,isprivate) VALUES (?,?,?,?,?,?,?,?,?,?)`, userID, user.Email, hashedPassword, user.FirstName, user.LastName, user.DOB, user.Avatar, user.Nickname, user.AboutMe, user.IsPrivate)
+	if err != nil || tx.Commit() != nil {
+		http.Error(w, "Unable to create account; email may be unavailable", 409)
+		return
+	}
 	user.ID = int(userID)
 
 	session, err := CreateSession(user.ID)

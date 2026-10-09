@@ -18,6 +18,9 @@ func main() {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
 	fmt.Println("Database initialized successfully!")
+	if err := auth.BootstrapModerator(); err != nil {
+		log.Fatalf("Moderator setup failed: %v", err)
+	}
 	if err := auth.InitSessionStore(); err != nil {
 		log.Fatalf("Failed to load sessions: %v", err)
 	}
@@ -32,8 +35,18 @@ func main() {
 	}()
 
 	// Serve uploaded media from the local runtime directory.
-	http.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir("./uploads"))))
+	http.HandleFunc("/uploads/", auth.CorsMiddleware(auth.AuthMiddleware(routes.ServeMedia)))
 
+	http.HandleFunc("/forgot-password", auth.CorsMiddleware(auth.ForgotPassword))
+	http.HandleFunc("/reset-password", auth.CorsMiddleware(auth.ResetPassword))
+	http.HandleFunc("/account", auth.CorsMiddleware(auth.AuthMiddleware(routes.AccountSettings)))
+	http.HandleFunc("/blocks", auth.CorsMiddleware(auth.AuthMiddleware(routes.Blocks)))
+	http.HandleFunc("/reports", auth.CorsMiddleware(auth.AuthMiddleware(routes.Reports)))
+	http.HandleFunc("/moderation", auth.CorsMiddleware(auth.AuthMiddleware(routes.Moderation)))
+	http.HandleFunc("/search", auth.CorsMiddleware(auth.AuthMiddleware(routes.Search)))
+	http.HandleFunc("/content/manage", auth.CorsMiddleware(auth.AuthMiddleware(routes.ManageContent)))
+	http.HandleFunc("/posts/like", auth.CorsMiddleware(auth.AuthMiddleware(routes.PostLike)))
+	http.HandleFunc("/groups/manage", auth.CorsMiddleware(auth.AuthMiddleware(routes.ManageGroup)))
 	// Routes
 	http.HandleFunc("/", routes.ServeMain)
 	http.HandleFunc("/register", auth.CorsMiddleware(auth.Register))

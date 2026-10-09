@@ -103,6 +103,10 @@ func GetSessionFromCookie(r *http.Request) (*models.Session, error) {
 	}
 
 	sessionID := cookie.Value
+	var active bool
+	if db.DBInstance.DB.QueryRow(`SELECT EXISTS(SELECT 1 FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token=? AND s.is_active=1 AND u.is_suspended=0)`, sessionID).Scan(&active) != nil || !active {
+		return nil, nil
+	}
 
 	// Try to get from memory first
 	if sessionInterface, ok := SessionStore.Sessions.Load(sessionID); ok {

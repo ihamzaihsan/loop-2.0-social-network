@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"socialNetwork/pkg/access"
 	"socialNetwork/pkg/auth"
 	"socialNetwork/pkg/db/query"
 	"socialNetwork/pkg/models"
@@ -53,6 +54,10 @@ func FollowUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if access.Blocked(userID, int(req.FollowedID)) {
+		http.Error(w, "Follow unavailable", 403)
+		return
+	}
 	// Use repository to handle follow logic
 	status, err := query.RequestFollow(uint(userID), req.FollowedID)
 	if err != nil {

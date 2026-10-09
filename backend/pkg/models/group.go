@@ -74,6 +74,7 @@ type GroupComment struct {
 }
 
 type GroupEvent struct {
+	CreatorID       int                   `json:"creator_id"`
 	ID              int                   `json:"id"`
 	GroupID         int                   `json:"group_id"`
 	Title           string                `json:"title"`

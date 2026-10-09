@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"socialNetwork/pkg/access"
 	"socialNetwork/pkg/auth"
 	query "socialNetwork/pkg/db/query"
 	"socialNetwork/pkg/models"
@@ -213,6 +214,12 @@ func InviteToGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	for _, target := range req.UserIDs {
+		if access.Blocked(userID, target) {
+			http.Error(w, "Cannot invite a blocked user", 403)
+			return
+		}
+	}
 	// Invite users using service
 	err = GroupServiceImpl.InviteToGroup(req.GroupID, userID, req.UserIDs)
 	if err != nil {
@@ -631,7 +638,7 @@ func CreateGroupPost(w http.ResponseWriter, r *http.Request) {
 	file, header, err := r.FormFile("image")
 	if err == nil {
 		defer file.Close()
-		imagePath, err := utils.HandleImageUpload(file, header)
+		imagePath, err := utils.HandleImageUpload(file, header, viewer(r))
 		if err != nil {
 			log.Printf("[ERROR] Failed to upload image: %v", err)
 			http.Error(w, fmt.Sprintf("Failed to upload image: %v", err), http.StatusInternalServerError)

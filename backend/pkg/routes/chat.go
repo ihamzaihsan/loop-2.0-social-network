@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"socialNetwork/pkg/access"
 	"socialNetwork/pkg/auth"
 	"socialNetwork/pkg/db"
 	"socialNetwork/pkg/utils"
@@ -167,10 +168,11 @@ func GetChatContacts(userID int) ([]ChatContact, error) {
 			(SELECT COUNT(*) FROM messages unread WHERE unread.chat_id = lm.chat_id AND unread.sender_id = lm.contact_id AND unread.is_read = 0) AS unread_count
 		FROM last_messages lm
 		JOIN users u ON lm.contact_id = u.id
+ WHERE u.is_suspended=0 AND NOT EXISTS(SELECT 1 FROM user_blocks b WHERE (b.blocker_id=? AND b.blocked_id=u.id) OR (b.blocker_id=u.id AND b.blocked_id=?))
 		ORDER BY lm.last_message_time DESC
 	`
 
-	rows, err := db.DBInstance.DB.Query(query, userID, userID, userID)
+	rows, err := db.DBInstance.DB.Query(query, userID, userID, userID, userID, userID)
 	if err != nil {
 		log.Printf("[ERROR] Failed to query chat contacts: %v", err)
 		return nil, err
@@ -236,7 +238,7 @@ func UploadChatImage(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	imagePath, err := utils.HandleImageUpload(file, header)
+	imagePath, err := utils.HandleImageUpload(file, header, viewer(r))
 	if err != nil {
 		http.Error(w, "Failed to upload image", http.StatusInternalServerError)
 		return
@@ -273,6 +275,10 @@ func GetUserInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if access.Blocked(currentUserID, userID) {
+		http.Error(w, "User unavailable", 404)
+		return
+	}
 	// Get user info from database
 	var user struct {
 		ID        int     `json:"id"`
@@ -286,7 +292,7 @@ func GetUserInfo(w http.ResponseWriter, r *http.Request) {
 	err = db.DBInstance.DB.QueryRow(`
 		SELECT id, first_name, last_name, nickname, avatar
 		FROM users
-		WHERE id = ?
+		WHERE id = ? AND is_suspended=0
 	`, userID).Scan(&user.ID, &user.FirstName, &user.LastName, &nickname, &avatar)
 
 	if err != nil {

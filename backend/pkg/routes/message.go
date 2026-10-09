@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"socialNetwork/pkg/access"
 	"socialNetwork/pkg/auth"
 	"socialNetwork/pkg/db"
 	"socialNetwork/pkg/db/query"
@@ -61,6 +62,14 @@ func ServeMessages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if access.Blocked(currentUserID, otherUserID) {
+		http.Error(w, "Conversation unavailable", 404)
+		return
+	}
+	if limit < 1 || limit > 1000 || offset < 0 {
+		http.Error(w, "Invalid pagination", 400)
+		return
+	}
 	// First, find the chat between these two users
 	var chatID int
 	err = db.DBInstance.DB.QueryRow(`
@@ -186,6 +195,10 @@ func SendMessage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if request.ReceiverID != nil {
+		if access.Blocked(currentUserID, *request.ReceiverID) {
+			http.Error(w, "Messaging is unavailable for this user", 403)
+			return
+		}
 		// Private message - first get or create a chat between the two users
 		var chatID int
 

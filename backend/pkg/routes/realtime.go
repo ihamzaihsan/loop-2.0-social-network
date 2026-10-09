@@ -9,6 +9,10 @@ import (
 )
 
 var mutationResources = map[string][]string{
+	"/account": {"users", "profiles", "posts", "social", "groups", "chat"},
+	"/blocks":  {"social", "users", "profiles", "posts", "chat", "notifications"},
+	"/reports": {"reports"}, "/moderation": {"reports", "users", "posts", "comments", "groups", "profiles", "social"},
+	"/content/manage": {"posts", "comments", "groups"}, "/posts/like": {"posts"}, "/groups/manage": {"groups"},
 	"/posts": {"posts"}, "/create-post": {"posts"}, "/comments": {"comments"},
 	"/profile/privacy": {"profiles", "users", "posts"}, "/register": {"users"},
 	"/follow": {"social"}, "/unfollow": {"social"}, "/follow-request": {"social"},

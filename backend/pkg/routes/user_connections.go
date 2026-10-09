@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"socialNetwork/pkg/access"
 	auth "socialNetwork/pkg/auth"
 	query "socialNetwork/pkg/db/query"
 	"socialNetwork/pkg/models"
@@ -54,6 +55,10 @@ func GetUserConnections(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if access.Blocked(currentUserID, userID) {
+		http.Error(w, "User unavailable", 404)
+		return
+	}
 	// Check if connection type is valid
 	if connectionType != "followers" && connectionType != "following" {
 		http.Error(w, "Invalid connection type", http.StatusBadRequest)

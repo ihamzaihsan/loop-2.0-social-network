@@ -10,7 +10,7 @@ import (
 // GetGroupEvents returns all events in a group
 func GetGroupEvents(groupID, userID int) ([]models.GroupEvent, error) {
 	rows, err := db.DBInstance.DB.Query(`
-		SELECT ge.id, ge.group_id, ge.title, ge.description, ge.event_time, ge.created_at,
+		SELECT ge.id, ge.group_id, ge.title, ge.description, ge.event_time, ge.created_at, COALESCE(ge.creator_id,0),
 			    (SELECT er.response_option_id 
 				FROM event_responses er 
 				JOIN event_response_options ero ON er.response_option_id = ero.id
@@ -51,6 +51,7 @@ func GetGroupEvents(groupID, userID int) ([]models.GroupEvent, error) {
 			&event.Description,
 			&event.EventTime,
 			&event.CreatedAt,
+			&event.CreatorID,
 			&userResponseID,
 			&userResponse,
 			&goingCount,

@@ -9,6 +9,9 @@ services:
     volumes:
       - ./data:/app/data
       - ./backend/uploads:/app/uploads
+    env_file:
+      - path: ./backend/.env
+        required: false
     environment:
       DB_PATH: /app/data/social-network.db
       PORT: 8080

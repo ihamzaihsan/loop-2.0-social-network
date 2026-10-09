@@ -5,10 +5,15 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"image"
+	_ "image/gif"
+	_ "image/jpeg"
+	_ "image/png"
 	"io"
 	"mime/multipart"
 	"os"
 	"path/filepath"
+	"socialNetwork/pkg/db"
 	"strings"
 	"time"
 )
@@ -69,12 +74,19 @@ func generateUniqueFilename(originalFilename string) string {
 	return fmt.Sprintf("%d_%s%s", timestamp, randomString, ext)
 }
 
-func HandleImageUpload(file multipart.File, header *multipart.FileHeader) (string, error) {
+func HandleImageUpload(file multipart.File, header *multipart.FileHeader, owner ...int) (string, error) {
 	// Validate the image file first
 	if err := ValidateImageFile(header); err != nil {
 		return "", err
 	}
 
+	config, _, err := image.DecodeConfig(file)
+	if err != nil || config.Width <= 0 || config.Height <= 0 || config.Width > 16000 || config.Height > 16000 || config.Width*config.Height > 40000000 {
+		return "", errors.New("invalid or oversized image dimensions")
+	}
+	if _, err = file.Seek(0, 0); err != nil {
+		return "", err
+	}
 	uploadDir := "./uploads"
 	if err := os.MkdirAll(uploadDir, 0755); err != nil {
 		return "", fmt.Errorf("failed to create upload directory: %v", err)
@@ -97,5 +109,12 @@ func HandleImageUpload(file multipart.File, header *multipart.FileHeader) (strin
 
 	// Return web-friendly path with the unique filename
 	webPath := "/uploads/" + uniqueFilename
+	if len(owner) > 0 && owner[0] > 0 {
+		if _, err = db.DBInstance.DB.Exec(`INSERT INTO media_uploads(path,owner_id) VALUES (?,?)`, webPath, owner[0]); err != nil {
+			out.Close()
+			os.Remove(filepath)
+			return "", err
+		}
+	}
 	return webPath, nil
 }
