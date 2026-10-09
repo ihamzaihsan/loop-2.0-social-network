@@ -7,6 +7,7 @@ import { redirectBasedOnSession } from '../../utils/session'
 import { WebSocketClient } from '../webscoket/websocket'
 import AuthShowcase from '../../components/AuthShowcase'
 import BrandMark from '../../components/BrandMark'
+import GoogleSignIn from '../../components/GoogleSignIn'
 
 function LoginContent() {
   const router = useRouter()
@@ -91,6 +92,7 @@ function LoginContent() {
         {/* Display error message if there is one */}
         {error && <div className="error-message">{error}</div>}
         
+        <GoogleSignIn />
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label className="form-label">Email</label>

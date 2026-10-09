@@ -7,6 +7,7 @@ import { redirectBasedOnSession } from '../../utils/session'
 import { WebSocketClient } from '../webscoket/websocket'
 import AuthShowcase from '../../components/AuthShowcase'
 import BrandMark from '../../components/BrandMark'
+import GoogleSignIn from '../../components/GoogleSignIn'
 
 export default function Register() {
   const router = useRouter()
@@ -196,6 +197,7 @@ export default function Register() {
           <span className={step >= 2 ? 'active' : ''}></span>
           <small>Step {step} of 2</small>
         </div>
+        <GoogleSignIn />
         <form onSubmit={step === 1 ? handleNext : handleSubmit}>
           {step === 1 && (
             <>

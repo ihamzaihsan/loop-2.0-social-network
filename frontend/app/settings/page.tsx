@@ -1,6 +1,7 @@
 "use client";
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
+import GoogleSignIn from "../../components/GoogleSignIn";
 import FeatureShell from "../../components/FeatureShell";
 import { useRouter } from "next/navigation";
 import { api, refreshResources } from "../../utils/api";
@@ -15,6 +16,8 @@ type Account = {
     email: string;
   };
   isModerator: boolean;
+  hasPassword: boolean;
+  googleConnected: boolean;
 };
 type Block = { id: number; name: string };
 export default function Settings() {
@@ -130,6 +133,12 @@ export default function Settings() {
             </form>
           </section>
           <section className="feature-card">
+            <h2>Google sign-in</h2>
+            <p>{account.googleConnected ? "Google is connected to your account." : "Connect Google to sign in without entering your Loop password."}</p>
+            <GoogleSignIn intent={account.googleConnected ? "reauth" : "link"} />
+            {!account.hasPassword && <p>Confirm with Google before changing your email, setting a password or deleting your account. Confirmation lasts ten minutes.</p>}
+          </section>
+          <section className="feature-card">
             <h2>Email and password</h2>
             <p>
               Saving signs you out on all devices. Leave the new password empty
@@ -145,7 +154,7 @@ export default function Settings() {
                   required
                 />
               </label>
-              <label>
+              {account.hasPassword && <label>
                 Current password
                 <input
                   name="currentPassword"
@@ -153,7 +162,7 @@ export default function Settings() {
                   autoComplete="current-password"
                   required
                 />
-              </label>
+              </label>}
               <label>
                 New password
                 <input
@@ -215,10 +224,10 @@ export default function Settings() {
               className="feature-form"
               onSubmit={(e) => submit(e, "DELETE")}
             >
-              <label>
+              {account.hasPassword && <label>
                 Current password
                 <input name="currentPassword" type="password" required />
-              </label>
+              </label>}
               <label>
                 Type DELETE to confirm
                 <input name="confirmation" required pattern="DELETE" />
