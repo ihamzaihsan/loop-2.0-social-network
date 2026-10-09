@@ -118,7 +118,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 
 	email = strings.TrimSpace(email)
 	if !ValidEmail(email) || !ValidPassword(password) {
-		http.Error(w, "Use a valid email and a password of 8?72 bytes", 400)
+		http.Error(w, "Use a valid email and a password of 8 to 72 bytes", 400)
 		return
 	}
 	if email == "" || password == "" || firstName == "" || lastName == "" || dob == "" {
@@ -137,10 +137,6 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(nickname) > 100 {
 		http.Error(w, "Nickname exceeds maximum length of 100 characters", http.StatusBadRequest)
-		return
-	}
-	if len(password) > 100 {
-		http.Error(w, "Password exceeds maximum length of 100 characters", http.StatusBadRequest)
 		return
 	}
 

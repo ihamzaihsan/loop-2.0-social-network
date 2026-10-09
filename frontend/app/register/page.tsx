@@ -1,6 +1,6 @@
 'use client'
 import { imageSizeError } from "../../utils/images";
-import { API } from "../../utils/api";
+import { api } from "../../utils/api";
 import './register.css'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
@@ -51,6 +51,7 @@ export default function Register() {
 
   const handleNext = (e: React.FormEvent) => {
     e.preventDefault()
+    setErrorMessage(null)
 
     // Validate character limits
     if (formData.firstName.length > 100) {
@@ -65,8 +66,9 @@ export default function Register() {
       setErrorMessage("Nickname exceeds maximum length of 100 characters")
       return
     }
-    if (formData.password.length > 100) {
-      setErrorMessage("Password exceeds maximum length of 100 characters")
+    const passwordBytes = new TextEncoder().encode(formData.password).length
+    if (passwordBytes < 8 || passwordBytes > 72) {
+      setErrorMessage("Password must be between 8 and 72 bytes (8–72 characters for letters, numbers, and symbols).")
       return
     }
 
@@ -106,8 +108,9 @@ export default function Register() {
     setErrorMessage("Nickname exceeds maximum length of 100 characters")
     return
   }
-  if (formData.password.length > 100) {
-    setErrorMessage("Password exceeds maximum length of 100 characters")
+  const passwordBytes = new TextEncoder().encode(formData.password).length
+  if (passwordBytes < 8 || passwordBytes > 72) {
+    setErrorMessage("Password must be between 8 and 72 bytes (8–72 characters for letters, numbers, and symbols).")
     return
   }
 
@@ -123,8 +126,6 @@ export default function Register() {
     return
   }
     try {
-      let response;
-
       if (formData.avatar) {
         const sizeError = imageSizeError(formData.avatar);
         if (sizeError) {setErrorMessage(sizeError);return;}
@@ -140,16 +141,14 @@ export default function Register() {
         formDataToSend.append('isPrivate', formData.isPrivate.toString())
         formDataToSend.append('avatar', formData.avatar)
 
-        response = await fetch(`${API}/register`, {
+        await api('/register', {
           method: 'POST',
-          body: formDataToSend,
-          credentials: 'include'
+          body: formDataToSend
         })
       } else {
         // Use JSON for simple registration
-        response = await fetch(`${API}/register`, {
+        await api('/register', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             email: formData.email,
             password: formData.password,
@@ -159,16 +158,10 @@ export default function Register() {
             nickname: formData.nickname || null,
             aboutMe: formData.aboutMe || null,
             isPrivate: formData.isPrivate
-          }),
-          credentials: 'include'
+          })
         })
       }
 
-      const data = await response.json()
-      if (!response.ok) {
-        setErrorMessage(data.error || "Registration failed. Please check your input.")
-        return
-      }
         localStorage.removeItem('sessionToken');
 
       const wsClient = WebSocketClient.getInstance()
@@ -176,7 +169,9 @@ export default function Register() {
       router.push('/home')
     } catch (err) {
       console.error('Registration error:', err)
-      setErrorMessage("Registration failed. Please try again.")
+      setErrorMessage(err instanceof Error && !(err instanceof TypeError)
+        ? err.message
+        : "Unable to reach the server. Check your connection and try again.")
     }
   }
 
@@ -198,6 +193,9 @@ export default function Register() {
           <small>Step {step} of 2</small>
         </div>
         <GoogleSignIn />
+        {errorMessage && (
+          <div className="error-message" role="alert">{errorMessage}</div>
+        )}
         <form onSubmit={step === 1 ? handleNext : handleSubmit}>
           {step === 1 && (
             <>
@@ -247,8 +245,10 @@ export default function Register() {
                   placeholder="••••••••"
                   value={formData.password}
                   onChange={e => setFormData({ ...formData, password: e.target.value })}
-                  maxLength={100}
+                  minLength={8}
+                  maxLength={72}
                 />
+                <p className="form-help-text">Use 8–72 characters.</p>
               </div>
               <div className="form-group">
                 <label className="form-label">Date of Birth *</label>
@@ -322,9 +322,6 @@ export default function Register() {
                 </label>
                 <p className="form-help-text">Private accounts limit who can see your posts and profile information</p>
               </div>
-              {errorMessage && (
-                <div className="error-message">{errorMessage}</div>
-              )}
               <button type="button" className="next-button" onClick={handleBack} style={{marginBottom: '0.5rem'}}>Back</button>
               <button type="submit" className="submit-button">Create my Loop account</button>
             </>
