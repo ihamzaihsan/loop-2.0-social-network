@@ -4,9 +4,11 @@ import (
 	"database/sql"
 	"log"
 	"net/http"
+	"os"
 	"socialNetwork/pkg/db"
 	"socialNetwork/pkg/events"
 	"socialNetwork/pkg/models"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -86,6 +88,7 @@ func CreateSession(userID int) (*models.Session, error) {
 func SetSessionCookie(w http.ResponseWriter, session *models.Session) {
 	cookie := &http.Cookie{
 		Name:     "session_token",
+		Secure:   strings.HasPrefix(os.Getenv("FRONTEND_URL"), "https://"),
 		Value:    session.ID,
 		HttpOnly: true,
 		Path:     "/",

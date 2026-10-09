@@ -3,6 +3,7 @@ package auth
 import (
 	"encoding/json"
 	"net/http"
+	"os"
 	"strings"
 )
 
@@ -42,14 +43,24 @@ func CorsMiddleware(next http.HandlerFunc) http.HandlerFunc {
 			"http://localhost:3001",
 		}
 
+		if configured := strings.TrimRight(os.Getenv("FRONTEND_URL"), "/"); configured != "" {
+			allowedOrigins = append(allowedOrigins, configured)
+		}
+		w.Header().Add("Vary", "Origin")
+		allowed := origin == ""
 		// Check if the origin is in our allowed list
 		for _, allowedOrigin := range allowedOrigins {
 			if origin == allowedOrigin {
+				allowed = true
 				w.Header().Set("Access-Control-Allow-Origin", origin)
 				break
 			}
 		}
 
+		if !allowed {
+			http.Error(w, "Origin not allowed", http.StatusForbidden)
+			return
+		}
 		// If no origin header (like direct API calls), allow localhost:3000 as default
 		if origin == "" {
 			w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")

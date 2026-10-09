@@ -37,6 +37,10 @@ func main() {
 	// Serve uploaded media from the local runtime directory.
 	http.HandleFunc("/uploads/", auth.CorsMiddleware(auth.AuthMiddleware(routes.ServeMedia)))
 
+	http.HandleFunc("/auth/google/config", auth.CorsMiddleware(auth.GoogleConfig))
+	http.HandleFunc("/auth/google/start", auth.CorsMiddleware(auth.GoogleStart))
+	http.HandleFunc("/auth/google/callback", auth.GoogleCallback)
+	http.HandleFunc("/auth/google/registration", auth.CorsMiddleware(auth.GoogleRegistration))
 	http.HandleFunc("/forgot-password", auth.CorsMiddleware(auth.ForgotPassword))
 	http.HandleFunc("/reset-password", auth.CorsMiddleware(auth.ResetPassword))
 	http.HandleFunc("/account", auth.CorsMiddleware(auth.AuthMiddleware(routes.AccountSettings)))

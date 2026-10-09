@@ -18,7 +18,12 @@ func AccountSettings(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Account unavailable", 500)
 			return
 		}
-		respond(w, map[string]interface{}{"user": user, "isModerator": auth.IsModerator(id)})
+		var hasPassword, googleConnected bool
+		if db.DBInstance.DB.QueryRow(`SELECT password!='',EXISTS(SELECT 1 FROM oauth_identities WHERE provider='google' AND user_id=users.id) FROM users WHERE id=?`, id).Scan(&hasPassword, &googleConnected) != nil {
+			http.Error(w, "Account unavailable", 500)
+			return
+		}
+		respond(w, map[string]interface{}{"user": user, "isModerator": auth.IsModerator(id), "hasPassword": hasPassword, "googleConnected": googleConnected})
 		return
 	}
 	if r.Method == http.MethodPut {
@@ -67,7 +72,15 @@ func AccountSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var saved string
-	if db.DBInstance.DB.QueryRow(`SELECT password FROM users WHERE id=?`, id).Scan(&saved) != nil || bcrypt.CompareHashAndPassword([]byte(saved), []byte(input.CurrentPassword)) != nil {
+	if db.DBInstance.DB.QueryRow(`SELECT password FROM users WHERE id=?`, id).Scan(&saved) != nil {
+		http.Error(w, "Account unavailable", 500)
+		return
+	}
+	if saved == "" && !auth.RecentGoogleAuthentication(r) {
+		http.Error(w, "Sign in with Google again to confirm this account change", 403)
+		return
+	}
+	if saved != "" && bcrypt.CompareHashAndPassword([]byte(saved), []byte(input.CurrentPassword)) != nil {
 		http.Error(w, "Current password is incorrect", 403)
 		return
 	}
