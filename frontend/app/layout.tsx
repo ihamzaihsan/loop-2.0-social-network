@@ -5,6 +5,7 @@ import "./v2.css";
 import RealtimeAlerts from "../components/RealtimeAlerts";
 import ThemeToggle from "../components/ThemeToggle";
 import "./theme.css";
+import "./features.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
